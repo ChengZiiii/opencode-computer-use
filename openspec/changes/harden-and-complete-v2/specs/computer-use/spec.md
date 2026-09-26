@@ -26,7 +26,7 @@ The plugin SHALL expose exactly one agent-facing tool (`computer`) whose first p
 
 ### Requirement: Capture modes and image return contract
 
-`capture` SHALL support modes `som` (screenshot plus a numbered element list whose indices are usable for element-addressed actions), `vision` (plain screenshot), and `ax` (element list only). Screenshots SHALL be returned to the model as image attachments with inline data URLs, at a resolution whose longest edge does not exceed ~1568 logical pixels (driver-side resolution control when available; otherwise the native resolution with an explicit scale mapping in the text output), accompanied by the coordinate mapping between the returned image and native screen coordinates. The text output SHALL include the image-to-native scale factor (and display scale factor where available) and SHALL direct the agent to prefer element addressing over pixel coordinates, warning that the image may have been resized upstream. The element walk SHALL be bounded driver-side (default ~200 elements) so dense trees return in bounded time, with the bound reported when it truncates. Repeated captures of the same target with unchanged screenshot bytes SHALL omit the duplicate image attachment for at most a bounded streak (default 2), noting the omission in the text output. Capturing with an `app` name SHALL resolve the application to a concrete process (pid) before capture, so an app-scoped capture succeeds without a pre-existing sticky target. Non-screenshot results SHALL be text-only.
+`capture` SHALL support modes `som` (screenshot plus a numbered element list whose indices are usable for element-addressed actions), `vision` (plain screenshot), and `ax` (element list only). Screenshots SHALL be returned to the model as image attachments with inline data URLs, at a resolution whose longest edge does not exceed ~1568 logical pixels (driver-side resolution control when available; otherwise the native resolution with an explicit scale mapping in the text output), accompanied by the coordinate mapping between the returned image and native screen coordinates. The text output SHALL include the image-to-native scale factor (and display scale factor where available) and SHALL direct the agent to prefer element addressing over pixel coordinates, warning that the image may have been resized upstream. The element walk SHALL be bounded driver-side (default ~200 elements) so dense trees return in bounded time, with the bound reported when it truncates. Repeated captures of the same target with unchanged screenshot bytes SHALL omit the duplicate image attachment for at most a bounded streak (default 2), noting the omission in the text output. Capturing with an `app` name SHALL resolve the application to a concrete process (pid) before capture, so an app-scoped capture succeeds without a pre-existing sticky target. Non-screenshot results SHALL be text-only. A `zoom` capture of a bounded region (≤500 logical pixels on its long edge) SHALL be supported for reading dense UI, and input actions SHALL accept a `from_zoom` flag that remaps coordinates computed against the zoomed image back to native screen coordinates using the stored zoom mapping before dispatch.
 
 #### Scenario: Screenshot is model-visible
 
@@ -58,9 +58,14 @@ The plugin SHALL expose exactly one agent-facing tool (`computer`) whose first p
 - **WHEN** `capture` is called with only an `app` name and no sticky target exists
 - **THEN** the application is resolved to a pid (via the running-application and window listings) and the capture proceeds against it, or fails with a named resolution error listing running candidates
 
+#### Scenario: Zoomed-image coordinates remap on input
+
+- **WHEN** the agent computed a coordinate from a `zoom` capture's image and dispatches an input action with `from_zoom` set
+- **THEN** the coordinate is remapped to native screen coordinates via the stored zoom mapping before dispatch, and the result reports the remap
+
 ### Requirement: Semantic verdict on every input action
 
-Every non-capture action result SHALL include a verdict of `done`, `verify_fresh_state`, or `escalate` derived from the backend's semantic evidence (confirmed effect / unverifiable / suspected no-op), in addition to transport success. The verdict text SHALL instruct the agent to re-capture before any retry and SHALL NOT license repeating an input on an escalation recommendation alone. A `verify` action SHALL evaluate deterministic predicates against a window (existence, enabled/selected state, value equality, window bounds) and its result SHALL distinguish success from unknown — unknown SHALL never be reported as success; a passed verification MAY upgrade a prior action's verdict evidence.
+Every non-capture action result SHALL include a verdict of `done`, `verify_fresh_state`, or `escalate` derived from the backend's semantic evidence (confirmed effect / unverifiable / suspected no-op), in addition to transport success. The verdict text SHALL instruct the agent to re-capture before any retry and SHALL NOT license repeating an input on an escalation recommendation alone. A `verify` action SHALL evaluate deterministic predicates against a window (existence, enabled/selected state, value equality, window bounds) and its result SHALL distinguish success from unknown — unknown SHALL never be reported as success; a passed verification MAY upgrade a prior action's verdict evidence. A configurable `capture_after` policy (default off) SHALL, when enabled, re-capture the precise target window after an input action (`som` or `ax` per policy) and merge the fresh state into the action result, bounded to one re-capture per action.
 
 #### Scenario: Transport success without semantic proof
 
@@ -71,6 +76,11 @@ Every non-capture action result SHALL include a verdict of `done`, `verify_fresh
 
 - **WHEN** a `verify` action cannot confirm a predicate (element absent from a valid snapshot, value indeterminate)
 - **THEN** the result reports the outcome as unknown (not success) with the failing predicate named
+
+#### Scenario: capture_after re-captures once when enabled
+
+- **WHEN** the `capture_after` policy is enabled and an input action completes
+- **THEN** the action result embeds one fresh capture of the precise target window per the policy mode, merged after the verdict; when disabled (default) no extra capture occurs
 
 #### Scenario: Suspected no-op escalates one rung
 
@@ -110,21 +120,26 @@ By default the plugin SHALL register the `computer` tool under an ask-level perm
 - **WHEN** a foreground-raising action follows approved background actions in the same session
 - **THEN** it triggers its own approval request, and a background approval does not satisfy it
 
-## ADDED Requirements
+### Requirement: Sticky target guard for input
 
-### Requirement: Stale element addressing fails closed
+Input actions SHALL be delivered to the target established by the most recent `capture` or `focus_app`. When a call names an application that provably differs from that target, the tool SHALL refuse with a mismatch error directing the caller to capture or focus the intended application first, rather than dispatching to the current target. Element-addressed actions SHALL carry the driver's element snapshot identity (snapshot id and element tokens) from the originating capture; an `element_index` supplied without its snapshot identity SHALL be refused as unaddressable. The driver's staleness verdict SHALL surface as an explicit error requiring a fresh capture, never a silent re-resolution to another element. After a backend restart the snapshot bookkeeping SHALL be invalidated and the next result SHALL report the restart and direct a re-capture.
 
-The plugin SHALL carry the driver's element snapshot identity (snapshot id and element tokens) from each capture into subsequent element-addressed actions, and SHALL surface the driver's staleness verdict as an explicit error requiring a fresh capture. After a backend restart the snapshot bookkeeping SHALL be invalidated and the next result SHALL state that a restart occurred and a fresh capture is required.
+#### Scenario: Mismatched app argument is refused
 
-#### Scenario: Stale reference is refused, not re-resolved
+- **WHEN** an input action passes an `app` argument that conflicts with the current sticky target
+- **THEN** the call fails with an input-target-mismatch error and no input is dispatched
 
-- **WHEN** an element-addressed action references a snapshot that the driver considers stale
-- **THEN** the call fails with a named staleness error directing a re-capture, and never acts on a silently re-resolved element
+#### Scenario: Stale element references fail closed
+
+- **WHEN** an action addresses an element whose snapshot reference is no longer current
+- **THEN** the backend reports staleness and the tool surfaces it as an error requiring a fresh capture, never silently re-resolving to another element
 
 #### Scenario: Restart invalidates addressing state
 
 - **WHEN** the backend restarted since the last capture
 - **THEN** the next action result reports the restart, element references are treated as invalid, and the caller is directed to capture again
+
+## ADDED Requirements
 
 ### Requirement: Native menu invocation without pixel fallback
 
