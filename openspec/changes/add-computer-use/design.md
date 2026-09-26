@@ -27,7 +27,7 @@
 ### D2 二进制解析与契约门：manifest 自述，两段式检查
 
 解析顺序：`OPENCODE_CUA_DRIVER_CMD`（权威，坏了也不换）→ PATH → 平台规范位置（Windows `%LOCALAPPDATA%\Programs\Cua\cua-driver\bin`、`~/.local/bin`、`~/.cargo/bin`、homebrew 两处）。
-契约门 = `cua-driver manifest` JSON：`binary_version` ≥ 下限（初始 0.20.0，实测后按 installed 定）+ `mcp_invocation` 存在且合法 + 必需子命令 flag 面（沿用 Hermes 的 `mcp/serve/stop` 三组）。**两段式**：启动只做 manifest 门（毫秒级，无 spawn MCP、无网络）；首次调用才惰性起 MCP 会话，`tools/list` 结果若缺本集成所需工具 → 当次调用返回结构化错误并指引（不吞、不半工作）。**备选**：启动即起 MCP 全握手——Windows Defender 首扫下拖慢 opencode 启动，否决。
+契约门 = `cua-driver manifest` JSON：`binary_version` ≥ **0.28.0**（tested-against **0.28.2**，本机实测：Hermes 带入的规范位置安装）+ `mcp_invocation` 存在且合法 + 必需子命令 flag 面（0.28.2 实测：`mcp --direct` Windows/Linux 进程内持有运行时；无 `--no-overlay`——探测式附加 flag 在 0.28.2 直接跳过）。`check-update` 子命令默认读缓存（`--no-cache` 才强刷），满足 spec 的零网络前提；驱动另有 `doctor --json`、`mcp-config --client opencode`（官方已认可 opencode 为 client，裸 MCP 片段可直接引用进 README 对照）。**两段式**：启动只做 manifest 门（毫秒级，无 spawn MCP、无网络）；首次调用才惰性起 MCP 会话，`tools/list` 结果若缺本集成所需工具 → 当次调用返回结构化错误并指引（不吞、不半工作）。**备选**：启动即起 MCP 全握手——Windows Defender 首扫下拖慢 opencode 启动，否决。
 
 ### D3 生命周期：探测—降级—指引（openskill 纪律平移）
 
@@ -35,7 +35,9 @@
 
 ### D4 截图回传链：attachments + 缩放职责在驱动侧探测
 
-`capture` 拿到驱动返回的 PNG（base64）→ `attachments: [{type:"file", mime:"image/png", url:"data:image/png;base64,..."}]`，文本输出带坐标映射说明（图长边 vs 原生分辨率比例 + 元素寻址优先提示）。缩放优先用驱动侧分辨率参数（live 验证任务确认）；若驱动不支持且原始分辨率超长边 ~1568px，v1 接受原始图并在输出中给比例映射（零依赖约束下不自研 PNG 重采样），把"驱动参数不满足时的插件侧缩放"记为已知取舍（见 Risks）。元素清单上限默认 100，超出截断并声明。
+`capture` 拿到驱动返回的 PNG（base64）→ `attachments: [{type:"file", mime:"image/png", url:"data:image/png;base64,..."}]`，文本输出带坐标映射说明（图长边 vs 原生分辨率比例 + 元素寻址优先提示）。**0.28.2 实测**：`get_desktop_state` 文档明言 "no downscale"（驱动侧无分辨率参数），故 v1 走原图 + 比例映射（零依赖约束下不自研 PNG 重采样）；`zoom` 工具提供原生分辨率裁剪放大（输出 ≤500px，坐标经 `from_zoom` 回映射），作为小目标精读的**标准路径**；`get_window_state` 返回结构化 `elements` 数组（元素寻址主路径）。元素清单上限默认 100，超出截断并声明。
+
+**社区证据与有意偏离声明**（调研 2026-09-26）：Anthropic 官方把"原生分辨率直传"列为点击不准首因，但其点名的主要失效模式是**坐标空间错位**（模型按所见图像算像素坐标）——我们用元素索引寻址绕开它；且文本输出强制带 scale-factor/DPR 元数据并明示"图可能被上游缩放、勿做像素推理"。token 侧按官方量化（1k–1.8k/张、200k 上下文百张内满）主动设防：元素树优先（`ax` 模式为便宜档）、zoom 小图精读、`capture_after` 仅显式要求时附图。**后续候选**：截图 if-changed 去重（对标 agent-browser `--if-changed`）与插件侧缩放（需引入图像依赖，破坏零依赖则不做）。
 
 ### D5 安全层：照抄 Hermes 实战清单
 
@@ -43,7 +45,7 @@
 
 ### D6 进程卫生
 
-单进程单驱动子进程（manifest 的 `mcp_invocation` 直接 spawn，无孙进程链——#42191 免疫）；每调用硬超时（默认：capture 类 30s、输入类 15s、list 类 10s，Windows 首调用放宽——Defender 首扫）；`dispose` 终止子进程；崩溃 → 当次调用结构化报错 + 粘性目标/元素引用全失效 + 下次调用惰性重启；会话标签 `opencode-computer-use-<uuid>` 传 `start_session`；遥测 env 默认关；`--no-overlay` 平台默认沿用 Hermes 实证（macOS/X11 关，Wayland/Windows 开），probe `--help` 探测支持度。
+单进程单驱动子进程（manifest 的 `mcp_invocation` + `--direct` 直接 spawn，无孙进程链——#42191 免疫）；每调用硬超时（默认：capture 类 30s、输入类 15s、list 类 10s，Windows 首调用放宽——Defender 首扫）；`dispose` 终止子进程（并 `end_session` 尽力而为）；崩溃 → 当次调用结构化报错 + 粘性目标/元素引用全失效 + 下次调用惰性重启；会话标签 `opencode-computer-use-<uuid>` 传 `start_session`；遥测 env（`CUA_DRIVER_RS_TELEMETRY_ENABLED=0`）默认关——0.28.2 实测驱动默认发 content-free 遥测，必须显式关。
 
 ### D7 模块布局（对齐 forge 的 src/ 纪律）
 

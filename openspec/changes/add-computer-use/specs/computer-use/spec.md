@@ -2,7 +2,7 @@
 
 ### Requirement: Single consolidated desktop-control tool
 
-The plugin SHALL expose exactly one agent-facing tool (`computer`) whose first parameter is an `action` discriminator with values `capture`, `click`, `double_click`, `right_click`, `middle_click`, `drag`, `scroll`, `type`, `key`, `set_value`, `wait`, `list_apps`, `list_windows`, `focus_app`. `capture` SHALL be side-effect free; every other action SHALL be subject to the approval gate.
+The plugin SHALL expose exactly one agent-facing tool (`computer`) whose first parameter is an `action` discriminator with values `capture`, `click`, `double_click`, `right_click`, `drag`, `scroll`, `type`, `key`, `set_value`, `wait`, `list_apps`, `list_windows`, `focus_app`. `capture` SHALL be side-effect free; every other action SHALL be subject to the approval gate. Actions absent from the platform's driver surface SHALL be reported as unsupported with the platform limitation named rather than silently mapped to a different gesture.
 
 #### Scenario: Unknown action fails closed
 
@@ -16,7 +16,12 @@ The plugin SHALL expose exactly one agent-facing tool (`computer`) whose first p
 
 ### Requirement: Capture modes and image return contract
 
-`capture` SHALL support modes `som` (screenshot plus a numbered element list whose indices are usable for element-addressed actions), `vision` (plain screenshot), and `ax` (element list only). Screenshots SHALL be returned to the model as image attachments with inline data URLs, at a resolution whose longest edge does not exceed ~1568 logical pixels (driver-side resolution control when available; otherwise the native resolution with an explicit scale mapping in the text output), accompanied by the coordinate mapping between the returned image and native screen coordinates. The element list SHALL be capped (default 100 entries) with a marker when truncated. Non-screenshot results SHALL be text-only.
+`capture` SHALL support modes `som` (screenshot plus a numbered element list whose indices are usable for element-addressed actions), `vision` (plain screenshot), and `ax` (element list only). Screenshots SHALL be returned to the model as image attachments with inline data URLs, at a resolution whose longest edge does not exceed ~1568 logical pixels (driver-side resolution control when available; otherwise the native resolution with an explicit scale mapping in the text output), accompanied by the coordinate mapping between the returned image and native screen coordinates. The text output SHALL include the image-to-native scale factor (and display scale factor where available) and SHALL direct the agent to prefer element addressing over pixel coordinates, warning that the image may have been resized upstream. The element list SHALL be capped (default 100 entries) with a marker when truncated. Non-screenshot results SHALL be text-only.
+
+#### Scenario: Scale metadata warns against pixel reasoning
+
+- **WHEN** a screenshot attachment is returned at native resolution with a scale mapping
+- **THEN** the text output states the scale factor and instructs the agent to address elements by index rather than compute pixel coordinates from the image
 
 #### Scenario: Screenshot is model-visible
 

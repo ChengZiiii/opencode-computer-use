@@ -20,7 +20,7 @@
 ## 4. 工具面与截图回传
 
 - [ ] 4.1 `src/tool.ts` 注册 `computer`（action 判别器 14 动作 + 参数 schema，未知 action 报最近拼写）与 `computer_status`（就绪/引导两态输出 + 用户自跑命令 + 按需 check-update 信息）；验证：接线单测断言 schema、未知 action、status 两态文本
-- [ ] 4.2 `src/capture.ts`：som/vision/ax 三模式、attachments data URL 构造、元素清单上限 100 截断声明、坐标映射文本（图 vs 原生分辨率）、驱动侧分辨率参数探测（live 记录结论）；验证：fake 驱动响应单测覆盖三模式、附件构造、截断、映射文本
+- [ ] 4.2 `src/capture.ts`：som/vision/ax 三模式、attachments data URL 构造、元素清单上限 100 截断声明、坐标映射文本（图 vs 原生分辨率 + scale-factor/DPR 元数据 + "勿像素推理、元素寻址优先"提示）、zoom 作为小目标精读路径的引导；验证：fake 驱动响应单测覆盖三模式、附件构造、截断、映射与元数据文本
 - [ ] 4.3 verdict 映射：驱动结构化字段（ok/effect/verified/escalation）→ done/verify_fresh_state/escalate 三态，字段缺失默认 verify_fresh_state；文案含"重试前先 capture"与"不得凭建议重放"；验证：单测覆盖五类驱动响应组合
 
 ## 5. 安全层与审批
@@ -33,12 +33,12 @@
 ## 6. 插件装配与文档
 
 - [ ] 6.1 `plugin.ts` 装配：双入口（server/setup）、启动探测→就绪注册全工具面/未就绪只注册 status、dispose 清场、所有钩子交互 try/catch 不抛宿主；验证：装配单测两态注册 + dispose
-- [ ] 6.2 README：安装（npm spec + 用户自装 cua-driver 的平台命令）、配置（override env、权限键）、文件账本三块（安装器写的/插件写的/无）、卸载、与 playwright-mcp 并装说明、非视觉模型边界声明；验证：按避坑 §6 口径核对
+- [ ] 6.2 README：安装（npm spec + 用户自装 cua-driver 的平台命令）、配置（override env、权限键）、文件账本三块（安装器写的/插件写的/无）、卸载、与 playwright-mcp 并装说明、非视觉模型边界声明、**有意偏离 Anthropic 缩放建议的声明**（元素寻址 + scale 元数据 + zoom 路径的理由）、bounded 权限模式的进阶引导（回应社区对 Accessibility 权限的顾虑）；验证：按避坑 §6 口径核对
 - [ ] 6.3 AGENTS.md 架构表与模块职责；验证：与实际模块一致
 
 ## 7. 实机验证（Windows，真驱动）
 
-- [ ] 7.1 用户侧装 cua-driver（用户操作，插件不代装）后端到端：capture som 出图（模型可读）、元素寻址 click、type、set_value、list_apps/focus_app；验证：以具备视觉能力的模型会话执行 `opencode run --auto` 冒烟全过 + 附件真图确认
+- [ ] 7.1 cua-driver 已就位（本机 0.28.2，Hermes 带入；全新机器则用户自装——插件只报命令不代装）后端到端：capture som 出图（模型可读）、元素寻址 click、type、set_value、list_apps/focus_app(bring_to_front)；验证：以具备视觉能力的模型会话执行 `opencode run --auto` 冒烟全过 + 附件真图确认
 - [ ] 7.2 生命周期姿态：无驱动环境（PATH 隔离）只注册 `computer_status` 且报用户命令；契约门版本低/坏 manifest 的 guide 输出；安装器永不被执行（审计代码路径）；验证：沙箱 XDG 复现两态
 - [ ] 7.3 稳定性：驱动 kill -9 后当次调用结构化报错 + 下次惰性重启 + 粘性目标失效要求重新 capture；慢驱动（假挂起）超时失败不挂会话；验证：实机脚本化复现两场景
 - [ ] 7.4 审批与安全实机：默认 ask 姿态（无 --auto 拒绝 / --auto 放行）；封禁键组在 --auto 下依旧拦截；验证：两姿态度跑 + 封禁输入实测

@@ -7,7 +7,7 @@ opencode 生态里桌面级 computer use 是空白：官方内建只做浏览器
 ## What Changes
 
 - 新建独立插件包 `@sorenllm/opencode-computer-use`（零运行时 npm 依赖，dist 自包含入库，遵循避坑文档全部红线）。
-- 注册单一 `computer` 工具（action 判别器，Hermes 同款动作面）：`capture`（som/vision/ax 三模式）/ `click` / `double_click` / `right_click` / `middle_click` / `drag` / `scroll` / `type` / `key` / `set_value` / `wait` / `list_apps` / `list_windows` / `focus_app`，透传给 cua-driver 的 MCP stdio 服务。
+- 注册单一 `computer` 工具（action 判别器，Hermes 同款动作面按 0.28.2 Windows 实测裁剪）：`capture`（som/vision/ax 三模式）/ `click` / `double_click` / `right_click` / `drag` / `scroll` / `type` / `key` / `set_value` / `wait`（客户端本地）/ `list_apps` / `list_windows` / `focus_app`（映射驱动 `bring_to_front`），透传给 cua-driver 的 MCP stdio 服务。注：cua 官方 `mcp-config --client opencode` 已提供裸 MCP 接入片段；本插件的增值在安全闸、verdict 判定、生命周期引导与截图回传契约——这些裸 MCP 配置做不到。
 - 截图经 `ToolResult.attachments` 以 `data:` URL 回传（模型可直读），带预缩放（最长边 ~1568px）与坐标映射；SOM 元素清单有上限截断。
 - 安全层：封禁键组与危险 type 文本硬拦截、粘性目标守卫（防打错窗口）、审批两件套（config permission `computer: "ask"` 默认 + `ctx.ask()`）、单飞互斥（同进程一次只允许一个在途驱动调用）。
 - 生命周期"只探测—降级—指引"：启动时本地解析二进制 + `cua-driver manifest` 契约检查（毫秒级、零网络）；就绪才注册 `computer` 工具面，未就绪只注册 `computer_status` 一个问询窗，返回精确诊断与**用户自己执行**的安装/升级命令；插件进程内永不执行安装器、永不为生命周期做网络请求。
