@@ -45,5 +45,5 @@
 
 ## 8. 发布门槛
 
-- [ ] 8.1 `bundle` 打包、dist 入库、版本 0.1.0、`npm pack` 产物检查（无七触发器、双导出）；tsc + 全测试绿；验证：pack 清单核对
-- [ ] 8.2 npm 发布（浏览器密钥流程，沿用 forge 0.3.0 的 passkey + granular token + 用后撤销路径）+ 官方安装终验：`opencode plugin @sorenllm/opencode-computer-use --global`（npm registry spec）安装、注册、7.1 冒烟复跑全过；卸载四步 + 同 spec 重装回到干净可用状态；**最终状态硬性要求：用户环境 npm plugin 模式且冒烟通过**
+- [x] 8.1 `bundle` 打包、dist 入库、版本 0.1.0、`npm pack` 产物检查（无七触发器、双导出）；tsc + 全测试绿；验证：pack 清单核对
+- [x] 8.2 npm 发布（浏览器密钥流程，沿用 forge 0.3.0 的 passkey + granular token + 用后撤销路径）+ 官方安装终验：`opencode plugin @sorenllm/opencode-computer-use --global`（npm registry spec）安装、注册、7.1 冒烟复跑全过；卸载四步 + 同 spec 重装回到干净可用状态；**最终状态硬性要求：用户环境 npm plugin 模式且冒烟通过**

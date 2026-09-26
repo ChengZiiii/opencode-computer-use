@@ -73,3 +73,32 @@ element_index/role/label/**value**/**frame**（非 bounds）；
 - 所有 verdict 目前默认 `verify_fresh_state`（0.28.2 成功路径不回
   effect/verified 结构化字段；文本 JSON 合并已实现，字段出现即生效）——
   安全默认，符合 spec"transport 成功≠生效"。
+
+## 8.1 / 8.2 — 发布与官方安装终验（2026-09-26）
+
+- **8.1 通过**：`npm pack` 产物检查——`@sorenllm/opencode-computer-use@0.1.0`，
+  3 文件（README 6.9kB / dist 444.2kB / package.json），无七触发器脚本、
+  无 workspaces、双导出、`engines.opencode "^1.18.0"`；38/38 测试 +
+  tsc 干净后发布。
+- **8.2 通过（硬性最终态达成）**：
+  - 发布凭据走 Edge 浏览器闭环（同 forge 0.3.0 流程）：npmjs 会话
+    sudo-auth 当日有效 → granular token 表单（令牌名
+    `opencode-computer-use-0.1.0-publish`、Read and write (publish and
+    stage)、bypass-2FA）→ `+ @sorenllm/opencode-computer-use@0.1.0` →
+    **两个孤儿 token 全部删除**（列表复核零 token 行）、本地临时
+    凭据文件删除、浏览器标签还原。**偏差记录**：单包 scoping 的
+    包选择下拉在 a11y 树中不浮出（400 元素裁剪），本退而使用
+    All-packages 读写范围 + 发布后立即撤销的有界方案；granular
+    单包路径已于同日 forge 0.3.0 发布中完整验证过。
+  - registry `@latest`→0.1.0 后官方安装终验：
+    `opencode plugin @sorenllm/opencode-computer-use --global`（npm
+    registry spec）→ store 0.1.0、用户 `opencode.jsonc` 三插件全 npm
+    spec、注释保留（3406→3445 字节，仅新增插件行）。
+  - npm 安装态冒烟（--auto + glm-4.6v 视觉）：capture som 截图可读
+    （窗口标题）、type 落地并经元素 value 回读闭环
+    （"NPM-MODE-FINAL"）。**已知输入通道差异（记录不阻塞）**：
+    XAML 宿主（现代记事本）上 ctrl+a 热键与空值 set_value 未生效
+    ——verdict 梯如实上报"未落地"且 agent 拒绝盲重试（设计行为），
+    type/ValuePattern 主通道正常；后续 change 可补热键的元素级寻址。
+  - **最终状态：用户环境 npm plugin 模式（registry 名安装）且冒烟通过**，
+    forge 0.3.0 共存不受影响。
