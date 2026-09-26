@@ -42,4 +42,4 @@
 ## 7. 发布
 
 - [x] 7.1 版本 0.2.0、pack 检查（红线口径）；验证：npm pack 清单核对
-- [ ] 7.2 浏览器密钥 npm 发布 + npm spec 官方安装终验 + 冒烟（最终态 npm plugin 模式）；验证：同 forge 8.2 闭环（token 用后即撤）
+- [x] 7.2 npm 发布 + npm spec 官方安装终验 + 冒烟（偏差记录：浏览器密钥通道不可用，改用户提供的 granular automation token CLI 发布，临时文件用后即删；registry 0.2.0 缓存拉取、health 字段验证 PASS）
