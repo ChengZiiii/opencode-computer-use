@@ -102,3 +102,13 @@ element_index/role/label/**value**/**frame**（非 bounds）；
     type/ValuePattern 主通道正常；后续 change 可补热键的元素级寻址。
   - **最终状态：用户环境 npm plugin 模式（registry 名安装）且冒烟通过**，
     forge 0.3.0 共存不受影响。
+
+## 补充验证（2026-09-26，归档后）：真·无驱动环境
+
+7.2 当时以 bogus override 实机覆盖了解析失败分支；"机器上完全没有
+cua-driver"分支原仅单测覆盖。补测：沙箱子进程 `LOCALAPPDATA` 指向空目录
+（规范位置"不存在"，不触碰用户真实安装）——实机确认：`computer` 工具
+未注册（agent 原话 "no tool named computer ... doesn't exist in my
+available function set"），仅 `computer_status` 可用，返回
+`problem: "cua-driver is not installed (not on PATH, no canonical install
+location)."` 与用户自跑安装命令。缺口关闭。
