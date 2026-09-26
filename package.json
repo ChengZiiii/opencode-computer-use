@@ -1,0 +1,47 @@
+{
+  "name": "@sorenllm/opencode-computer-use",
+  "version": "0.1.0",
+  "description": "Desktop computer use for opencode via trycua/cua's cua-driver (MCP stdio): one consolidated `computer` tool (capture som/vision/ax + element-addressed click/type/key/scroll/drag), screenshots returned to the model as image attachments, semantic verdicts, hard-blocked destructive input, sticky-target guard, and a detect-degrade-instruct driver lifecycle — the plugin never installs or upgrades the driver; it probes locally and tells the user the exact command to run.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "bundle": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && bun build ./plugin.ts --outfile ./dist/index.js --target node --format esm",
+    "test": "node --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "computer-use",
+    "cua",
+    "cua-driver",
+    "desktop-automation",
+    "accessibility"
+  ],
+  "engines": {
+    "opencode": "^1.18.0"
+  },
+  "license": "MIT",
+  "author": "chengsongren",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChengZiiii/opencode-computer-use.git"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.18.32",
+    "@types/node": "^22.20.4",
+    "typescript": "^5.9.3"
+  }
+}
