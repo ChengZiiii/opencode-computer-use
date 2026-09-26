@@ -226,7 +226,8 @@ test("input actions ask; denial short-circuits with zero driver calls; capture s
   assert.equal(denied.code, "denied")
   assert.equal(asks.length, 1)
   assert.equal(asks[0].permission, "computer")
-  assert.deepEqual(asks[0].always, ["computer"])
+  assert.deepEqual(asks[0].always, [])
+  assert.deepEqual(asks[0].patterns, ["*"])
   const cap = await t.execute({ action: "capture", mode: "ax" }, ctx)
   assert.equal(asks.length, 1) // capture asked nothing
   // allowed path
@@ -263,19 +264,76 @@ test("input without a sticky target refuses with no_target", async () => {
 test("capture som returns attachment + element list and sets sticky target", async () => {
   const { t, ctx, session } = toolRig({
     calls: {
-      get_window_state: () => ({
-        content: [
-          { type: "text", text: "tree" },
-          { type: "image", data: "QkFTRTY0", mimeType: "image/png" },
-        ],
-        structuredContent: { elements: [{ index: 1, role: "Button", label: "OK", bounds: [1, 2, 3, 4] }] },
-      }),
+      get_window_state: (a) => {
+        assert.equal(a.window_id, 42)
+        assert.equal(a.max_dimension, 1568)
+        return {
+          content: [
+            { type: "text", text: "tree" },
+            { type: "image", data: "QkFTRTY0", mimeType: "image/png" },
+          ],
+          structuredContent: { elements: [{ index: 1, role: "Button", label: "OK", bounds: [1, 2, 3, 4] }] },
+        }
+      },
     },
   })
-  const res = await t.execute({ action: "capture", app: "Code", pid: 7 }, ctx)
+  const res = await t.execute({ action: "capture", app: "Code", pid: 7, window_id: 42 }, ctx)
   assert.ok(res.attachments[0].url.startsWith("data:image/png;base64,"))
   assert.match(res.output, /\[1\] Button "OK"/)
-  assert.deepEqual(session.sticky, { app: "Code", pid: 7 })
+  assert.deepEqual(session.sticky, { app: "Code", pid: 7, windowId: 42 })
+})
+
+test("capture with pid but no window_id resolves via list_windows and sets the sticky window", async () => {
+  const { t, ctx, session } = toolRig({
+    calls: {
+      list_windows: () => ({ content: [{ type: "text", text: "35 windows" }], structuredContent: { windows: [{ pid: 7, window_id: 99, title: "A" }] } }),
+    },
+  })
+  const res = await t.execute({ action: "capture", pid: 7 }, ctx)
+  assert.match(res.output, /capture\(som\) — ok/)
+  assert.deepEqual(session.sticky, { app: "", pid: 7, windowId: 99 })
+})
+
+test("capture with an unresolvable pid surfaces the live windows in the error", async () => {
+  const { t, ctx } = toolRig({
+    calls: {
+      list_windows: () => ({ content: [{ type: "text", text: "" }], structuredContent: { windows: [{ pid: 100, window_id: 5, title: "B" }] } }),
+    },
+  })
+  const r = JSON.parse(await t.execute({ action: "capture", pid: 7 }, ctx))
+  assert.equal(r.code, "window_id_required")
+  assert.match(r.error, /window_id: 5/)
+})
+
+test("list_windows text fallback parses the human format when structured is absent", async () => {
+  const { t, ctx, session } = toolRig({
+    calls: {
+      list_windows: () => ({ content: [{ type: "text", text: '✅ Found 2 window(s)\n- Notepad.exe (pid 7) "A - Notepad" [window_id: 12]' }] }),
+    },
+  })
+  await t.execute({ action: "capture", pid: 7 }, ctx)
+  assert.equal(session.sticky.windowId, 12)
+})
+
+test("vision capture targets the window when one is known, desktop only when scopeless", async () => {
+  let desktop = 0
+  const { t, ctx } = toolRig({
+    calls: {
+      get_desktop_state: () => {
+        desktop++
+        return { content: [{ type: "image", data: "REVG" }] }
+      },
+      get_window_state: (a) => {
+        assert.equal(a.include_accessibility_tree, false)
+        return { content: [{ type: "image", data: "V0lO" }] }
+      },
+    },
+  })
+  await t.execute({ action: "capture", mode: "vision" }, ctx) // no target -> desktop
+  assert.equal(desktop, 1)
+  const w = await t.execute({ action: "capture", mode: "vision", pid: 3, window_id: 8 }, ctx)
+  assert.ok(w.attachments[0].url.includes("V0lO"))
+  assert.equal(desktop, 1)
 })
 
 test("verdict rides along on input results; capture_after appends a fresh capture", async () => {

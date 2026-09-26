@@ -12836,7 +12836,11 @@ function tool(input) {
 tool.schema = exports_external;
 // src/capture.ts
 var MAX_ELEMENTS = 100;
-function fmtBounds(b) {
+function fmtFrame(el) {
+  const f = el.frame;
+  if (f && [f.x, f.y, f.w, f.h].every((n) => typeof n === "number"))
+    return `(${f.x},${f.y},${f.w},${f.h})`;
+  const b = el.bounds;
   if (Array.isArray(b) && b.length >= 4)
     return `(${b[0]},${b[1]},${b[2]},${b[3]})`;
   if (b && typeof b === "object") {
@@ -12850,16 +12854,18 @@ function renderElements(elements) {
   const truncated = elements.length > MAX_ELEMENTS;
   const shown = truncated ? elements.slice(0, MAX_ELEMENTS) : elements;
   const lines = shown.map((el) => {
-    const idx = typeof el.index === "number" ? el.index : "?";
+    const rawIdx = el.element_index ?? el.index;
+    const idx = typeof rawIdx === "number" ? rawIdx : "?";
     const role = String(el.role ?? el.type ?? "element");
     const label = String(el.label ?? el.name ?? "").slice(0, 60).replace(/\s+/g, " ").trim();
-    const bounds = fmtBounds(el.bounds);
-    return `  [${idx}] ${role}${label ? ` "${label}"` : ""}${bounds ? ` ${bounds}` : ""}`;
+    const value = typeof el.value === "string" && el.value ? ` = ${JSON.stringify(el.value.slice(0, 40))}` : "";
+    const frame = fmtFrame(el);
+    return `  [${idx}] ${role}${label ? ` "${label}"` : ""}${frame ? ` ${frame}` : ""}${value}${el.enabled === false ? " (disabled)" : ""}`;
   });
   return {
     text: lines.join(`
 `) + (truncated ? `
-  … truncated after ${MAX_ELEMENTS} of ${elements.length} elements — narrow with an app/pid capture` : ""),
+  … truncated after ${MAX_ELEMENTS} of ${elements.length} elements — narrow with query= or an app/pid capture` : ""),
     truncated
   };
 }
@@ -12873,11 +12879,12 @@ function extractText(content) {
 function buildCaptureResult(args) {
   const text = extractText(args.call.content);
   const images = args.mode === "ax" ? [] : extractImages(args.call.content);
+  const structured = args.call.structured ?? {};
   let elements;
-  const structuredElements = args.call.structured?.elements;
-  if (Array.isArray(structuredElements))
-    elements = structuredElements;
-  const header = `capture(${args.mode}) — ${args.call.isError ? "driver reported an error" : "ok"}`;
+  if (Array.isArray(structured.elements))
+    elements = structured.elements;
+  const title = args.windowTitle ?? structured.window_title;
+  const header = `capture(${args.mode})${title ? ` — ${JSON.stringify(title)}` : ""} — ${args.call.isError ? "driver reported an error" : "ok"}`;
   const parts = [header];
   if (elements?.length) {
     const rendered = renderElements(elements);
@@ -12892,9 +12899,11 @@ function buildCaptureResult(args) {
     ...i === 0 && images.length > 1 ? { filename: `capture-${i}.png` } : {}
   })) : undefined;
   if (attachments?.length) {
-    const sc = args.screen;
-    const scaleLine = sc?.scaleFactor && sc.scaleFactor !== 1 ? `display scale factor ${sc.scaleFactor}` : `native resolution`;
-    parts.push(`screenshot attached (${attachments.length} image${attachments.length > 1 ? "s" : ""}; ${scaleLine}).`, `The image may have been resized upstream — never derive pixel coordinates from it. Prefer element [index] addressing; for pixel fallback, capture first, then act on the coordinates the backend reports. For small targets use the zoom path (native-resolution crop) rather than zooming the full screenshot.`);
+    const sw = structured.screenshot_width;
+    const sh = structured.screenshot_height;
+    const wb = structured.window_bounds;
+    const scaleNote = typeof sw === "number" && typeof wb?.w === "number" && sw > 0 && wb.w > 0 && Math.abs(sw - wb.w) > 1 ? `screenshot is ${sw}x${sh} for a ${wb.w}x${wb.h} window (scale ${(wb.w / sw).toFixed(3)}) — map pixel ideas back by this factor` : `screenshot at native window resolution`;
+    parts.push(`screenshot attached (${attachments.length} image${attachments.length > 1 ? "s" : ""}; ${scaleNote}).`, `The image may have been resized upstream — never derive pixel coordinates from it. Prefer element [index] addressing; for pixel fallback, capture first, then act on the coordinates the backend reports. For small targets use the zoom path (native-resolution crop) rather than zooming the full screenshot.`);
   }
   return { output: parts.join(`
 `), ...attachments ? { attachments } : {}, ...elements ? { elements } : {} };
@@ -12963,9 +12972,9 @@ async function driverCall(deps, ctx, action, args) {
     try {
       await ctx.ask({
         permission: "computer",
-        patterns: [],
-        always: ["computer"],
-        metadata: { action, tool: "computer", description: `computer use: ${action} ${app ? `on ${app}` : ""}` }
+        patterns: ["*"],
+        always: [],
+        metadata: { title: `computer: ${action}${app ? ` on ${app}` : ""}`, tool: "computer", action }
       });
     } catch (err) {
       return JSON.stringify({ ok: false, action, code: "denied", error: `user denied: ${err.message ?? "permission rejected"}` });
@@ -12988,22 +12997,54 @@ async function driverCall(deps, ctx, action, args) {
     return jsonErr(action, err);
   }
 }
+function windowsFromList(listed) {
+  const arr = listed.structured?.windows;
+  if (Array.isArray(arr))
+    return arr;
+  const text = extractText(listed.content);
+  return [...text.matchAll(/-\s+\S+ \(pid (\d+)\) "(.*?)" \[window_id: (\d+)\]/g)].map((m) => ({ pid: Number(m[1]), title: m[2], window_id: Number(m[3]) }));
+}
 async function captureFlow(deps, args) {
   const mode = ["som", "vision", "ax"].includes(String(args.mode)) ? args.mode : "som";
   const s = deps.session;
   const pid = typeof args.pid === "number" ? args.pid : undefined;
-  let toolName;
-  let callArgs = {};
-  if (mode === "vision") {
-    toolName = "get_desktop_state";
-  } else {
-    toolName = pid !== undefined || args.app ? "get_window_state" : "get_accessibility_tree";
-    if (pid !== undefined)
-      callArgs.pid = pid;
+  const windowId = typeof args.window_id === "number" ? args.window_id : undefined;
+  if (mode === "vision" && pid === undefined && windowId === undefined && !s.sticky) {
+    const res2 = await s.call("get_desktop_state", {}, timeoutFor("get_desktop_state"));
+    return { output: buildCaptureResult({ mode, call: res2 }).output };
   }
-  const res = await s.call(toolName, callArgs, timeoutFor(toolName));
-  if (!res.isError && (args.app || pid !== undefined)) {
-    s.sticky = { app: typeof args.app === "string" ? args.app : "", ...pid !== undefined ? { pid } : {} };
+  let effectiveWindow = windowId ?? (s.sticky?.pid === pid ? s.sticky?.windowId : undefined);
+  let effectivePid = pid ?? (windowId !== undefined || s.sticky?.pid === undefined ? undefined : s.sticky.pid);
+  if (effectiveWindow === undefined && effectivePid === undefined && s.sticky?.pid !== undefined) {
+    return captureFlow(deps, { ...args, pid: s.sticky.pid, window_id: s.sticky.windowId });
+  }
+  if (effectiveWindow === undefined || effectivePid === undefined) {
+    const listed = await s.call("list_windows", {}, timeoutFor("list_windows"));
+    const rows = windowsFromList(listed);
+    if (effectivePid === undefined && effectiveWindow !== undefined) {
+      effectivePid = rows.find((r) => r.window_id === effectiveWindow)?.pid;
+    }
+    if (effectiveWindow === undefined && effectivePid !== undefined) {
+      effectiveWindow = rows.find((r) => r.pid === effectivePid && r.window_id !== undefined)?.window_id;
+    }
+    if (effectiveWindow === undefined) {
+      return JSON.stringify({
+        ok: false,
+        action: "capture",
+        code: "window_id_required",
+        error: `get_window_state needs a window_id belonging to pid ${effectivePid ?? "?"}; none was found. Windows now: ${rows.map((r) => `pid ${r.pid} [window_id: ${r.window_id}] ${JSON.stringify(r.title ?? "")}`).slice(0, 12).join("; ")}`
+      });
+    }
+  }
+  const callArgs = { pid: effectivePid ?? s.sticky?.pid, window_id: effectiveWindow };
+  if (args.query)
+    callArgs.query = String(args.query);
+  if (mode === "vision")
+    callArgs.include_accessibility_tree = false;
+  callArgs.max_dimension = 1568;
+  const res = await s.call("get_window_state", callArgs, timeoutFor("get_window_state"));
+  if (!res.isError && (args.app || effectivePid !== undefined)) {
+    s.sticky = { app: typeof args.app === "string" ? args.app : s.sticky?.app ?? "", pid: effectivePid ?? s.sticky?.pid, windowId: effectiveWindow };
   }
   const built = buildCaptureResult({ mode, call: res });
   return { output: built.output, ...built.attachments ? { attachments: built.attachments } : {} };
@@ -13018,10 +13059,15 @@ async function inputFlow(deps, action, args) {
   if (pid === undefined) {
     return JSON.stringify({ ok: false, action, code: "no_target", error: "no sticky target: call capture(app=/pid=) or focus_app first — input never goes to an unchosen window." });
   }
+  const windowId = typeof args.window_id === "number" ? args.window_id : s.sticky?.windowId;
   let toolName;
   const callArgs = { pid };
+  if (windowId !== undefined)
+    callArgs.window_id = windowId;
   if (typeof args.element_index === "number")
     callArgs.element_index = args.element_index;
+  if (typeof args.delivery_mode === "string")
+    callArgs.delivery_mode = args.delivery_mode;
   switch (action) {
     case "click":
     case "double_click":
@@ -13031,6 +13077,10 @@ async function inputFlow(deps, action, args) {
         callArgs.x = args.x;
       if (typeof args.y === "number")
         callArgs.y = args.y;
+      if (action === "click" && typeof args.button === "string")
+        callArgs.button = args.button;
+      if (action === "double_click")
+        callArgs.count = 2;
       break;
     case "drag":
       toolName = "drag";
@@ -13074,10 +13124,23 @@ async function inputFlow(deps, action, args) {
   }
   const res = await s.call(toolName, callArgs, timeoutFor(toolName));
   const structured = res.structured ?? {};
+  const textOut = extractText(res.content);
+  let textFields = {};
+  try {
+    const parsed = JSON.parse(textOut);
+    if (parsed && typeof parsed === "object")
+      textFields = parsed;
+  } catch {}
+  const merged = {
+    ok: structured.ok ?? textFields.ok ?? !res.isError,
+    verified: structured.verified ?? textFields.verified ?? null,
+    effect: structured.effect ?? textFields.effect ?? null,
+    escalation: structured.escalation ?? textFields.escalation ?? null
+  };
   if (action === "focus_app" && !res.isError) {
-    s.sticky = { app: typeof args.app === "string" ? args.app : s.sticky?.app ?? "", pid };
+    s.sticky = { app: typeof args.app === "string" ? args.app : s.sticky?.app ?? "", pid, ...windowId !== undefined ? { windowId } : {} };
   }
-  const verdict = mapVerdict({ ok: structured.ok ?? !res.isError, verified: structured.verified ?? null, effect: structured.effect ?? null, escalation: structured.escalation ?? null });
+  const verdict = mapVerdict(merged);
   const payload = {
     ok: !res.isError,
     action,
@@ -13087,7 +13150,7 @@ async function inputFlow(deps, action, args) {
     hint_followup: verdict.decision === "done" ? undefined : verdict.hint
   };
   if (args.capture_after === true && !res.isError) {
-    const follow = await s.call("get_window_state", { pid }, timeoutFor("get_window_state"));
+    const follow = await s.call("get_window_state", { pid, window_id: windowId, max_dimension: 1568 }, timeoutFor("get_window_state"));
     const built = buildCaptureResult({ mode: "som", call: follow });
     return JSON.stringify(payload) + `
 ` + built.output;
@@ -13103,9 +13166,13 @@ function makeComputerTool(deps) {
       mode: z.string().optional().describe("capture mode: som | vision | ax (default som)"),
       app: z.string().optional().describe("app name or bundle id; limits capture to one app and sets the sticky target"),
       pid: z.number().optional().describe("exact process target (from list_apps / capture)"),
+      window_id: z.number().optional().describe("exact window target (from list_windows / capture) — window actions require it; capture resolves it via list_windows when only pid is given"),
+      query: z.string().optional().describe("capture: case-insensitive substring filter on the element tree"),
       element_index: z.number().optional().describe("element to act on, by [index] from the last capture"),
       x: z.number().optional().describe("x in window-local screenshot pixels (pixel fallback; prefer element_index)"),
       y: z.number().optional().describe("y in window-local screenshot pixels"),
+      button: z.string().optional().describe("click mouse button: left | right | middle (action=click)"),
+      delivery_mode: z.string().optional().describe("background (default, never steals focus) | foreground (escalation ONLY after a background_unavailable error — never preemptively)"),
       from_x: z.number().optional(),
       from_y: z.number().optional(),
       to_x: z.number().optional(),

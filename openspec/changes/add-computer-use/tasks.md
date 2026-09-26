@@ -38,10 +38,10 @@
 
 ## 7. 实机验证（Windows，真驱动）
 
-- [ ] 7.1 cua-driver 已就位（本机 0.28.2，Hermes 带入；全新机器则用户自装——插件只报命令不代装）后端到端：capture som 出图（模型可读）、元素寻址 click、type、set_value、list_apps/focus_app(bring_to_front)；验证：以具备视觉能力的模型会话执行 `opencode run --auto` 冒烟全过 + 附件真图确认
-- [ ] 7.2 生命周期姿态：无驱动环境（PATH 隔离）只注册 `computer_status` 且报用户命令；契约门版本低/坏 manifest 的 guide 输出；安装器永不被执行（审计代码路径）；验证：沙箱 XDG 复现两态
-- [ ] 7.3 稳定性：驱动 kill -9 后当次调用结构化报错 + 下次惰性重启 + 粘性目标失效要求重新 capture；慢驱动（假挂起）超时失败不挂会话；验证：实机脚本化复现两场景
-- [ ] 7.4 审批与安全实机：默认 ask 姿态（无 --auto 拒绝 / --auto 放行）；封禁键组在 --auto 下依旧拦截；验证：两姿态度跑 + 封禁输入实测
+- [x] 7.1 cua-driver 已就位（本机 0.28.2，Hermes 带入；全新机器则用户自装——插件只报命令不代装）后端到端：capture som 出图（模型可读）、元素寻址 click、type、set_value、list_apps/focus_app(bring_to_front)；验证：以具备视觉能力的模型会话执行 `opencode run --auto` 冒烟全过 + 附件真图确认
+- [x] 7.2 生命周期姿态：无驱动环境（PATH 隔离）只注册 `computer_status` 且报用户命令；契约门版本低/坏 manifest 的 guide 输出；安装器永不被执行（审计代码路径）；验证：沙箱 XDG 复现两态
+- [x] 7.3 稳定性：驱动 kill -9 后当次调用结构化报错 + 下次惰性重启 + 粘性目标失效要求重新 capture；慢驱动（假挂起）超时失败不挂会话；验证：实机脚本化复现两场景
+- [x] 7.4 审批与安全实机：默认 ask 姿态（无 --auto 拒绝 / --auto 放行）；封禁键组在 --auto 下依旧拦截；验证：两姿态度跑 + 封禁输入实测
 
 ## 8. 发布门槛
 

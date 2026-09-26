@@ -1,7 +1,8 @@
 // Capture result shaping: element list rendering (bounded), screenshot
 // attachment construction (inline data URLs — the only channel the host
 // turns into model-visible media), and the scale metadata that warns the
-// model off pixel reasoning.
+// model off pixel reasoning. Element rendering follows the cua-driver's
+// structured shape (element_index / role / label / value / frame).
 
 import type { CallContent, CallResult } from "./mcp-client.ts"
 
@@ -9,9 +10,13 @@ export const MAX_ELEMENTS = 100
 
 export type Element = {
   index?: number
+  element_index?: number
   role?: string
   label?: string
   name?: string
+  value?: string
+  enabled?: boolean
+  frame?: { x?: number; y?: number; w?: number; h?: number }
   bounds?: { x?: number; y?: number; width?: number; height?: number } | number[]
   [k: string]: unknown
 }
@@ -20,7 +25,10 @@ export type CaptureMode = "som" | "vision" | "ax"
 
 export type Attachment = { type: "file"; mime: string; url: string; filename?: string }
 
-function fmtBounds(b: Element["bounds"]): string {
+function fmtFrame(el: Element): string {
+  const f = el.frame
+  if (f && [f.x, f.y, f.w, f.h].every((n) => typeof n === "number")) return `(${f.x},${f.y},${f.w},${f.h})`
+  const b = el.bounds
   if (Array.isArray(b) && b.length >= 4) return `(${b[0]},${b[1]},${b[2]},${b[3]})`
   if (b && typeof b === "object") {
     const { x, y, width, height } = b as { x?: number; y?: number; width?: number; height?: number }
@@ -33,14 +41,16 @@ export function renderElements(elements: Element[]): { text: string; truncated: 
   const truncated = elements.length > MAX_ELEMENTS
   const shown = truncated ? elements.slice(0, MAX_ELEMENTS) : elements
   const lines = shown.map((el) => {
-    const idx = typeof el.index === "number" ? el.index : "?"
+    const rawIdx = el.element_index ?? el.index
+    const idx = typeof rawIdx === "number" ? rawIdx : "?"
     const role = String(el.role ?? el.type ?? "element")
     const label = String(el.label ?? el.name ?? "").slice(0, 60).replace(/\s+/g, " ").trim()
-    const bounds = fmtBounds(el.bounds)
-    return `  [${idx}] ${role}${label ? ` "${label}"` : ""}${bounds ? ` ${bounds}` : ""}`
+    const value = typeof el.value === "string" && el.value ? ` = ${JSON.stringify(el.value.slice(0, 40))}` : ""
+    const frame = fmtFrame(el)
+    return `  [${idx}] ${role}${label ? ` "${label}"` : ""}${frame ? ` ${frame}` : ""}${value}${el.enabled === false ? " (disabled)" : ""}`
   })
   return {
-    text: lines.join("\n") + (truncated ? `\n  … truncated after ${MAX_ELEMENTS} of ${elements.length} elements — narrow with an app/pid capture` : ""),
+    text: lines.join("\n") + (truncated ? `\n  … truncated after ${MAX_ELEMENTS} of ${elements.length} elements — narrow with query= or an app/pid capture` : ""),
     truncated,
   }
 }
@@ -67,14 +77,22 @@ export function buildCaptureResult(args: {
   mode: CaptureMode
   call: CallResult
   screen?: { width?: number; height?: number; scaleFactor?: number }
+  windowTitle?: string
 }): { output: string; attachments?: Attachment[]; elements?: Element[] } {
   const text = extractText(args.call.content)
   const images = args.mode === "ax" ? [] : extractImages(args.call.content)
+  const structured = (args.call.structured ?? {}) as {
+    elements?: Element[]
+    window_title?: string
+    screenshot_width?: number
+    screenshot_height?: number
+    window_bounds?: { w?: number; h?: number }
+  }
   let elements: Element[] | undefined
-  const structuredElements = (args.call.structured as { elements?: Element[] } | undefined)?.elements
-  if (Array.isArray(structuredElements)) elements = structuredElements
+  if (Array.isArray(structured.elements)) elements = structured.elements
 
-  const header = `capture(${args.mode}) — ${args.call.isError ? "driver reported an error" : "ok"}`
+  const title = args.windowTitle ?? structured.window_title
+  const header = `capture(${args.mode})${title ? ` — ${JSON.stringify(title)}` : ""} — ${args.call.isError ? "driver reported an error" : "ok"}`
   const parts: string[] = [header]
 
   if (elements?.length) {
@@ -94,10 +112,15 @@ export function buildCaptureResult(args: {
     : undefined
 
   if (attachments?.length) {
-    const sc = args.screen
-    const scaleLine = sc?.scaleFactor && sc.scaleFactor !== 1 ? `display scale factor ${sc.scaleFactor}` : `native resolution`
+    const sw = structured.screenshot_width
+    const sh = structured.screenshot_height
+    const wb = structured.window_bounds
+    const scaleNote =
+      typeof sw === "number" && typeof wb?.w === "number" && sw > 0 && wb.w > 0 && Math.abs(sw - wb.w) > 1
+        ? `screenshot is ${sw}x${sh} for a ${wb.w}x${wb.h} window (scale ${(wb.w / sw).toFixed(3)}) — map pixel ideas back by this factor`
+        : `screenshot at native window resolution`
     parts.push(
-      `screenshot attached (${attachments.length} image${attachments.length > 1 ? "s" : ""}; ${scaleLine}).`,
+      `screenshot attached (${attachments.length} image${attachments.length > 1 ? "s" : ""}; ${scaleNote}).`,
       `The image may have been resized upstream — never derive pixel coordinates from it. Prefer element [index] addressing; for pixel fallback, capture first, then act on the coordinates the backend reports. For small targets use the zoom path (native-resolution crop) rather than zooming the full screenshot.`,
     )
   }

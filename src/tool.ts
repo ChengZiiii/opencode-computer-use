@@ -86,13 +86,17 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
   }
 
   // Approval gate: capture/wait are side-effect free; everything else asks.
+  // Posture mirrors forge's two-piece: the ask request carries patterns and
+  // NO self-granted always scopes (an `always` list here would pre-approve
+  // the request ourselves); the config hook's "ask" rule is what turns it
+  // into a real dialog / run-mode reject / --auto approve.
   if (action !== "capture" && action !== "wait") {
     try {
       await ctx.ask({
         permission: "computer",
-        patterns: [],
-        always: ["computer"],
-        metadata: { action, tool: "computer", description: `computer use: ${action} ${app ? `on ${app}` : ""}` },
+        patterns: ["*"],
+        always: [],
+        metadata: { title: `computer: ${action}${app ? ` on ${app}` : ""}`, tool: "computer", action },
       })
     } catch (err) {
       return JSON.stringify({ ok: false, action, code: "denied", error: `user denied: ${(err as Error).message ?? "permission rejected"}` })
@@ -116,22 +120,62 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
   }
 }
 
+type WindowRow = { pid?: number; window_id?: number; title?: string }
+
+/** Resolve windows from list_windows output: structured rows first, human-text fallback. */
+function windowsFromList(listed: CallResult): WindowRow[] {
+  const arr = (listed.structured as { windows?: WindowRow[] } | undefined)?.windows
+  if (Array.isArray(arr)) return arr
+  const text = extractText(listed.content)
+  return [...text.matchAll(/-\s+\S+ \(pid (\d+)\) "(.*?)" \[window_id: (\d+)\]/g)].map((m) => ({ pid: Number(m[1]), title: m[2], window_id: Number(m[3]) }))
+}
+
 async function captureFlow(deps: ToolDeps, args: Record<string, unknown>): Promise<string | { output: string; attachments?: Attachment[] }> {
   const mode = (["som", "vision", "ax"].includes(String(args.mode)) ? args.mode : "som") as CaptureMode
   const s = deps.session
   const pid = typeof args.pid === "number" ? args.pid : undefined
-  let toolName: string
-  let callArgs: Record<string, unknown> = {}
-  if (mode === "vision") {
-    toolName = "get_desktop_state"
-  } else {
-    toolName = pid !== undefined || args.app ? "get_window_state" : "get_accessibility_tree"
-    if (pid !== undefined) callArgs.pid = pid
+  const windowId = typeof args.window_id === "number" ? args.window_id : undefined
+  // Desktop scope only when no window target at all.
+  if (mode === "vision" && pid === undefined && windowId === undefined && !s.sticky) {
+    const res = await s.call("get_desktop_state", {}, timeoutFor("get_desktop_state"))
+    return { output: buildCaptureResult({ mode, call: res }).output }
   }
-  const res = await s.call(toolName, callArgs, timeoutFor(toolName))
-  // A successful capture with an app/pid establishes the sticky target.
-  if (!res.isError && (args.app || pid !== undefined)) {
-    s.sticky = { app: typeof args.app === "string" ? args.app : "", ...(pid !== undefined ? { pid } : {}) }
+  // Window scope: get_window_state REQUIRES window_id (driver never picks a
+  // window implicitly). Resolve the missing half via list_windows.
+  let effectiveWindow = windowId ?? (s.sticky?.pid === pid ? s.sticky?.windowId : undefined)
+  let effectivePid = pid ?? (windowId !== undefined || s.sticky?.pid === undefined ? undefined : s.sticky.pid)
+  if (effectiveWindow === undefined && effectivePid === undefined && s.sticky?.pid !== undefined) {
+    return captureFlow(deps, { ...args, pid: s.sticky.pid, window_id: s.sticky.windowId })
+  }
+  if (effectiveWindow === undefined || effectivePid === undefined) {
+    const listed = await s.call("list_windows", {}, timeoutFor("list_windows"))
+    const rows = windowsFromList(listed)
+    if (effectivePid === undefined && effectiveWindow !== undefined) {
+      effectivePid = rows.find((r) => r.window_id === effectiveWindow)?.pid
+    }
+    if (effectiveWindow === undefined && effectivePid !== undefined) {
+      effectiveWindow = rows.find((r) => r.pid === effectivePid && r.window_id !== undefined)?.window_id
+    }
+    if (effectiveWindow === undefined) {
+      return JSON.stringify({
+        ok: false,
+        action: "capture",
+        code: "window_id_required",
+        error: `get_window_state needs a window_id belonging to pid ${effectivePid ?? "?"}; none was found. Windows now: ${rows
+          .map((r) => `pid ${r.pid} [window_id: ${r.window_id}] ${JSON.stringify(r.title ?? "")}`)
+          .slice(0, 12)
+          .join("; ")}`,
+      })
+    }
+  }
+  const callArgs: Record<string, unknown> = { pid: effectivePid ?? s.sticky?.pid, window_id: effectiveWindow }
+  if (args.query) callArgs.query = String(args.query)
+  if (mode === "vision") callArgs.include_accessibility_tree = false
+  // Driver-side downscale keeps the returned screenshot within the contract.
+  callArgs.max_dimension = 1568
+  const res = await s.call("get_window_state", callArgs, timeoutFor("get_window_state"))
+  if (!res.isError && (args.app || effectivePid !== undefined)) {
+    s.sticky = { app: typeof args.app === "string" ? args.app : s.sticky?.app ?? "", pid: effectivePid ?? s.sticky?.pid, windowId: effectiveWindow }
   }
   const built = buildCaptureResult({ mode, call: res })
   return { output: built.output, ...(built.attachments ? { attachments: built.attachments } : {}) }
@@ -148,9 +192,12 @@ async function inputFlow(deps: ToolDeps, action: Action, args: Record<string, un
   if (pid === undefined) {
     return JSON.stringify({ ok: false, action, code: "no_target", error: "no sticky target: call capture(app=/pid=) or focus_app first — input never goes to an unchosen window." })
   }
+  const windowId = typeof args.window_id === "number" ? args.window_id : s.sticky?.windowId
   let toolName: string
   const callArgs: Record<string, unknown> = { pid }
+  if (windowId !== undefined) callArgs.window_id = windowId
   if (typeof args.element_index === "number") callArgs.element_index = args.element_index
+  if (typeof args.delivery_mode === "string") callArgs.delivery_mode = args.delivery_mode
   switch (action) {
     case "click":
     case "double_click":
@@ -158,6 +205,8 @@ async function inputFlow(deps: ToolDeps, action: Action, args: Record<string, un
       toolName = action
       if (typeof args.x === "number") callArgs.x = args.x
       if (typeof args.y === "number") callArgs.y = args.y
+      if (action === "click" && typeof args.button === "string") callArgs.button = args.button
+      if (action === "double_click") callArgs.count = 2
       break
     case "drag":
       toolName = "drag"
@@ -199,10 +248,24 @@ async function inputFlow(deps: ToolDeps, action: Action, args: Record<string, un
   }
   const res = await s.call(toolName, callArgs, timeoutFor(toolName))
   const structured = (res.structured ?? {}) as DriverVerdictFields & { message?: string }
-  if (action === "focus_app" && !res.isError) {
-    s.sticky = { app: typeof args.app === "string" ? args.app : s.sticky?.app ?? "", pid }
+  // Some driver builds ride the verdict fields in the text JSON instead of
+  // structuredContent — merge them so the ladder never misses evidence.
+  const textOut = extractText(res.content)
+  let textFields: DriverVerdictFields = {}
+  try {
+    const parsed = JSON.parse(textOut)
+    if (parsed && typeof parsed === "object") textFields = parsed as DriverVerdictFields
+  } catch {}
+  const merged: DriverVerdictFields = {
+    ok: structured.ok ?? textFields.ok ?? !res.isError,
+    verified: structured.verified ?? textFields.verified ?? null,
+    effect: structured.effect ?? textFields.effect ?? null,
+    escalation: ((structured as { escalation?: { recommended?: string } }).escalation ?? textFields.escalation ?? null) as { recommended?: string } | null,
   }
-  const verdict = mapVerdict({ ok: structured.ok ?? !res.isError, verified: structured.verified ?? null, effect: structured.effect ?? null, escalation: (structured as { escalation?: { recommended?: string } }).escalation ?? null })
+  if (action === "focus_app" && !res.isError) {
+    s.sticky = { app: typeof args.app === "string" ? args.app : s.sticky?.app ?? "", pid, ...(windowId !== undefined ? { windowId } : {}) }
+  }
+  const verdict = mapVerdict(merged)
   const payload: Record<string, unknown> = {
     ok: !res.isError,
     action,
@@ -213,7 +276,7 @@ async function inputFlow(deps: ToolDeps, action: Action, args: Record<string, un
   }
   // Optional post-action capture (explicit request only — token economy).
   if (args.capture_after === true && !res.isError) {
-    const follow = await s.call("get_window_state", { pid }, timeoutFor("get_window_state"))
+    const follow = await s.call("get_window_state", { pid, window_id: windowId, max_dimension: 1568 }, timeoutFor("get_window_state"))
     const built = buildCaptureResult({ mode: "som", call: follow })
     return JSON.stringify(payload) + "\n" + built.output
   }
@@ -231,9 +294,13 @@ export function makeComputerTool(deps: ToolDeps) {
       mode: z.string().optional().describe("capture mode: som | vision | ax (default som)"),
       app: z.string().optional().describe("app name or bundle id; limits capture to one app and sets the sticky target"),
       pid: z.number().optional().describe("exact process target (from list_apps / capture)"),
+      window_id: z.number().optional().describe("exact window target (from list_windows / capture) — window actions require it; capture resolves it via list_windows when only pid is given"),
+      query: z.string().optional().describe("capture: case-insensitive substring filter on the element tree"),
       element_index: z.number().optional().describe("element to act on, by [index] from the last capture"),
       x: z.number().optional().describe("x in window-local screenshot pixels (pixel fallback; prefer element_index)"),
       y: z.number().optional().describe("y in window-local screenshot pixels"),
+      button: z.string().optional().describe("click mouse button: left | right | middle (action=click)"),
+      delivery_mode: z.string().optional().describe("background (default, never steals focus) | foreground (escalation ONLY after a background_unavailable error — never preemptively)"),
       from_x: z.number().optional(),
       from_y: z.number().optional(),
       to_x: z.number().optional(),
