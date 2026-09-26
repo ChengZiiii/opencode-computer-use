@@ -13484,13 +13484,24 @@ async function inputFlow(deps, action, args) {
     escalation: structured.escalation ?? textFields.escalation ?? null
   };
   const staleError = res.isError && /stale|snapshot/i.test(textOut);
+  let raiseEvidence;
+  let launchWindowNote;
   if (action === "launch_app" && !res.isError && typeof structured.pid === "number") {
     const listed = await s.call("list_windows", {}, timeoutFor("list_windows"));
     const win = windowsFromList(listed).find((r) => r.pid === structured.pid && r.window_id !== undefined);
     s.sticky = { app: String(args.app ?? args.launch_path ?? ""), pid: structured.pid, ...win ? { windowId: win.window_id } : {} };
+    launchWindowNote = !win ? "no top-level window found for the new pid yet — it may still be starting, or (UWP) be suspended/cloaked: verify with capture before any input." : win.minimized === true || win.is_on_screen === false ? `bound window ${win.window_id} is ${win.minimized ? "minimized" : "off-screen"} (launch defaults to hidden); a UWP window in this state may be suspended and click-through — raise it (focus_app with raise) and confirm it took effect before input.` : undefined;
   }
   if (action === "focus_app" && args.raise === true && !res.isError) {
     s.sticky = { app: typeof args.app === "string" ? args.app : s.sticky?.app ?? "", pid, ...windowId !== undefined ? { windowId } : {} };
+    const nowFg = structured.now_fg_hwnd ?? textFields.now_fg_hwnd;
+    if (typeof nowFg === "number") {
+      raiseEvidence = windowId !== undefined && nowFg === windowId ? { raised: true, foreground_window: nowFg } : windowId !== undefined ? {
+        raised: false,
+        foreground_window: nowFg,
+        raise_hint: "bring_to_front completed but the foreground is NOT the target window — it may be suspended/cloaked (UWP) or Windows denied the activation (often requires recent user input). Verify with capture/list_windows before retrying; do not assume the raise worked."
+      } : { foreground_window: nowFg };
+    }
   }
   const verdict = staleError ? { decision: "verify_fresh_state", hint: "stale_snapshot: the driver rejected the element reference. capture again, then re-issue with the fresh [index]." } : mapVerdict(merged);
   const payload = {
@@ -13498,6 +13509,8 @@ async function inputFlow(deps, action, args) {
     action,
     ...structured.message ? { message: structured.message } : {},
     ...res.isError ? { error: textOut.slice(0, 400) || "driver reported an error", ...staleError ? { code: "stale_snapshot" } : {} } : {},
+    ...launchWindowNote ? { window_note: launchWindowNote } : {},
+    ...raiseEvidence ?? {},
     verdict,
     hint_followup: verdict.decision === "done" ? undefined : verdict.hint
   };

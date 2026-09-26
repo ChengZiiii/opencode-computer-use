@@ -184,7 +184,7 @@ function restartedFields(): Record<string, unknown> {
   return { restarted: true, restart_note: "the cua-driver restarted; prior element references and the sticky target are invalid — capture again before any input" }
 }
 
-type WindowRow = { pid?: number; window_id?: number; title?: string }
+type WindowRow = { pid?: number; window_id?: number; title?: string; z_index?: number | null; is_on_screen?: boolean; minimized?: boolean }
 
 /** Resolve windows from list_windows output: structured rows first, human-text fallback. */
 function windowsFromList(listed: CallResult): WindowRow[] {
@@ -528,14 +528,39 @@ async function inputFlow(deps: ToolDeps, action: Action, args: Record<string, un
     escalation: ((structured as { escalation?: { recommended?: string } }).escalation ?? textFields.escalation ?? null) as { recommended?: string } | null,
   }
   const staleError = res.isError && /stale|snapshot/i.test(textOut)
+  // Live finding (calculator drill): bring_to_front can complete without an
+  // error while Windows never switched the foreground (suspended/cloaked UWP,
+  // foreground-lock). The driver reports the actual result HWND — surface it
+  // instead of letting the caller discover the no-op by forensics.
+  let raiseEvidence: Record<string, unknown> | undefined
+  let launchWindowNote: string | undefined
   if (action === "launch_app" && !res.isError && typeof structured.pid === "number") {
     // Fresh pid: bind the sticky target to the launched app's first window.
     const listed = await s.call("list_windows", {}, timeoutFor("list_windows"))
     const win = windowsFromList(listed).find((r) => r.pid === structured.pid && r.window_id !== undefined)
     s.sticky = { app: String(args.app ?? args.launch_path ?? ""), pid: structured.pid, ...(win ? { windowId: win.window_id } : {}) }
+    launchWindowNote = !win
+      ? "no top-level window found for the new pid yet — it may still be starting, or (UWP) be suspended/cloaked: verify with capture before any input."
+      : win.minimized === true || win.is_on_screen === false
+        ? `bound window ${win.window_id} is ${win.minimized ? "minimized" : "off-screen"} (launch defaults to hidden); a UWP window in this state may be suspended and click-through — raise it (focus_app with raise) and confirm it took effect before input.`
+        : undefined
   }
   if (action === "focus_app" && args.raise === true && !res.isError) {
     s.sticky = { app: typeof args.app === "string" ? args.app : s.sticky?.app ?? "", pid, ...(windowId !== undefined ? { windowId } : {}) }
+    const nowFg = (structured as { now_fg_hwnd?: unknown }).now_fg_hwnd ?? (textFields as { now_fg_hwnd?: unknown }).now_fg_hwnd
+    if (typeof nowFg === "number") {
+      raiseEvidence =
+        windowId !== undefined && nowFg === windowId
+          ? { raised: true, foreground_window: nowFg }
+          : windowId !== undefined
+            ? {
+                raised: false,
+                foreground_window: nowFg,
+                raise_hint:
+                  "bring_to_front completed but the foreground is NOT the target window — it may be suspended/cloaked (UWP) or Windows denied the activation (often requires recent user input). Verify with capture/list_windows before retrying; do not assume the raise worked.",
+              }
+            : { foreground_window: nowFg }
+    }
   }
   const verdict = staleError
     ? { decision: "verify_fresh_state" as const, hint: "stale_snapshot: the driver rejected the element reference. capture again, then re-issue with the fresh [index]." }
@@ -545,6 +570,8 @@ async function inputFlow(deps: ToolDeps, action: Action, args: Record<string, un
     action,
     ...(structured.message ? { message: structured.message } : {}),
     ...(res.isError ? { error: textOut.slice(0, 400) || "driver reported an error", ...(staleError ? { code: "stale_snapshot" } : {}) } : {}),
+    ...(launchWindowNote ? { window_note: launchWindowNote } : {}),
+    ...(raiseEvidence ?? {}),
     verdict,
     hint_followup: verdict.decision === "done" ? undefined : verdict.hint,
   }

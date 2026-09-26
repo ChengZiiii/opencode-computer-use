@@ -83,6 +83,13 @@ computer(action=capture, mode="ax")              # element list only — cheapes
   `raise: true` (or `delivery_mode: "foreground"` on input) is a SEPARATE
   approval domain (`computer:foreground`) — a granted background approval
   never covers raising a window.
+- A `raise` result carries `raised: true/false` from the driver's own
+  foreground evidence (`now_fg_hwnd`); `raised: false` means the activation
+  did not land (suspended/cloaked UWP window, or Windows' foreground-lock
+  pending recent user input) — verify before retrying, never assume it worked.
+- `launch_app` starts hidden by default; the result discloses the bound
+  window's minimized/off-screen state because a UWP window launched hidden
+  may be suspended and click-through until raised.
 - Prefer element `[index]` addressing over pixel coordinates; never derive
   coordinates from the attached screenshot (it may have been resized
   upstream). For small targets use the `zoom` action's native-resolution
