@@ -47,16 +47,20 @@ function probeOnce(): ContractResult {
 
 const sessionId = `opencode-computer-use-${randomUUID().slice(0, 12)}`
 
-export const server: Plugin = async (_input, _options) => {
+export const server: Plugin = async (_input, options) => {
   const contract = probeOnce()
   const installHint = userInstallHint()
+  const opts = (options as { computerUse?: { captureAfter?: unknown; agentCursor?: unknown; maxElements?: unknown } } | undefined)?.computerUse ?? {}
+  const captureAfter: "off" | "som" | "ax" = opts.captureAfter === "som" || opts.captureAfter === "ax" ? opts.captureAfter : "off"
+  const agentCursor = opts.agentCursor === true
+  const maxElements = typeof opts.maxElements === "number" ? Math.max(50, Math.min(1000, Math.floor(opts.maxElements))) : 200
 
   // Lazy session: the MCP child spawns on the first computer tool call, not
   // at host startup (Windows Defender first-scan must never tax opencode boot).
   let session: ComputerSession | null = null
   const ensureSession = () => {
     if (!session && contract.ready && contract.mcpInvocation) {
-      session = new ComputerSession(contract.mcpInvocation, sessionId, { log: probeLine })
+      session = new ComputerSession(contract.mcpInvocation, sessionId, { log: probeLine }, { agentCursor })
     }
     return session
   }
@@ -70,6 +74,18 @@ export const server: Plugin = async (_input, _options) => {
         version: contract.version,
         installHint,
         sessionId,
+        // Live health when the driver is up (bounded; degrades to the
+        // manifest contract state on any failure).
+        ...(contract.ready
+          ? {
+              healthFetch: async () => {
+                const s = ensureSession()
+                if (!s) throw new Error("no session")
+                const res = await s.call("health_report", {}, 10000)
+                return { ...(res.structured ?? {}), ...(res.isError ? { degraded: extractTextSafe(res) } : {}) }
+              },
+            }
+          : {}),
       })
       if (!contract.ready) {
         // Guide mode: the status surface is the ONLY registered tool.
@@ -77,24 +93,36 @@ export const server: Plugin = async (_input, _options) => {
       }
       const s = ensureSession()!
       return {
-        computer: makeComputerTool({ session: s, driverVersion: () => contract.version, probeLine }),
+        computer: makeComputerTool({ session: s, driverVersion: () => contract.version, probeLine, captureAfter, maxElements }),
         computer_status: status,
       }
     },
 
-    // Approval two-piece (forge-proven): default ask for the computer tool,
-    // an explicit user decision always wins.
+    // Approval two-piece (forge-proven): default ask for BOTH domains —
+    // background input ("computer") and foreground ("computer:foreground",
+    // raise/foreground delivery). An explicit user decision always wins.
     config: async (cfg) => {
       const c = cfg as { permission?: Record<string, unknown> }
       const section = c.permission ?? (c.permission = {})
       if (section.computer == null) section.computer = "ask"
+      if (section["computer:foreground"] == null) section["computer:foreground"] = "ask"
     },
 
     dispose: async () => {
+      // Ordered: driver end_session (its own cleanup hooks) -> kill. Baked
+      // into ComputerSession.dispose with a 10s bound.
       session?.dispose()
       session = null
     },
   }
+}
+
+function extractTextSafe(res: { content: Array<{ type: string; text?: string }> }): string {
+  return res.content
+    .filter((c) => c.type === "text")
+    .map((c) => c.text ?? "")
+    .join("\n")
+    .slice(0, 300)
 }
 
 // v2 setup (forward compatibility only — v1 installs load `server`).

@@ -60,43 +60,70 @@ descriptions tell the agent not to run installers on your behalf.
 
 ```
 computer(action=capture, mode=som, app="Code")   # screenshot + numbered elements
-computer(action=click, element_index=3)          # element-addressed input
+computer(action=click, element_index=3)          # element-addressed input (snapshot-token armored)
 computer(action=type, text="hello")
 computer(action=set_value, element_index=7, value="opt2")  # selects without opening menus
 computer(action=key, keys="ctrl+s")
 computer(action=scroll, direction="down", amount=3)
+computer(action=zoom, x=120, y=40, w=300, h=220) # native-resolution crop for dense UI
+computer(action=click, x=30, y=50, from_zoom=true)  # zoom-image coords remapped automatically
+computer(action=verify, predicates=[{element_index: 7, value: "opt2"}])  # deterministic check
+computer(action=invoke_menu, path="View > Zoom > In")  # native menus by name, no pixels
+computer(action=launch_app, app="Notepad")       # hidden start, auto-selects its window
 computer(action=capture, mode="ax")              # element list only — cheapest
 ```
 
-- `capture` is free (no approval); every input action asks.
-- Actions: `capture click double_click right_click drag scroll type key
-  set_value wait list_apps list_windows focus_app`. `middle_click` is not in
-  the 0.28.x Windows driver surface and is reported unsupported rather than
-  silently remapped.
+- `capture`/`zoom`/`verify`/`list_*` are free (no approval); every input
+  action asks.
+- Actions: `capture zoom verify click double_click right_click drag scroll
+  type key set_value invoke_menu launch_app wait list_apps list_windows
+  focus_app`. There is no separate `middle_click` action — `click` takes
+  `button: "middle"`.
+- `focus_app` SELECTS the sticky target without touching the foreground;
+  `raise: true` (or `delivery_mode: "foreground"` on input) is a SEPARATE
+  approval domain (`computer:foreground`) — a granted background approval
+  never covers raising a window.
 - Prefer element `[index]` addressing over pixel coordinates; never derive
   coordinates from the attached screenshot (it may have been resized
-  upstream). For small targets use the zoom path (native-resolution crop),
-  not a zoomed full screenshot.
+  upstream). For small targets use the `zoom` action's native-resolution
+  crop and pass `from_zoom: true` with coordinates read off it.
+- Element addressing is staleness-armored: each capture records the driver's
+  snapshot id + element tokens, inputs carry them, and a stale reference
+  fails closed (`stale_snapshot`) instead of landing on whatever now sits at
+  that index. After a driver restart the first result says so.
 
-### On screenshot resolution (a deliberate deviation)
+### On screenshot resolution
 
-Anthropic's guidance recommends downscaling before sending, naming
-coordinate-space mismatch as the top accuracy killer — but its main failure
-mode is *pixel math on a resized image*, which element addressing avoids.
-We return captures at native resolution (the 0.28.x driver offers no
-downscale) with explicit scale metadata and an element-first contract, and
-we point detail work at the driver's ≤500px zoom crops. Token economy comes
-from the `ax` mode (text-only), bounded element lists (100), and
-`capture_after` being opt-in. If a plugin-side resampler ever lands, it will
-arrive as an optional dependency, not silently.
+Captures ask the driver to cap the screenshot's long edge at ~1568 logical
+pixels (`max_dimension`), so what the model sees is already bounded; the text
+output carries the image-to-native scale mapping and an element-first
+contract (pixel math on a resized image is the top accuracy killer — element
+`[index]` addressing avoids it entirely). Detail work goes through the
+`zoom` action's ≤500px native-resolution crops with `from_zoom` remapping on
+the follow-up input. Token economy comes from the `ax` mode (text-only),
+bounded element lists (100 rendered; the driver-side walk is bounded at 200,
+configurable 50–1000), if-changed screenshot dedup (identical images are
+omitted for at most two consecutive captures), and `capture_after` being
+opt-in per call or via policy.
 
 ## Configuration
 
 ```jsonc
 // opencode.json
 {
-  "plugin": [["@sorenllm/opencode-computer-use", {}]],
-  "permission": { "computer": "ask" } // default; "deny" wins; "always" via the approval dialog
+  "plugin": [
+    ["@sorenllm/opencode-computer-use", {
+      // "computerUse": {
+      //   "captureAfter": "off",   // "som" | "ax": auto-capture after input actions
+      //   "agentCursor": false,    // driver-side agent-cursor visualization (default off)
+      //   "maxElements": 200      // driver-side element walk bound (50–1000)
+      // }
+    }]
+  ],
+  "permission": {
+    "computer": "ask",                // background input (default)
+    "computer:foreground": "ask"      // raising windows / foreground delivery (separate domain)
+  } // "deny" wins; "always" via the approval dialog
 }
 ```
 

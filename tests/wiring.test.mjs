@@ -141,6 +141,7 @@ test("session spawns lazily on first call with telemetry off, then reuses", asyn
   assert.equal(transports.length, 1)
   assert.deepEqual(transports[0].args, ["mcp"])
   session.dispose()
+  await new Promise((r) => setTimeout(r, 20)) // ordered dispose: end_session -> kill is async now
   assert.equal(transports[0].t.killed, true)
 })
 
@@ -215,7 +216,7 @@ test("unknown action reports closest spelling; middle_click names the platform g
   const { t, ctx } = toolRig()
   const r = JSON.parse(await t.execute({ action: "middle_click" }, ctx))
   assert.equal(r.ok, false)
-  assert.match(r.error, /middle_click is not in the platform driver surface/)
+  assert.match(r.error, /use click with button=middle/)
   const r2 = JSON.parse(await t.execute({ action: "screenshot" }, ctx))
   assert.match(r2.error, /use action=capture/)
 })

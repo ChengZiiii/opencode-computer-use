@@ -19,10 +19,49 @@ export interface McpTransport {
   kill(): void
 }
 
+// Spawn environment for the driver subprocess: a MINIMAL whitelist of system
+// essentials (PATH so the driver's own children resolve, Windows system
+// roots, temp dirs, identity basics) — never the host's full environment.
+// Provider API keys and other credentials present in opencode's process env
+// must not leak into the driver (spec: process hygiene). The telemetry flag
+// rides along from the session.
+export const ENV_WHITELIST = [
+  "PATH",
+  "PATHEXT",
+  "ComSpec",
+  "SystemRoot",
+  "SYSTEMROOT",
+  "SystemDrive",
+  "SYSTEMDRIVE",
+  "windir",
+  "WINDIR",
+  "LOCALAPPDATA",
+  "APPDATA",
+  "PROGRAMDATA",
+  "TEMP",
+  "TMP",
+  "HOME",
+  "TMPDIR",
+  "USERPROFILE",
+  "USERNAME",
+  "NUMBER_OF_PROCESSORS",
+  "PROCESSOR_ARCHITECTURE",
+  "OS",
+]
+
+export function buildChildEnv(extra: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const key of ENV_WHITELIST) {
+    const v = process.env[key]
+    if (typeof v === "string" && v !== "") out[key] = v
+  }
+  return { ...out, ...extra }
+}
+
 /** Real transport over a spawned child process (stdout/stderr line-split). */
 export function childTransport(cmd: string, args: string[], env: Record<string, string>): McpTransport {
   const child: ChildProcessWithoutNullStreams = spawn(cmd, args, {
-    env: { ...process.env, ...env },
+    env: buildChildEnv(env),
     stdio: ["pipe", "pipe", "pipe"],
     windowsHide: true,
   }) as ChildProcessWithoutNullStreams
@@ -68,7 +107,8 @@ type Pending = {
 export class McpClient {
   private nextId = 1
   private pending = new Map<number, Pending>()
-  private disposed = false
+  /** Public so ordered-shutdown callers can skip end_session on a dead client. */
+  disposed = false
   private transport: McpTransport
   private opts: { name: string; version: string; defaultTimeoutMs?: number }
   crashed = false
