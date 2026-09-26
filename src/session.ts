@@ -76,10 +76,18 @@ export class ComputerSession {
     this.opts = opts
   }
 
+  private driverPid: number | undefined
+
   private spawn(): McpClient {
     const transport = (this.deps.spawnTransport ?? childTransport)(this.invocation.command, this.invocation.args, TELEMETRY_ENV)
+    this.driverPid = transport.pid?.()
     const client = new McpClient(transport, { name: "opencode-computer-use", version: "0.2.0" })
     return client
+  }
+
+  /** Pid of the MCP subprocess THIS session spawned (crash drills only). */
+  currentDriverPid(): number | undefined {
+    return this.driverPid
   }
 
   /** First use: start the MCP child, handshake, and check the tool surface. */

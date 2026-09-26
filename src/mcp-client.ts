@@ -17,6 +17,8 @@ export interface McpTransport {
   onLine(cb: (line: string) => void): void
   onExit(cb: (code: number | null) => void): void
   kill(): void
+  /** Child pid when the transport owns a process (diagnostics / crash tests). */
+  pid?(): number | undefined
 }
 
 // Spawn environment for the driver subprocess: a MINIMAL whitelist of system
@@ -84,6 +86,7 @@ export function childTransport(cmd: string, args: string[], env: Record<string, 
   child.on("exit", (code) => exitCb?.(code ?? null))
   return {
     write: (line) => child.stdin.write(line + "\n"),
+    pid: () => child.pid,
     onLine: (cb) => {
       lineCb = cb
     },

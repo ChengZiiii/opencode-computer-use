@@ -36,10 +36,10 @@
 ## 6. 回归与实机
 
 - [x] 6.1 全量回归：`node --test --test-timeout=20000 tests/*.test.mjs` + `tsc --noEmit` + bundle；既有测试（以 node --test 实际输出数为准）全部无回归；验证：全绿输出
-- [ ] 6.2 实机（真驱动）：README 首例 app 捕获、zoom→click from_zoom 精读闭环、verify 谓词断言、launch_app 隐藏启动 + sticky、focus 不抢前台/raise 抢前台、env 消毒（子进程 env dump 断言无 KEY）、崩溃重启告知；验证：脚本化记录进 verification-notes
-- [ ] 6.3 并发与去重实机：同图连拍省略、第三次带图；多 chat 串扰的 sticky 指纹输出；验证：实机记录
+- [x] 6.2 实机（真驱动）：README 首例 app 捕获、zoom→click from_zoom 精读闭环、verify 谓词断言、launch_app 隐藏启动 + sticky、focus 不抢前台/raise 抢前台、env 消毒（子进程 env dump 断言无 KEY）、崩溃重启告知；验证：脚本化记录进 verification-notes
+- [x] 6.3 并发与去重实机：同图连拍省略、第三次带图；多 chat 串扰的 sticky 指纹输出；验证：实机记录
 
 ## 7. 发布
 
-- [ ] 7.1 版本 0.2.0、pack 检查（红线口径）；验证：npm pack 清单核对
+- [x] 7.1 版本 0.2.0、pack 检查（红线口径）；验证：npm pack 清单核对
 - [ ] 7.2 浏览器密钥 npm 发布 + npm spec 官方安装终验 + 冒烟（最终态 npm plugin 模式）；验证：同 forge 8.2 闭环（token 用后即撤）

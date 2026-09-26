@@ -1,0 +1,10 @@
+driver: C:\Users\Soren\AppData\Local\Programs\Cua\cua-driver\bin\cua-driver.exe v0.28.2 (ready)
+6.2a launch_app: ok=true stickyPid=516016 fgBefore=463284 fgAfter=463284 -> PASS (launched, selected, foreground untouched)
+6.2b capture(app=Notepad): sticky={"app":"Notepad","pid":516016,"windowId":310251150} -> PASS (ladder resolved, sticky set)
+6.2c verify: ok=true verdict=done detail=[{"index":0,"observed_json":"{\"bounds\":{\"height\":611,\"width\":914,\"x\":187,\"y\":595},\"exists\":true}","status":"satisfied","unknown_reason":null}] -> PASS
+6.2d focus_app: ok=true fgStable=true -> PASS (selected without stealing foreground)
+6.2e zoom crop loop: zoomOk=true -> PASS (crop+image+remap guidance; click covered by unit tests)
+6.2f stale-addressing refusal: refused=true error="unaddressable_element" -> PASS (fail-closed, nothing dispatched)
+6.2g restart disclosure: driverKilled=true disclosed=true -> PASS
+6.3 dedup: omissionObserved=true (omit2=true omit3=true) -> PASS (byte-identical omission observed; streak-cap re-attach unit-covered)
+6.3 sticky fingerprint: output carries selected={"app":"Notepad.exe","pid":516016,"windowId":310251150} -> PASS

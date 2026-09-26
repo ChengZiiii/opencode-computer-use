@@ -200,11 +200,11 @@ test("2.2 the first result after a crash carries restarted: true and a re-captur
   const { t, ctx, transports } = toolRig({
     calls: { list_apps: () => ({ content: [{ type: "text", text: "[]" }] }) },
   })
-  await t.execute({ action: "capture", pid: 5, window_id: 9 }, ctx) // session starts
+  const first = await t.execute({ action: "capture", pid: 5, window_id: 9 }, ctx) // session starts HERE
+  const firstText = typeof first === "string" ? first : first.output
+  assert.match(firstText, /restarted/, "the first result after the (initial) start discloses it")
   const r = await t.execute({ action: "list_apps" }, ctx)
-  assert.match(r, /restarted/, "first-ever result also discloses the (initial) start")
-  const r2 = await t.execute({ action: "list_apps" }, ctx)
-  assert.doesNotMatch(r2, /restarted/, "disclosed exactly once per restart")
+  assert.doesNotMatch(r, /restarted/, "later results do not repeat it")
 })
 
 // ── 2.3 ordered dispose ────────────────────────────────────────────────────
@@ -297,31 +297,31 @@ test("3.2 zoom crops with a bounded region and records the context; from_zoom ri
   await t.execute({ action: "capture", app: "Notepad" }, ctx)
   const z = await t.execute({ action: "zoom", x: 10, y: 20, w: 300, h: 250 }, ctx)
   assert.equal(zoomArgs.window_id, 110)
-  assert.deepEqual([zoomArgs.x, zoomArgs.y, zoomArgs.width, zoomArgs.height], [10, 20, 300, 250])
+  assert.deepEqual([zoomArgs.x1, zoomArgs.y1, zoomArgs.x2, zoomArgs.y2], [10, 20, 310, 270], "corner coordinates")
   assert.ok(z.attachments[0].url.startsWith("data:image/"), "crop image attached")
   assert.match(z.output, /from_zoom=true/)
   await t.execute({ action: "click", x: 40, y: 60, from_zoom: true }, ctx)
   assert.equal(clickArgs.from_zoom, true, "from_zoom passes through")
-  assert.deepEqual(clickArgs.zoom_region, { x: 10, y: 20, w: 300, h: 250 })
+  assert.equal(clickArgs.zoom_region, undefined, "no region payload — the driver tracks the last zoom per pid")
 })
 
 // ── 3.3 verify ─────────────────────────────────────────────────────────────
 
 test("3.3 verify maps the three driver outcomes; unknown is never success", async () => {
-  const outcomes = { passed: true, failed: false, weird: "snapshot_expired" }
+  const outcomes = { satisfied: "satisfied", unsatisfied: "unsatisfied", weird: "snapshot_expired" }
   for (const [key, overall] of Object.entries(outcomes)) {
     let verifyArgs = null
     const { t, ctx } = toolRig({
       calls: {
         ...APPS,
-        verify_state: (a) => ((verifyArgs = a), { content: [{ type: "text", text: "" }], structuredContent: { overall, results: [{ predicate: 0, outcome: key }] } }),
+        verify_state: (a) => ((verifyArgs = a), { content: [{ type: "text", text: "" }], structuredContent: { status: overall, predicates: [{ index: 0, status: overall }] } }),
       },
     })
     await t.execute({ action: "capture", app: "Notepad" }, ctx)
     const r = JSON.parse(await t.execute({ action: "verify", predicates: [{ element_index: 3, enabled: true }] }, ctx))
-    assert.equal(verifyArgs.predicates.length, 1, "predicates pass through")
-    if (key === "passed") assert.equal(r.verdict.decision, "done")
-    else if (key === "failed") assert.equal(r.verdict.decision, "escalate")
+    assert.equal(verifyArgs.expect.length, 1, "predicates map to the driver's expect field")
+    if (key === "satisfied") assert.equal(r.verdict.decision, "done")
+    else if (key === "unsatisfied") assert.equal(r.verdict.decision, "escalate")
     else assert.equal(r.verdict.decision, "verify_fresh_state", "unknown maps to verify, never done")
   }
 })

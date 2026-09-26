@@ -104,7 +104,9 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
 
   // Sticky target guard: input goes to the target from the last
   // capture/focus_app; a provably different `app` argument is refused.
-  if (!FREE_ACTIONS.has(action)) {
+  // focus_app is EXEMPT — selecting a different target is its whole purpose
+  // (the switch itself stays behind the input approval gate above).
+  if (!FREE_ACTIONS.has(action) && action !== "focus_app") {
     const refusal = targetRefusal(s.sticky, app)
     if (refusal) return JSON.stringify({ ok: false, action, code: "input_target_mismatch", error: refusal })
   }
@@ -140,16 +142,13 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
     }
   }
 
-  // Restart disclosure: the first result after a driver restart says so —
-  // every element reference minted before it is worthless.
-  const restartedNote = s.restarted
-  if (restartedNote) s.restarted = false
-
   try {
     if (action === "wait") {
       const ms = Math.max(0, Math.min(10000, Number(args.waitMs ?? 1000)))
       await new Promise((r) => setTimeout(r, ms))
-      return JSON.stringify({ ok: true, action, waitedMs: ms, ...(restartedNote ? restartedFields() : {}), verdict: { decision: "done", hint: "no side effects" } })
+      const waitRestarted = s.restarted
+      if (waitRestarted) s.restarted = false
+      return JSON.stringify({ ok: true, action, waitedMs: ms, ...(waitRestarted ? restartedFields() : {}), verdict: { decision: "done", hint: "no side effects" } })
     }
     let result: string | { output: string; attachments?: Attachment[] }
     if (action === "capture") result = await captureFlow(deps, args)
@@ -159,6 +158,11 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
       const res = await s.call(action, {}, timeoutFor(action))
       result = listResult(action, res)
     } else result = await inputFlow(deps, action, args)
+    // Restart disclosure: read AFTER the call — a crash-triggered respawn
+    // flips the flag inside this very call, and the first post-restart
+    // result is the one that must carry it.
+    const restartedNote = s.restarted
+    if (restartedNote) s.restarted = false
     if (restartedNote && typeof result === "string") {
       try {
         const parsed = JSON.parse(result) as Record<string, unknown>
@@ -206,12 +210,15 @@ function appsFromList(listed: CallResult): AppRow[] {
  */
 export async function resolveApp(s: ComputerSession, name: string): Promise<{ pid: number; app: string } | { candidates: string[] } | { miss: string; running: string[] }> {
   const listed = await s.call("list_apps", {}, timeoutFor("list_apps"))
-  const rows = appsFromList(listed)
+  // list_apps mixes installed-not-running entries (pid 0) into its text form —
+  // only RUNNING apps (pid > 0) participate in resolution.
+  const rows = appsFromList(listed).filter((r) => typeof r.pid === "number" && r.pid > 0)
   const label = (r: AppRow) => String(r.name ?? r.app_name ?? r.bundle_id ?? "")
-  const want = name.trim().toLowerCase()
-  const exact = rows.find((r) => label(r).trim().toLowerCase() === want && typeof r.pid === "number")
+  const norm = (v: string) => v.trim().toLowerCase().replace(/\.exe$/, "")
+  const want = norm(name)
+  const exact = rows.find((r) => norm(label(r)) === want)
   if (exact) return { pid: exact.pid!, app: label(exact) }
-  const partial = rows.filter((r) => label(r).trim().toLowerCase().includes(want) && typeof r.pid === "number")
+  const partial = rows.filter((r) => norm(label(r)).includes(want))
   if (partial.length === 1) return { pid: partial[0].pid!, app: label(partial[0]) }
   if (partial.length > 1) return { candidates: partial.map((r) => `${label(r)} (pid ${r.pid})`) }
   // Ladder rung 3: window titles.
@@ -303,7 +310,8 @@ async function zoomFlow(deps: ToolDeps, args: Record<string, unknown>): Promise<
     w: Math.min(500, Math.max(8, Number(args.w ?? args.width ?? 200))),
     h: Math.min(500, Math.max(8, Number(args.h ?? args.height ?? 200))),
   }
-  const res = await s.call("zoom", { pid, window_id: windowId, x: region.x, y: region.y, width: region.w, height: region.h }, timeoutFor("zoom"))
+  // Driver contract: corner coordinates in resized-image pixels.
+  const res = await s.call("zoom", { pid, window_id: windowId, x1: region.x, y1: region.y, x2: region.x + region.w, y2: region.y + region.h }, timeoutFor("zoom"))
   s.recordZoom(windowId, region)
   const built = buildCaptureResult({ mode: "vision", call: res })
   const output = [
@@ -324,23 +332,42 @@ async function verifyFlow(deps: ToolDeps, args: Record<string, unknown>): Promis
   }
   const predicates = Array.isArray(args.predicates) ? args.predicates : []
   if (!predicates.length) {
-    return JSON.stringify({ ok: false, action: "verify", error: "predicates required: [{ element_index?, label?, exists?, enabled?, selected?, value?, title_in_bounds? }] — one entry per check." })
+    return JSON.stringify({ ok: false, action: "verify", error: "predicates required: [{ label?, role?, exists?, enabled?, selected?, value? }] (or the driver's native {element:{selector:...}} shape) — one entry per check, ANDed together." })
   }
-  const res = await s.call("verify_state", { pid, window_id: windowId, predicates }, timeoutFor("verify_state"))
-  const structured = (res.structured ?? {}) as { results?: Array<Record<string, unknown>>; overall?: string | boolean; message?: string }
+  // The driver's field is `expect`; loose agent shapes map onto its selector
+  // model, native shapes pass through untouched.
+  const expect = predicates.map((raw) => {
+    const p = raw as Record<string, unknown>
+    if (p.element || p.window) return p
+    const el: Record<string, unknown> = {}
+    const selector: Record<string, unknown> = {}
+    if (typeof p.label === "string" && p.label) selector.label_contains = p.label
+    if (typeof p.role === "string" && p.role) selector.role = p.role
+    if (Object.keys(selector).length) el.selector = selector
+    if (p.exists === true) el.exists = true
+    if (typeof p.enabled === "boolean") el.enabled = p.enabled
+    if (typeof p.selected === "boolean") el.selected = p.selected
+    if (typeof p.value === "string") el.value_equals = p.value
+    if (!Object.keys(el).length) return { window: { exists: true } }
+    return { element: el }
+  })
+  const res = await s.call("verify_state", { pid, window_id: windowId, expect }, timeoutFor("verify_state"))
+  const structured = (res.structured ?? {}) as { predicates?: Array<Record<string, unknown>>; status?: string; samples?: number; stable?: boolean; message?: string }
   const textOut = extractText(res.content)
-  // Three-state mapping: unknown is NEVER success (spec).
-  const overall = structured.overall
+  // Three-state mapping: unknown is NEVER success (spec). The driver reports
+  // the aggregate in structured.status: satisfied | unsatisfied | unknown.
+  const status = String(structured.status ?? "").toLowerCase()
   const verdict =
-    overall === true || overall === "passed" || overall === "success"
-      ? { decision: "done", hint: "Verification passed against the current window state." }
-      : overall === false || overall === "failed"
-        ? { decision: "escalate", hint: "Verification FAILED — the expected state is not present. Re-capture before any retry; do not re-issue input blind." }
-        : { decision: "verify_fresh_state", hint: "Verification was indeterminate (unknown) — the predicate could not be evaluated against a valid snapshot. Treat as NOT verified." }
+    status === "satisfied"
+      ? { decision: "done" as const, hint: "Verification passed against the current window state." }
+      : status === "unsatisfied"
+        ? { decision: "escalate" as const, hint: "Verification FAILED — the expected state is not present. Re-capture before any retry; do not re-issue input blind." }
+        : { decision: "verify_fresh_state" as const, hint: "Verification was indeterminate (unknown) — the predicate could not be evaluated against a valid snapshot. Treat as NOT verified." }
   return JSON.stringify({
     ok: !res.isError,
     action: "verify",
-    ...(structured.results ? { results: structured.results } : {}),
+    ...(structured.predicates ? { results: structured.predicates } : {}),
+    ...(typeof structured.samples === "number" ? { samples: structured.samples, stable: structured.stable } : {}),
     ...(structured.message ? { message: structured.message } : {}),
     ...(res.isError ? { error: textOut.slice(0, 400) || "driver reported an error" } : {}),
     verdict,
@@ -386,11 +413,7 @@ async function inputFlow(deps: ToolDeps, action: Action, args: Record<string, un
     callArgs.element_token = token.elementToken
     callArgs.snapshot_id = token.snapshotId
   }
-  if (args.from_zoom === true) {
-    callArgs.from_zoom = true
-    const zc = windowId !== undefined ? s.zoomContextFor(windowId) : null
-    if (zc) callArgs.zoom_region = zc
-  }
+  if (args.from_zoom === true) callArgs.from_zoom = true
   switch (action) {
     case "click":
     case "double_click":
@@ -447,7 +470,10 @@ async function inputFlow(deps: ToolDeps, action: Action, args: Record<string, un
       if (typeof args.launch_path === "string" && args.launch_path) callArgs.launch_path = args.launch_path
       else if (typeof args.app === "string" && args.app) callArgs.name = args.app
       else return JSON.stringify({ ok: false, action, error: "launch_app needs app (name) or launch_path." })
-      if (args.start_minimized === true) callArgs.start_minimized = true
+      // Live finding: a plain driver launch can activate the window. The
+      // plugin's default is a NON-foreground start; only an explicit
+      // start_minimized: false asks for a normal (possibly activating) one.
+      if (args.start_minimized !== false) callArgs.start_minimized = true
       break
     }
     case "focus_app":
@@ -588,7 +614,7 @@ export function makeComputerTool(deps: ToolDeps) {
       value: z.string().optional().describe("value to set (action=set_value)"),
       path: z.string().optional().describe("invoke_menu: menu path, 'File > Open' or [\"File\",\"Open\"]"),
       launch_path: z.string().optional().describe("launch_app: executable path to start"),
-      start_minimized: z.boolean().optional().describe("launch_app: start minimized (default hidden-no-activate; pass false to show normally)"),
+      start_minimized: z.boolean().optional().describe("launch_app: default true (minimized, never steals the foreground — a plain driver launch can activate the window); pass false for a normal start"),
       predicates: z.array(z.record(z.string(), z.unknown())).optional().describe("verify: [{ element_index?, label?, exists?, enabled?, selected?, value? }] — deterministic checks against the current window"),
       waitMs: z.number().optional().describe("wait duration ms, max 10000 (action=wait)"),
       capture_after: z.boolean().optional().describe("attach a fresh som capture after a successful input action"),

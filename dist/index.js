@@ -252,6 +252,7 @@ function childTransport(cmd, args, env) {
   return {
     write: (line) => child.stdin.write(line + `
 `),
+    pid: () => child.pid,
     onLine: (cb) => {
       lineCb = cb;
     },
@@ -489,10 +490,15 @@ class ComputerSession {
     this.deps = deps;
     this.opts = opts;
   }
+  driverPid;
   spawn() {
     const transport = (this.deps.spawnTransport ?? childTransport)(this.invocation.command, this.invocation.args, TELEMETRY_ENV);
+    this.driverPid = transport.pid?.();
     const client = new McpClient(transport, { name: "opencode-computer-use", version: "0.2.0" });
     return client;
+  }
+  currentDriverPid() {
+    return this.driverPid;
   }
   async ensureStarted() {
     if (this.client && !this.client.crashed)
@@ -13082,7 +13088,7 @@ async function driverCall(deps, ctx, action, args) {
     if (blocked)
       return JSON.stringify({ ok: false, action, error: blocked });
   }
-  if (!FREE_ACTIONS.has(action)) {
+  if (!FREE_ACTIONS.has(action) && action !== "focus_app") {
     const refusal = targetRefusal(s.sticky, app);
     if (refusal)
       return JSON.stringify({ ok: false, action, code: "input_target_mismatch", error: refusal });
@@ -13112,14 +13118,14 @@ async function driverCall(deps, ctx, action, args) {
       return JSON.stringify({ ok: false, action, code: "denied", error: `user denied: ${err.message ?? "permission rejected"}` });
     }
   }
-  const restartedNote = s.restarted;
-  if (restartedNote)
-    s.restarted = false;
   try {
     if (action === "wait") {
       const ms = Math.max(0, Math.min(1e4, Number(args.waitMs ?? 1000)));
       await new Promise((r) => setTimeout(r, ms));
-      return JSON.stringify({ ok: true, action, waitedMs: ms, ...restartedNote ? restartedFields() : {}, verdict: { decision: "done", hint: "no side effects" } });
+      const waitRestarted = s.restarted;
+      if (waitRestarted)
+        s.restarted = false;
+      return JSON.stringify({ ok: true, action, waitedMs: ms, ...waitRestarted ? restartedFields() : {}, verdict: { decision: "done", hint: "no side effects" } });
     }
     let result;
     if (action === "capture")
@@ -13133,6 +13139,9 @@ async function driverCall(deps, ctx, action, args) {
       result = listResult(action, res);
     } else
       result = await inputFlow(deps, action, args);
+    const restartedNote = s.restarted;
+    if (restartedNote)
+      s.restarted = false;
     if (restartedNote && typeof result === "string") {
       try {
         const parsed = JSON.parse(result);
@@ -13169,13 +13178,14 @@ function appsFromList(listed) {
 }
 async function resolveApp(s, name) {
   const listed = await s.call("list_apps", {}, timeoutFor("list_apps"));
-  const rows = appsFromList(listed);
+  const rows = appsFromList(listed).filter((r) => typeof r.pid === "number" && r.pid > 0);
   const label = (r) => String(r.name ?? r.app_name ?? r.bundle_id ?? "");
-  const want = name.trim().toLowerCase();
-  const exact = rows.find((r) => label(r).trim().toLowerCase() === want && typeof r.pid === "number");
+  const norm = (v) => v.trim().toLowerCase().replace(/\.exe$/, "");
+  const want = norm(name);
+  const exact = rows.find((r) => norm(label(r)) === want);
   if (exact)
     return { pid: exact.pid, app: label(exact) };
-  const partial2 = rows.filter((r) => label(r).trim().toLowerCase().includes(want) && typeof r.pid === "number");
+  const partial2 = rows.filter((r) => norm(label(r)).includes(want));
   if (partial2.length === 1)
     return { pid: partial2[0].pid, app: label(partial2[0]) };
   if (partial2.length > 1)
@@ -13259,7 +13269,7 @@ async function zoomFlow(deps, args) {
     w: Math.min(500, Math.max(8, Number(args.w ?? args.width ?? 200))),
     h: Math.min(500, Math.max(8, Number(args.h ?? args.height ?? 200)))
   };
-  const res = await s.call("zoom", { pid, window_id: windowId, x: region.x, y: region.y, width: region.w, height: region.h }, timeoutFor("zoom"));
+  const res = await s.call("zoom", { pid, window_id: windowId, x1: region.x, y1: region.y, x2: region.x + region.w, y2: region.y + region.h }, timeoutFor("zoom"));
   s.recordZoom(windowId, region);
   const built = buildCaptureResult({ mode: "vision", call: res });
   const output = [
@@ -13279,17 +13289,42 @@ async function verifyFlow(deps, args) {
   }
   const predicates = Array.isArray(args.predicates) ? args.predicates : [];
   if (!predicates.length) {
-    return JSON.stringify({ ok: false, action: "verify", error: "predicates required: [{ element_index?, label?, exists?, enabled?, selected?, value?, title_in_bounds? }] — one entry per check." });
+    return JSON.stringify({ ok: false, action: "verify", error: "predicates required: [{ label?, role?, exists?, enabled?, selected?, value? }] (or the driver's native {element:{selector:...}} shape) — one entry per check, ANDed together." });
   }
-  const res = await s.call("verify_state", { pid, window_id: windowId, predicates }, timeoutFor("verify_state"));
+  const expect = predicates.map((raw) => {
+    const p = raw;
+    if (p.element || p.window)
+      return p;
+    const el = {};
+    const selector = {};
+    if (typeof p.label === "string" && p.label)
+      selector.label_contains = p.label;
+    if (typeof p.role === "string" && p.role)
+      selector.role = p.role;
+    if (Object.keys(selector).length)
+      el.selector = selector;
+    if (p.exists === true)
+      el.exists = true;
+    if (typeof p.enabled === "boolean")
+      el.enabled = p.enabled;
+    if (typeof p.selected === "boolean")
+      el.selected = p.selected;
+    if (typeof p.value === "string")
+      el.value_equals = p.value;
+    if (!Object.keys(el).length)
+      return { window: { exists: true } };
+    return { element: el };
+  });
+  const res = await s.call("verify_state", { pid, window_id: windowId, expect }, timeoutFor("verify_state"));
   const structured = res.structured ?? {};
   const textOut = extractText(res.content);
-  const overall = structured.overall;
-  const verdict = overall === true || overall === "passed" || overall === "success" ? { decision: "done", hint: "Verification passed against the current window state." } : overall === false || overall === "failed" ? { decision: "escalate", hint: "Verification FAILED — the expected state is not present. Re-capture before any retry; do not re-issue input blind." } : { decision: "verify_fresh_state", hint: "Verification was indeterminate (unknown) — the predicate could not be evaluated against a valid snapshot. Treat as NOT verified." };
+  const status = String(structured.status ?? "").toLowerCase();
+  const verdict = status === "satisfied" ? { decision: "done", hint: "Verification passed against the current window state." } : status === "unsatisfied" ? { decision: "escalate", hint: "Verification FAILED — the expected state is not present. Re-capture before any retry; do not re-issue input blind." } : { decision: "verify_fresh_state", hint: "Verification was indeterminate (unknown) — the predicate could not be evaluated against a valid snapshot. Treat as NOT verified." };
   return JSON.stringify({
     ok: !res.isError,
     action: "verify",
-    ...structured.results ? { results: structured.results } : {},
+    ...structured.predicates ? { results: structured.predicates } : {},
+    ...typeof structured.samples === "number" ? { samples: structured.samples, stable: structured.stable } : {},
     ...structured.message ? { message: structured.message } : {},
     ...res.isError ? { error: textOut.slice(0, 400) || "driver reported an error" } : {},
     verdict
@@ -13331,12 +13366,8 @@ async function inputFlow(deps, action, args) {
     callArgs.element_token = token.elementToken;
     callArgs.snapshot_id = token.snapshotId;
   }
-  if (args.from_zoom === true) {
+  if (args.from_zoom === true)
     callArgs.from_zoom = true;
-    const zc = windowId !== undefined ? s.zoomContextFor(windowId) : null;
-    if (zc)
-      callArgs.zoom_region = zc;
-  }
   switch (action) {
     case "click":
     case "double_click":
@@ -13402,7 +13433,7 @@ async function inputFlow(deps, action, args) {
         callArgs.name = args.app;
       else
         return JSON.stringify({ ok: false, action, error: "launch_app needs app (name) or launch_path." });
-      if (args.start_minimized === true)
+      if (args.start_minimized !== false)
         callArgs.start_minimized = true;
       break;
     }
@@ -13535,7 +13566,7 @@ function makeComputerTool(deps) {
       value: z.string().optional().describe("value to set (action=set_value)"),
       path: z.string().optional().describe(`invoke_menu: menu path, 'File > Open' or ["File","Open"]`),
       launch_path: z.string().optional().describe("launch_app: executable path to start"),
-      start_minimized: z.boolean().optional().describe("launch_app: start minimized (default hidden-no-activate; pass false to show normally)"),
+      start_minimized: z.boolean().optional().describe("launch_app: default true (minimized, never steals the foreground — a plain driver launch can activate the window); pass false for a normal start"),
       predicates: z.array(z.record(z.string(), z.unknown())).optional().describe("verify: [{ element_index?, label?, exists?, enabled?, selected?, value? }] — deterministic checks against the current window"),
       waitMs: z.number().optional().describe("wait duration ms, max 10000 (action=wait)"),
       capture_after: z.boolean().optional().describe("attach a fresh som capture after a successful input action")
