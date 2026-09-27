@@ -16,7 +16,9 @@ var __export = (target, all) => {
 // plugin.ts
 import { randomUUID } from "node:crypto";
 import { appendFileSync } from "node:fs";
-import { join as join2 } from "node:path";
+import { existsSync as existsSync2 } from "node:fs";
+import { dirname, join as join2 } from "node:path";
+import { fileURLToPath } from "node:url";
 import { tmpdir as tmpdir2 } from "node:os";
 
 // src/driver-resolve.ts
@@ -13551,7 +13553,7 @@ screenshot unchanged since the previous capture — image omitted (dedup streak 
 var ACTION_DESC = `Which action to perform. capture (side-effect free) returns screen state: mode=som (screenshot + numbered element list — click by [index]), mode=vision (plain screenshot), mode=ax (element list only, cheapest). zoom returns a native-resolution crop (≤500px) for reading dense UI; coordinates read off it go into the next input with from_zoom=true. verify evaluates deterministic predicates against the current window (three-state: passed/failed/unknown — unknown is never success). Input actions (click/double_click/right_click/drag/scroll/type/key/set_value/invoke_menu/launch_app) act on the sticky target set by the last capture/focus_app and require approval. set_value selects options/sliders directly; invoke_menu drives native menus by path (no pixel fallback); launch_app starts an app (hidden by default, auto-selects its window). wait sleeps locally. list_apps/list_windows are read-only. focus_app SELECTS a target without touching the foreground; raise=true (separate approval domain) brings it to the front.`;
 function makeComputerTool(deps) {
   return tool({
-    description: "Desktop computer use via the locally installed cua-driver (user-installed; this plugin never installs or upgrades it). Workflow: capture -> act by element index -> capture/verify to check. Verdicts classify every input (done / verify_fresh_state / escalate); never re-issue input on an escalation recommendation alone — re-capture first.",
+    description: "Desktop computer use via the locally installed cua-driver (user-installed; this plugin never installs or upgrades it). Workflow: capture -> act by element index -> capture/verify to check. Verdicts classify every input (done / verify_fresh_state / escalate); never re-issue input on an escalation recommendation alone — re-capture first. Load the `computer-use` skill for the full operating manual and when-to-use scope.",
     args: {
       action: z.enum(ACTIONS).describe(ACTION_DESC),
       mode: z.string().optional().describe("capture mode: som | vision | ax (default som)"),
@@ -13654,6 +13656,26 @@ function probeOnce() {
   return contract;
 }
 var sessionId = `opencode-computer-use-${randomUUID().slice(0, 12)}`;
+function bundledSkillsDir() {
+  let here;
+  try {
+    here = dirname(fileURLToPath(import.meta.url));
+  } catch {
+    return null;
+  }
+  for (const root of [here, dirname(here)]) {
+    const candidate = join2(root, "skills");
+    if (existsSync2(join2(candidate, "computer-use", "SKILL.md")))
+      return candidate;
+  }
+  return null;
+}
+var COMPUTER_COMMAND_TEMPLATE = [
+  "[The user explicitly activated desktop computer use via /computer.]",
+  "First load the `computer-use` skill with the skill tool (it is the operating manual), then carry out the following on the desktop: $ARGUMENTS",
+  "If $ARGUMENTS is empty, ask the user what they want done. If the `computer` tool is not available, run `computer_status` and surface its remediation verbatim."
+].join(`
+`);
 var server = async (_input, options) => {
   const contract = probeOnce();
   const installHint = userInstallHint();
@@ -13703,6 +13725,27 @@ var server = async (_input, options) => {
         section.computer = "ask";
       if (section["computer:foreground"] == null)
         section["computer:foreground"] = "ask";
+      const commands = c.command ?? (c.command = {});
+      if (commands.computer == null) {
+        commands.computer = {
+          template: COMPUTER_COMMAND_TEMPLATE,
+          description: "Explicit desktop computer use: load the computer-use skill, then execute the given desktop task"
+        };
+      }
+      const skillsDir = bundledSkillsDir();
+      if (skillsDir) {
+        const norm = (v) => typeof v === "string" ? v.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase() : null;
+        const want = norm(skillsDir);
+        const rawPaths = c.skills?.paths;
+        const paths = Array.isArray(rawPaths) ? rawPaths : rawPaths == null ? [] : null;
+        if (paths && !paths.some((p) => norm(p) === want)) {
+          const sk = c.skills ?? (c.skills = {});
+          if (sk.paths == null)
+            sk.paths = [];
+          if (Array.isArray(sk.paths))
+            sk.paths.push(skillsDir);
+        }
+      }
     },
     dispose: async () => {
       session?.dispose();

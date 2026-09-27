@@ -390,11 +390,35 @@ test("plugin assembly: ready registers computer+status, guide registers only sta
   const cfg = {}
   await hooks.config(cfg)
   assert.equal(cfg.permission.computer, "ask")
+  assert.ok(cfg.command?.computer?.template?.includes("$ARGUMENTS"), "/computer command injected with $ARGUMENTS")
+  // The repo layout ships skills/, so injection MUST have happened here —
+  // a silent no-injection regression must fail this test, not skip it.
+  const appended = (cfg.skills?.paths ?? []).some((p) => String(p).replace(/\\/g, "/").endsWith("/opencode-computer-use/skills"))
+  assert.ok(appended, `bundled skills dir appended (got paths: ${JSON.stringify(cfg.skills?.paths)})`)
   const cfgDeny = { permission: { computer: "deny" } }
   await hooks.config(cfgDeny)
   assert.equal(cfgDeny.permission.computer, "deny")
   const cfgAllow = { permission: { computer: "allow" } }
   await hooks.config(cfgAllow)
   assert.equal(cfgAllow.permission.computer, "allow")
+  // user definitions always win — command not clobbered, skills path not duplicated
+  const cfgUser = { command: { computer: { template: "user owns me" } } }
+  await hooks.config(cfgUser)
+  assert.equal(cfgUser.command.computer.template, "user owns me")
+  const before = (cfgUser.skills?.paths ?? []).length
+  await hooks.config(cfgUser)
+  assert.equal((cfgUser.skills?.paths ?? []).length, before, "skills.paths append is idempotent")
+  // normalization-equivalence: user pre-supplies the bundled dir in forward-slash
+  // form (different case+separators) — must not double-append
+  const injected = (cfg.skills?.paths ?? []).find((p) => String(p).replace(/\\/g, "/").endsWith("/opencode-computer-use/skills"))
+  if (injected) {
+    const cfgNorm = { skills: { paths: [String(injected).replace(/\\/g, "/").toUpperCase()] } }
+    await hooks.config(cfgNorm)
+    assert.equal(cfgNorm.skills.paths.length, 1, "normalized-equivalent user entry not re-appended")
+  }
+  // malformed user skills.paths (non-array) is left untouched
+  const cfgBad = { skills: { paths: "C:/not-a-list" } }
+  await hooks.config(cfgBad)
+  assert.equal(cfgBad.skills.paths, "C:/not-a-list", "malformed skills.paths never overwritten")
   _testInjectProbe(null)
 })

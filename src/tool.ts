@@ -613,7 +613,7 @@ const ACTION_DESC = `Which action to perform. capture (side-effect free) returns
 export function makeComputerTool(deps: ToolDeps) {
   return tool({
     description:
-      "Desktop computer use via the locally installed cua-driver (user-installed; this plugin never installs or upgrades it). Workflow: capture -> act by element index -> capture/verify to check. Verdicts classify every input (done / verify_fresh_state / escalate); never re-issue input on an escalation recommendation alone — re-capture first.",
+      "Desktop computer use via the locally installed cua-driver (user-installed; this plugin never installs or upgrades it). Workflow: capture -> act by element index -> capture/verify to check. Verdicts classify every input (done / verify_fresh_state / escalate); never re-issue input on an escalation recommendation alone — re-capture first. Load the `computer-use` skill for the full operating manual and when-to-use scope.",
     args: {
       action: z.enum(ACTIONS).describe(ACTION_DESC),
       mode: z.string().optional().describe("capture mode: som | vision | ax (default som)"),

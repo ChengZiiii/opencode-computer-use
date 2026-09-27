@@ -15,7 +15,8 @@ self-contained and committed.
 | `src/session.ts` | lazy single child per host process (`--direct`, telemetry env off), single-flight serialization (chain-deferred), sticky target, crash → invalidate + lazy respawn, `REQUIRED_TOOLS` check on first connect |
 | `src/capture.ts` | capture result shaping: element list (cap 100 + truncation marker), data-URL attachments, scale metadata + no-pixel-reasoning warnings |
 | `src/safety.ts` | hard-blocked key combos (alias/hyphen/space canonicalization) and type patterns — checked BEFORE approval; sticky-target mismatch; verdict mapping (done / verify_fresh_state / escalate) |
-| `src/tool.ts` | `computer` tool (action discriminator, 13 actions) and `computer_status` (guide/diagnostic surface); approval two-piece (`ctx.ask` + permission rule); `capture_after` opt-in |
+| `src/tool.ts` | `computer` tool (action discriminator, 17 actions) and `computer_status` (guide/diagnostic surface); approval two-piece (`ctx.ask` + permission rule); `capture_after` opt-in |
+| `skills/computer-use/SKILL.md` | agent-facing operating manual; description is the when-to-use scope constraint; surfaced via config-hook injections (`skills.paths` append + `/computer` command), never a prompt injection |
 | `tests/unit.test.mjs` | resolve/contract/safety/capture/verdict units (injected runners) |
 | `tests/wiring.test.mjs` | MCP client (fake transport), session lifecycle (spawn/dispose/crash/serialize), tool wiring (fake ToolContext: ask/deny/blocked/sticky/no-target), plugin assembly two-state |
 

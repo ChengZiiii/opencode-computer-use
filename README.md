@@ -113,6 +113,40 @@ configurable 50–1000), if-changed screenshot dedup (identical images are
 omitted for at most two consecutive captures), and `capture_after` being
 opt-in per call or via policy.
 
+## Skill (operating manual) & the /computer activation entry
+
+The plugin ships a Hermes-style **skill as the agent-facing manual**:
+`skills/computer-use/SKILL.md`. Its description is the scope constraint —
+the agent is told to load the manual and use computer use ONLY for real
+desktop-GUI work (never as a substitute for file tools, bash, or browser
+tools), which keeps it from firing casually.
+
+Two pieces are wired automatically at startup (config hook, both
+null-checked so your own definitions always win):
+
+- **`/computer <task>`** — a slash command (typed `command` config key) that
+  loads the skill, then carries out `<task>`. This is the explicit
+  activation entry, Hermes `/computer-use` style.
+- **skills discovery** — the plugin appends its bundled `skills/` dir to
+  `skills.paths` so the skill appears in the `skill` tool without any copy
+  step. If your host resolves skills before plugin config hooks, add the
+  path manually (one line) or copy the folder:
+
+```jsonc
+// opencode.json — manual fallback
+{
+  "skills": {
+    "paths": [
+      "~/.cache/opencode/packages/@sorenllm/opencode-computer-use/node_modules/@sorenllm/opencode-computer-use/skills"
+    ]
+  }
+}
+// or: copy skills/computer-use/ into ~/.config/opencode/skills/
+```
+
+Per-skill gating is available through the host's permission system
+(`permission.skill: { "computer-use": "deny" }` hides it from an agent).
+
 ## Configuration
 
 ```jsonc
@@ -172,7 +206,9 @@ opt-in per call or via policy.
 
 ## Status
 
-0.1.0 — initial release. Contract floor 0.28.0, tested against 0.28.2.
+0.3.0 — added the skill activation layer (bundled operating-manual skill +
+`/computer` command + skills.paths wiring). Contract floor 0.28.0, tested
+against 0.28.2.
 The one-way version policy: when a newer driver is verified, the floor and
 tested-against range rise together; a drifted driver degrades to
 `computer_status` diagnostics rather than partial operation.
