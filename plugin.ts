@@ -49,17 +49,19 @@ function probeOnce(): ContractResult {
 
 const sessionId = `opencode-computer-use-${randomUUID().slice(0, 12)}`
 
-// ── Skill + slash-command wiring ────────────────────────────────────────────
+// ── Skill wiring ────────────────────────────────────────────────────────────
 // The plugin API has no skill hook, so the operating manual ships as
-// `skills/computer-use/SKILL.md` inside the package and is surfaced two ways:
-// 1. The config hook appends the package's `skills/` dir to `skills.paths`
-//    (same mechanism as the permission default injection). Best-effort: if
-//    the host resolves skills before plugin config hooks, the README's
-//    one-line manual path is the fallback.
-// 2. The config hook registers a `/computer` command (a typed config key)
-//    that loads the skill then carries out the user's arguments — the
-//    Hermes-style explicit activation entry. Both injections are
-//    null-checked: a user's own definition always wins.
+// `skills/computer-use/SKILL.md` inside the package and is surfaced via the
+// config hook appending the package's `skills/` dir to `skills.paths` (same
+// mechanism as the permission default injection). Best-effort: if the host
+// resolves skills before plugin config hooks, the README's one-line manual
+// path is the fallback.
+// Activation entry: hosts (1.18.x) auto-promote every discovered skill to a
+// slash command whose template IS the full SKILL.md (user args appended), so
+// `/computer-use <task>` is the deterministic user-facing entry and the
+// `/skills` menu browses it. The plugin registers NO command of its own —
+// the host surface makes a hand-rolled `/computer` orchestrator redundant
+// (and weaker: model-mediated skill loading vs manual-in-message at turn 0).
 function bundledSkillsDir(): string | null {
   // dist/index.js → <pkg>/skills; a root plugin.ts dev run → <repo>/skills.
   let here: string
@@ -74,12 +76,6 @@ function bundledSkillsDir(): string | null {
   }
   return null
 }
-
-const COMPUTER_COMMAND_TEMPLATE = [
-  "[The user explicitly activated desktop computer use via /computer.]",
-  "First load the `computer-use` skill with the skill tool (it is the operating manual), then carry out the following on the desktop: $ARGUMENTS",
-  "If $ARGUMENTS is empty, ask the user what they want done. If the `computer` tool is not available, run `computer_status` and surface its remediation verbatim.",
-].join("\n")
 
 export const server: Plugin = async (_input, options) => {
   const contract = probeOnce()
@@ -135,21 +131,13 @@ export const server: Plugin = async (_input, options) => {
     // Approval two-piece (forge-proven): default ask for BOTH domains —
     // background input ("computer") and foreground ("computer:foreground",
     // raise/foreground delivery). An explicit user decision always wins.
-    // Also wires the skill + /computer activation entry (see above); every
-    // injection is null-checked so user definitions always win.
+    // Also wires skill discovery (see above); the injection is null-checked
+    // so user definitions always win.
     config: async (cfg) => {
-      const c = cfg as { permission?: Record<string, unknown>; command?: Record<string, unknown>; skills?: { paths?: unknown } }
+      const c = cfg as { permission?: Record<string, unknown>; skills?: { paths?: unknown } }
       const section = c.permission ?? (c.permission = {})
       if (section.computer == null) section.computer = "ask"
       if (section["computer:foreground"] == null) section["computer:foreground"] = "ask"
-      // /computer slash activation (typed config key — reliable surface).
-      const commands = c.command ?? (c.command = {})
-      if (commands.computer == null) {
-        commands.computer = {
-          template: COMPUTER_COMMAND_TEMPLATE,
-          description: "Explicit desktop computer use: load the computer-use skill, then execute the given desktop task",
-        }
-      }
       // Best-effort skill discovery: append the bundled skills dir.
       // Compare case-insensitively (Windows drive/case variance); a malformed
       // non-array user `skills.paths` is left untouched — never removed.

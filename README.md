@@ -113,7 +113,7 @@ configurable 50–1000), if-changed screenshot dedup (identical images are
 omitted for at most two consecutive captures), and `capture_after` being
 opt-in per call or via policy.
 
-## Skill (operating manual) & the /computer activation entry
+## Skill (operating manual) & activation entry
 
 The plugin ships a Hermes-style **skill as the agent-facing manual**:
 `skills/computer-use/SKILL.md`. Its description is the scope constraint —
@@ -121,16 +121,17 @@ the agent is told to load the manual and use computer use ONLY for real
 desktop-GUI work (never as a substitute for file tools, bash, or browser
 tools), which keeps it from firing casually.
 
-Two pieces are wired automatically at startup (config hook, both
-null-checked so your own definitions always win):
+The config hook appends the bundled `skills/` dir to `skills.paths`
+(null-checked; your own definitions always win) so the skill appears in the
+`skill` tool with no copy step. The activation entry is the host's native
+surface: opencode auto-promotes every discovered skill to a slash command
+whose template is the full SKILL.md — so **`/computer-use <task>`** injects
+the entire manual plus your task as one user message (manual present at
+turn 0, no model-mediated load), and the **`/skills`** menu browses
+available skills. The plugin registers no command of its own.
 
-- **`/computer <task>`** — a slash command (typed `command` config key) that
-  loads the skill, then carries out `<task>`. This is the explicit
-  activation entry, Hermes `/computer-use` style.
-- **skills discovery** — the plugin appends its bundled `skills/` dir to
-  `skills.paths` so the skill appears in the `skill` tool without any copy
-  step. If your host resolves skills before plugin config hooks, add the
-  path manually (one line) or copy the folder:
+If your host resolves skills before plugin config hooks, add the path
+manually (one line) or copy the folder:
 
 ```jsonc
 // opencode.json — manual fallback
@@ -206,9 +207,13 @@ Per-skill gating is available through the host's permission system
 
 ## Status
 
+0.4.0 — removed the plugin-registered `/computer` command: hosts promote
+discovered skills to slash commands natively, making `/computer-use <task>`
+(full-manual template + appended args) the stronger activation entry. The
+plugin's only activation wiring is the `skills.paths` append.
 0.3.0 — added the skill activation layer (bundled operating-manual skill +
-`/computer` command + skills.paths wiring). Contract floor 0.28.0, tested
-against 0.28.2.
+skills.paths wiring; activation entry is the host's native `/computer-use`
+skill command). Contract floor 0.28.0, tested against 0.28.2.
 The one-way version policy: when a newer driver is verified, the floor and
 tested-against range rise together; a drifted driver degrades to
 `computer_status` diagnostics rather than partial operation.

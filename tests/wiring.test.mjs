@@ -390,7 +390,10 @@ test("plugin assembly: ready registers computer+status, guide registers only sta
   const cfg = {}
   await hooks.config(cfg)
   assert.equal(cfg.permission.computer, "ask")
-  assert.ok(cfg.command?.computer?.template?.includes("$ARGUMENTS"), "/computer command injected with $ARGUMENTS")
+  // No plugin command: the host's native skill→command promotion surfaces
+  // `/computer-use <task>` (full SKILL.md template); a re-introduced plugin
+  // command would shadow/duplicate that entry and must fail here.
+  assert.equal(cfg.command, undefined, "no slash command injected — entry is the host's native skill command")
   // The repo layout ships skills/, so injection MUST have happened here —
   // a silent no-injection regression must fail this test, not skip it.
   const appended = (cfg.skills?.paths ?? []).some((p) => String(p).replace(/\\/g, "/").endsWith("/opencode-computer-use/skills"))
@@ -401,10 +404,9 @@ test("plugin assembly: ready registers computer+status, guide registers only sta
   const cfgAllow = { permission: { computer: "allow" } }
   await hooks.config(cfgAllow)
   assert.equal(cfgAllow.permission.computer, "allow")
-  // user definitions always win — command not clobbered, skills path not duplicated
-  const cfgUser = { command: { computer: { template: "user owns me" } } }
+  // user skills config never clobbered or duplicated
+  const cfgUser = {}
   await hooks.config(cfgUser)
-  assert.equal(cfgUser.command.computer.template, "user owns me")
   const before = (cfgUser.skills?.paths ?? []).length
   await hooks.config(cfgUser)
   assert.equal((cfgUser.skills?.paths ?? []).length, before, "skills.paths append is idempotent")

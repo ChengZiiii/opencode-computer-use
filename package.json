@@ -1,6 +1,6 @@
 {
   "name": "@sorenllm/opencode-computer-use",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Desktop computer use for opencode via trycua/cua's cua-driver (MCP stdio): one consolidated `computer` tool (capture som/vision/ax + element-addressed click/type/key/scroll/drag), screenshots returned to the model as image attachments, semantic verdicts, hard-blocked destructive input, sticky-target guard, and a detect-degrade-instruct driver lifecycle — the plugin never installs or upgrades the driver; it probes locally and tells the user the exact command to run.",
   "type": "module",
   "main": "./dist/index.js",

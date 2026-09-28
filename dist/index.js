@@ -13670,12 +13670,6 @@ function bundledSkillsDir() {
   }
   return null;
 }
-var COMPUTER_COMMAND_TEMPLATE = [
-  "[The user explicitly activated desktop computer use via /computer.]",
-  "First load the `computer-use` skill with the skill tool (it is the operating manual), then carry out the following on the desktop: $ARGUMENTS",
-  "If $ARGUMENTS is empty, ask the user what they want done. If the `computer` tool is not available, run `computer_status` and surface its remediation verbatim."
-].join(`
-`);
 var server = async (_input, options) => {
   const contract = probeOnce();
   const installHint = userInstallHint();
@@ -13725,13 +13719,6 @@ var server = async (_input, options) => {
         section.computer = "ask";
       if (section["computer:foreground"] == null)
         section["computer:foreground"] = "ask";
-      const commands = c.command ?? (c.command = {});
-      if (commands.computer == null) {
-        commands.computer = {
-          template: COMPUTER_COMMAND_TEMPLATE,
-          description: "Explicit desktop computer use: load the computer-use skill, then execute the given desktop task"
-        };
-      }
       const skillsDir = bundledSkillsDir();
       if (skillsDir) {
         const norm = (v) => typeof v === "string" ? v.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase() : null;
