@@ -49,6 +49,27 @@ export const ENV_WHITELIST = [
   "NUMBER_OF_PROCESSORS",
   "PROCESSOR_ARCHITECTURE",
   "OS",
+  // Linux desktop session: the driver's Wayland/X11/AT-SPI/compositor
+  // connections live in these. Without them the child starts blind even
+  // though the host is a working graphical session.
+  "XDG_RUNTIME_DIR",
+  "XDG_SESSION_TYPE",
+  "XDG_SESSION_DESKTOP",
+  "XDG_CURRENT_DESKTOP",
+  "WAYLAND_DISPLAY",
+  "DISPLAY",
+  "XAUTHORITY",
+  "DBUS_SESSION_BUS_ADDRESS",
+  "AT_SPI_BUS_ADDRESS",
+  "SWAYSOCK",
+  "I3SOCK",
+  "NIRI_SOCKET",
+  "HYPRLAND_INSTANCE_SIGNATURE",
+  "KDE_FULL_SESSION",
+  "CUA_DRIVER_RS_ENABLE_WAYLAND",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
 ]
 
 export function buildChildEnv(extra: Record<string, string>): Record<string, string> {
@@ -116,6 +137,8 @@ export class McpClient {
   private opts: { name: string; version: string; defaultTimeoutMs?: number }
   crashed = false
   serverTools: string[] = []
+  /** input schema per tool, so callers can omit arguments a newer driver removed. */
+  serverToolSchemas: Record<string, { properties?: Record<string, unknown> }> = {}
   serverInfo: Record<string, unknown> | null = null
 
   constructor(transport: McpTransport, opts: { name: string; version: string; defaultTimeoutMs?: number }) {
@@ -182,10 +205,14 @@ export class McpClient {
     )) as { serverInfo?: Record<string, unknown> } | null
     this.serverInfo = result?.serverInfo ?? null
     this.notify("notifications/initialized")
-    const tools = (await this.request("tools/list", {}, timeoutMs)) as { tools?: Array<{ name?: unknown }> } | null
-    this.serverTools = Array.isArray(tools?.tools)
-      ? tools!.tools.map((t) => String(t?.name ?? "")).filter(Boolean)
-      : []
+    const tools = (await this.request("tools/list", {}, timeoutMs)) as {
+      tools?: Array<{ name?: unknown; inputSchema?: { properties?: Record<string, unknown> } }>
+    } | null
+    const listed = Array.isArray(tools?.tools) ? tools!.tools : []
+    this.serverTools = listed.map((t) => String(t?.name ?? "")).filter(Boolean)
+    this.serverToolSchemas = Object.fromEntries(
+      listed.filter((t) => typeof t?.name === "string").map((t) => [String(t.name), t.inputSchema ?? {}]),
+    )
   }
 
   missingTools(required: string[]): string[] {

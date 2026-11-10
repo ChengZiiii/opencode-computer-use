@@ -30,12 +30,12 @@ preserved in image blocks". This plugin is that layer and more:
 
 ## Install
 
-Requires opencode ≥ 1.18 and, for actual desktop control, the cua-driver
+Requires **OpenCode ≥ 2.0** and, for actual desktop control, the cua-driver
 binary (a user operation — like installing opencode itself):
 
 ```bash
-# 1. plugin (npm spec)
-opencode plugin @sorenllm/opencode-computer-use --global
+# 1. plugin (npm spec, OpenCode V2 CLI)
+opencode plugin add @sorenllm/opencode-computer-use
 
 # 2. driver — run this yourself in a terminal; the plugin never will
 # Windows (PowerShell):
@@ -48,7 +48,7 @@ After installing the driver, restart opencode (the probe runs at startup).
 macOS additionally needs the Accessibility + Screen Recording grants when
 the driver asks for them (they attach to the driver's own app identity).
 Verify any time: `cua-driver --version` — this plugin requires ≥ 0.28.0
-(tested against 0.28.2).
+(tested against 0.44.0).
 
 If the driver is missing or too old, the only registered tool is
 `computer_status`, which prints the exact problem and the command above.
@@ -121,57 +121,58 @@ the agent is told to load the manual and use computer use ONLY for real
 desktop-GUI work (never as a substitute for file tools, bash, or browser
 tools), which keeps it from firing casually.
 
-The config hook appends the bundled `skills/` dir to `skills.paths`
-(null-checked; your own definitions always win) so the skill appears in the
-`skill` tool with no copy step. The activation entry is the host's native
-surface: opencode auto-promotes every discovered skill to a slash command
-whose template is the full SKILL.md — so **`/computer-use <task>`** injects
-the entire manual plus your task as one user message (manual present at
-turn 0, no model-mediated load), and the **`/skills`** menu browses
-available skills. The plugin registers no command of its own.
+OpenCode V2 registers the bundled manual through `ctx.skill.transform`, so
+the skill appears in the `skill` tool with no copy step and no `skills.paths`
+editing. The activation entry is the host's native surface: **`/computer-use
+<task>`** injects the entire manual plus your task as one user message, and
+the **`/skills`** menu browses available skills. The plugin registers no
+command of its own.
 
-If your host resolves skills before plugin config hooks, add the path
-manually (one line) or copy the folder:
-
-```jsonc
-// opencode.json — manual fallback
-{
-  "skills": {
-    "paths": [
-      "~/.cache/opencode/packages/@sorenllm/opencode-computer-use/node_modules/@sorenllm/opencode-computer-use/skills"
-    ]
-  }
-}
-// or: copy skills/computer-use/ into ~/.config/opencode/skills/
-```
-
-Per-skill gating is available through the host's permission system
-(`permission.skill: { "computer-use": "deny" }` hides it from an agent).
+Per-skill gating uses the V2 permission system:
+`{ "action": "skill", "resource": "computer-use", "effect": "deny" }`.
 
 ## Configuration
 
 ```jsonc
-// opencode.json
+// opencode.json (OpenCode V2)
 {
-  "plugin": [
-    ["@sorenllm/opencode-computer-use", {
-      // "computerUse": {
-      //   "captureAfter": "off",   // "som" | "ax": auto-capture after input actions
-      //   "agentCursor": false,    // driver-side agent-cursor visualization (default off)
-      //   "maxElements": 200      // driver-side element walk bound (50–1000)
-      // }
-    }]
+  "plugins": [
+    {
+      "package": "@sorenllm/opencode-computer-use",
+      "options": {
+        "computerUse": {
+          "captureAfter": "off",   // "som" | "ax": auto-capture after input actions
+          "agentCursor": false,    // driver-side agent-cursor visualization (default off)
+          "maxElements": 200,      // driver-side element walk bound (50–1000)
+          "permissionMode": "ask", // "ask" (default) | "config"
+          "approval": "session"    // "session" (default) | "each"
+        }
+      }
+    }
   ],
-  "permission": {
-    "computer": "ask",                // background input (default)
-    "computer:foreground": "ask"      // raising windows / foreground delivery (separate domain)
-  } // "deny" wins; "always" via the approval dialog
+  "permissions": [
+    { "action": "computer", "resource": "*", "effect": "ask" },
+    { "action": "computer:foreground", "resource": "*", "effect": "ask" }
+  ]
 }
 ```
 
-- `OPENCODE_CUA_DRIVER_CMD` — point at a specific driver binary. Authoritative:
-  if it is wrong, readiness fails naming it; the plugin never silently picks
-  another binary.
+With `permissionMode: "ask"` (the default) the plugin adds those two rules
+to each session without replacing your configured rules. With `approval:
+"session"` (the default), the first approval adds session-scoped allow rules
+for both domains, so a single "allow" covers computer use until that session
+ends. Use `"each"` to ask for every action, or `"config"` to leave permission
+rules entirely to your configuration.
+
+The foreground domain is separate: a background approval never covers
+raising a window or `delivery_mode: "foreground"`.
+
+- `computerUse.driverPath` (or `OPENCODE_CUA_DRIVER_CMD`) — point at a specific
+  driver binary. Authoritative: if it is wrong, readiness fails naming it; the
+  plugin never silently picks another binary.
+- On Wayland the plugin passes `CUA_DRIVER_RS_ENABLE_WAYLAND=1` to its driver
+  child automatically (unless you set it to `0`), so native Wayland works
+  without exporting the variable in the OpenCode service environment.
 - Telemetry: the plugin spawns the driver with
   `CUA_DRIVER_RS_TELEMETRY_ENABLED=0` (the driver phones home by default —
   this turns it off for plugin-spawned sessions).
@@ -202,18 +203,22 @@ Per-skill gating is available through the host's permission system
 | `~/.config/opencode/opencode.json` | `plugin` array entry | installer-written |
 | `~/.cache/opencode/packages/...` | installed package copy | installer-written |
 | cua-driver install (`%LOCALAPPDATA%/Programs/Cua/`, `~/.local/bin/`, …) | the driver binary | user-owned, shared |
-| merged config object (RAM only) | `permission.computer` default | vanishes with the plugin |
+| session permission rules | `computer` and `computer:foreground` ask defaults | removed with the session |
 | one child process per opencode run | `cua-driver mcp --direct` | killed on plugin dispose |
 
 ## Status
 
+0.5.0 — OpenCode V2 plugin API: `Plugin.define`/`setup`, tools registered
+through `ctx.tool.transform`, the manual through `ctx.skill.transform`, and
+per-call approval through `ctx.permission.assert` with session-scoped ask
+rules. Tool results now return V2 content blocks (text + file attachments).
 0.4.0 — removed the plugin-registered `/computer` command: hosts promote
 discovered skills to slash commands natively, making `/computer-use <task>`
 (full-manual template + appended args) the stronger activation entry. The
 plugin's only activation wiring is the `skills.paths` append.
 0.3.0 — added the skill activation layer (bundled operating-manual skill +
 skills.paths wiring; activation entry is the host's native `/computer-use`
-skill command). Contract floor 0.28.0, tested against 0.28.2.
+skill command). Contract floor 0.28.0, tested against 0.44.0.
 The one-way version policy: when a newer driver is verified, the floor and
 tested-against range rise together; a drifted driver degrades to
 `computer_status` diagnostics rather than partial operation.

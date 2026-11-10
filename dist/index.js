@@ -1,22 +1,9540 @@
-var __defProp = Object.defineProperty;
-var __returnValue = (v) => v;
-function __exportSetter(name, newValue) {
-  this[name] = __returnValue.bind(null, newValue);
+// node_modules/@opencode/plugin/dist/promise/plugin.js
+function define(plugin) {
+  return plugin;
 }
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, {
-      get: all[name],
-      enumerable: true,
-      configurable: true,
-      set: __exportSetter.bind(all, name)
-    });
+// node_modules/@opencode/schema/node_modules/effect/dist/Pipeable.js
+var pipeArguments = (self, args) => {
+  switch (args.length) {
+    case 0:
+      return self;
+    case 1:
+      return args[0](self);
+    case 2:
+      return args[1](args[0](self));
+    case 3:
+      return args[2](args[1](args[0](self)));
+    case 4:
+      return args[3](args[2](args[1](args[0](self))));
+    case 5:
+      return args[4](args[3](args[2](args[1](args[0](self)))));
+    case 6:
+      return args[5](args[4](args[3](args[2](args[1](args[0](self))))));
+    case 7:
+      return args[6](args[5](args[4](args[3](args[2](args[1](args[0](self)))))));
+    case 8:
+      return args[7](args[6](args[5](args[4](args[3](args[2](args[1](args[0](self))))))));
+    case 9:
+      return args[8](args[7](args[6](args[5](args[4](args[3](args[2](args[1](args[0](self)))))))));
+    default: {
+      let ret = self;
+      for (let i = 0, len = args.length;i < len; i++) {
+        ret = args[i](ret);
+      }
+      return ret;
+    }
+  }
+};
+var Prototype = {
+  pipe() {
+    return pipeArguments(this, arguments);
+  }
+};
+var Class = /* @__PURE__ */ function() {
+  function PipeableBase() {}
+  PipeableBase.prototype = Prototype;
+  return PipeableBase;
+}();
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Function.js
+var dual = function(arity, body) {
+  if (typeof arity === "function") {
+    return function() {
+      return arity(arguments) ? body.apply(this, arguments) : (self) => body(self, ...arguments);
+    };
+  }
+  switch (arity) {
+    case 0:
+    case 1:
+      throw new RangeError(`Invalid arity ${arity}`);
+    case 2:
+      return function(a, b) {
+        if (arguments.length >= 2) {
+          return body(a, b);
+        }
+        return function(self) {
+          return body(self, a);
+        };
+      };
+    case 3:
+      return function(a, b, c) {
+        if (arguments.length >= 3) {
+          return body(a, b, c);
+        }
+        return function(self) {
+          return body(self, a, b);
+        };
+      };
+    default:
+      return function() {
+        if (arguments.length >= arity) {
+          return body.apply(this, arguments);
+        }
+        const args = arguments;
+        return function(self) {
+          return body(self, ...args);
+        };
+      };
+  }
+};
+var identity = (a) => a;
+var constant = (value) => () => value;
+var constTrue = /* @__PURE__ */ constant(true);
+var constUndefined = /* @__PURE__ */ constant(undefined);
+var constVoid = constUndefined;
+function memoize(f) {
+  const cache = new WeakMap;
+  return (a) => {
+    const cached = cache.get(a);
+    if (cached !== undefined)
+      return cached;
+    const result = f(a);
+    cache.set(a, result);
+    return result;
+  };
+}
+function memoizeIdempotent(f) {
+  const cache = new WeakMap;
+  return (a) => {
+    const cached = cache.get(a);
+    if (cached !== undefined)
+      return cached;
+    const result = f(a);
+    cache.set(a, result);
+    if (result !== a) {
+      cache.set(result, result);
+    }
+    return result;
+  };
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/equal.js
+var getAllObjectKeys = (obj) => {
+  const keys = new Set(Reflect.ownKeys(obj));
+  if (obj.constructor === Object)
+    return keys;
+  if (obj instanceof Error) {
+    keys.delete("stack");
+  }
+  const proto = Object.getPrototypeOf(obj);
+  let current = proto;
+  while (current !== null && current !== Object.prototype) {
+    const ownKeys = Reflect.ownKeys(current);
+    for (let i = 0;i < ownKeys.length; i++) {
+      keys.add(ownKeys[i]);
+    }
+    current = Object.getPrototypeOf(current);
+  }
+  if (keys.has("constructor") && typeof obj.constructor === "function" && proto === obj.constructor.prototype) {
+    keys.delete("constructor");
+  }
+  return keys;
+};
+var byReferenceInstances = /* @__PURE__ */ new WeakSet;
+var viewBytes = (view) => new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+var isArrayBufferLike = (u) => u instanceof ArrayBuffer || typeof SharedArrayBuffer !== "undefined" && u instanceof SharedArrayBuffer;
+var bufferBytes = (buffer) => {
+  try {
+    return new Uint8Array(buffer);
+  } catch {
+    return;
+  }
 };
 
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/hash.js
+var backEdges = 0;
+var addBackEdge = () => {
+  backEdges++;
+};
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Predicate.js
+function isString(input) {
+  return typeof input === "string";
+}
+function isNumber(input) {
+  return typeof input === "number";
+}
+function isBoolean(input) {
+  return typeof input === "boolean";
+}
+function isSymbol(input) {
+  return typeof input === "symbol";
+}
+function isPropertyKey(u) {
+  return isString(u) || isNumber(u) || isSymbol(u);
+}
+function isFunction(input) {
+  return typeof input === "function";
+}
+function isNotNullish(input) {
+  return input != null;
+}
+function isUnknown(_) {
+  return true;
+}
+function isObject(input) {
+  return typeof input === "object" && input !== null && !Array.isArray(input);
+}
+function isObjectKeyword(input) {
+  return typeof input === "object" && input !== null || isFunction(input);
+}
+var hasProperty = /* @__PURE__ */ dual(2, (self, property) => isObjectKeyword(self) && (property in self));
+function isError(input) {
+  return input instanceof Error;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Hash.js
+var symbol = "~effect/Hash";
+var hash = (self) => {
+  switch (typeof self) {
+    case "number":
+      return number(self);
+    case "bigint":
+      return string(self.toString(10));
+    case "string":
+      return string(self);
+    case "function":
+    case "object": {
+      if (self === null) {
+        break;
+      } else if (self instanceof Date) {
+        if (Number.isNaN(self.getTime())) {
+          return string("Invalid Date");
+        }
+        return string(self.toISOString());
+      } else if (self instanceof RegExp) {
+        return string(self.toString());
+      } else {
+        if (byReferenceInstances.has(self)) {
+          return random(self);
+        }
+        const cached = hashCache.get(self);
+        if (cached !== undefined) {
+          return cached;
+        }
+        if (visitedObjects.has(self)) {
+          addBackEdge();
+          return string("[Circular]");
+        }
+        visitedObjects.add(self);
+        const seen = backEdges;
+        let h;
+        try {
+          if (symbol in self) {
+            h = self[symbol]();
+          } else if (typeof self === "function") {
+            h = random(self);
+          } else if (isArrayBufferLike(self)) {
+            const bytes = bufferBytes(self);
+            h = bytes === undefined ? random(self) : array(bytes);
+          } else if (self instanceof DataView) {
+            h = array(viewBytes(self));
+          } else if (Array.isArray(self) || ArrayBuffer.isView(self)) {
+            h = array(self);
+          } else if (self instanceof Map) {
+            h = hashMap(self);
+          } else if (self instanceof Set) {
+            h = hashSet(self);
+          } else {
+            h = structure(self);
+          }
+        } finally {
+          visitedObjects.delete(self);
+        }
+        if (seen === backEdges) {
+          hashCache.set(self, h);
+        }
+        return h;
+      }
+    }
+  }
+  return optimize(mix(string(String(self))));
+};
+var random = (self) => {
+  if (!randomHashCache.has(self)) {
+    randomHashCache.set(self, optimize(Math.random() * 4294967296 | 0));
+  }
+  return randomHashCache.get(self);
+};
+var mix = (h) => {
+  h ^= h >>> 16;
+  h = Math.imul(h, 2246822507);
+  h ^= h >>> 13;
+  h = Math.imul(h, 3266489909);
+  return h ^ h >>> 16;
+};
+var combine = /* @__PURE__ */ dual(2, (self, b) => mix(Math.imul(self, 2654435761) + Math.imul(b, 2246822507)));
+var optimize = (n) => n & 3221225471 | n >>> 1 & 1073741824;
+var float64 = /* @__PURE__ */ new DataView(/* @__PURE__ */ new ArrayBuffer(8));
+var number = (n) => {
+  const h = n | 0;
+  if (h === n) {
+    return optimize(h);
+  }
+  float64.setFloat64(0, n !== n ? NaN : n);
+  return optimize(combine(float64.getInt32(0), float64.getInt32(4)));
+};
+var string = (str) => {
+  let h = 5381, i = str.length;
+  while (i) {
+    h = h * 33 ^ str.charCodeAt(--i);
+  }
+  return optimize(h);
+};
+var structureKeys = (o, keys) => {
+  let h = 12289;
+  for (const key of keys) {
+    h ^= combine(hash(key), hash(o[key]));
+  }
+  return optimize(h);
+};
+var structure = (o) => structureKeys(o, getAllObjectKeys(o));
+var unordered = (seed, f) => (iter) => {
+  let h = seed;
+  for (const element of iter) {
+    h ^= f(element);
+  }
+  return optimize(h);
+};
+var array = (arr) => {
+  let h = 6151;
+  for (const element of arr) {
+    h = combine(h, hash(element));
+  }
+  return optimize(h);
+};
+var hashMap = /* @__PURE__ */ unordered(/* @__PURE__ */ string("Map"), ([k, v]) => combine(hash(k), hash(v)));
+var setSeed = /* @__PURE__ */ string("Set");
+var hashSet = /* @__PURE__ */ unordered(setSeed, (element) => combine(setSeed, hash(element)));
+var randomHashCache = /* @__PURE__ */ new WeakMap;
+var hashCache = /* @__PURE__ */ new WeakMap;
+var visitedObjects = /* @__PURE__ */ new WeakSet;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Equal.js
+var symbol2 = "~effect/Equal";
+function equals() {
+  if (arguments.length === 1) {
+    return (self) => compareBoth(self, arguments[0]);
+  }
+  return compareBoth(arguments[0], arguments[1]);
+}
+function compareBoth(self, that) {
+  if (self === that)
+    return true;
+  if (self == null || that == null)
+    return false;
+  const selfType = typeof self;
+  if (selfType !== typeof that) {
+    return false;
+  }
+  if (selfType === "number" && self !== self && that !== that) {
+    return true;
+  }
+  if (selfType !== "object" && selfType !== "function") {
+    return false;
+  }
+  if (byReferenceInstances.has(self) || byReferenceInstances.has(that)) {
+    return false;
+  }
+  return compareObjects(self, that);
+}
+function compareObjects(self, that) {
+  const depth = pathLeft.length;
+  for (let i = depth;i-- > 0; ) {
+    if (pathLeft[i] === self && pathRight[i] === that)
+      return true;
+  }
+  if (depth)
+    return compareOnPath(self, that);
+  let known = results.get(self);
+  if (!known)
+    results.set(self, known = new WeakMap);
+  let result = known.get(that);
+  if (result === undefined)
+    known.set(that, result = compareOnPath(self, that));
+  return result;
+}
+function compareOnPath(self, that) {
+  pathLeft.push(self);
+  pathRight.push(that);
+  try {
+    return compareStructure(self, that);
+  } finally {
+    pathLeft.pop();
+    pathRight.pop();
+  }
+}
+var pathLeft = [];
+var pathRight = [];
+var results = /* @__PURE__ */ new WeakMap;
+function compareStructure(self, that) {
+  if (hash(self) !== hash(that)) {
+    return false;
+  } else if (self instanceof Date) {
+    if (!(that instanceof Date))
+      return false;
+    const selfTime = self.getTime();
+    const thatTime = that.getTime();
+    return selfTime === thatTime || Number.isNaN(selfTime) && Number.isNaN(thatTime);
+  } else if (self instanceof RegExp) {
+    return that instanceof RegExp && self.toString() === that.toString();
+  }
+  const bothEquals = isEqual(self);
+  if (bothEquals !== isEqual(that) || typeof self === "function" && !bothEquals) {
+    return false;
+  } else if (bothEquals) {
+    return self[symbol2](that);
+  } else if (Array.isArray(self)) {
+    if (!Array.isArray(that) || self.length !== that.length) {
+      return false;
+    }
+    return compareArrays(self, that);
+  } else if (isArrayBufferLike(self)) {
+    if (!isArrayBufferLike(that) || self instanceof ArrayBuffer !== that instanceof ArrayBuffer) {
+      return false;
+    }
+    const selfBytes = bufferBytes(self);
+    const thatBytes = bufferBytes(that);
+    return selfBytes !== undefined && thatBytes !== undefined && compareTypedArrays(selfBytes, thatBytes);
+  } else if (ArrayBuffer.isView(self)) {
+    const selfIsDataView = self instanceof DataView;
+    if (!ArrayBuffer.isView(that) || self.byteLength !== that.byteLength || selfIsDataView !== that instanceof DataView) {
+      return false;
+    }
+    if (selfIsDataView) {
+      return compareTypedArrays(viewBytes(self), viewBytes(that));
+    }
+    return compareTypedArrays(self, that);
+  } else if (self instanceof Map) {
+    if (!(that instanceof Map) || self.size !== that.size) {
+      return false;
+    }
+    return compareHashed(self, that, entryHash, equalEntries);
+  } else if (self instanceof Set) {
+    if (!(that instanceof Set) || self.size !== that.size) {
+      return false;
+    }
+    return compareHashed(self, that, hash, compareBoth);
+  }
+  return compareRecords(self, that);
+}
+function compareArrays(self, that) {
+  for (let i = 0;i < self.length; i++) {
+    if (!compareBoth(self[i], that[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+function compareTypedArrays(self, that) {
+  if (self.length !== that.length) {
+    return false;
+  }
+  for (let i = 0;i < self.length; i++) {
+    if (self[i] !== that[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+function compareRecords(self, that) {
+  const selfKeys = getAllObjectKeys(self);
+  const thatKeys = getAllObjectKeys(that);
+  if (selfKeys.size !== thatKeys.size) {
+    return false;
+  }
+  for (const key of selfKeys) {
+    if (!thatKeys.has(key) || !compareBoth(self[key], that[key])) {
+      return false;
+    }
+  }
+  return true;
+}
+function compareHashed(self, that, hashOf, equivalent) {
+  const groups = new Map;
+  let remaining = 0;
+  for (const item of that) {
+    const h = hashOf(item);
+    const group = groups.get(h);
+    if (group)
+      group.push(item);
+    else
+      groups.set(h, [item]);
+    remaining++;
+  }
+  outer:
+    for (const item of self) {
+      const group = groups.get(hashOf(item));
+      if (group) {
+        for (let i = 0;i < group.length; i++) {
+          if (equivalent(item, group[i])) {
+            group[i] = group[group.length - 1];
+            group.pop();
+            remaining--;
+            continue outer;
+          }
+        }
+      }
+      return false;
+    }
+  return remaining === 0;
+}
+var entryHash = (entry) => hash(entry[0]);
+var equalEntries = (self, that) => compareBoth(self[0], that[0]) && compareBoth(self[1], that[1]);
+var sameGroup = () => 0;
+function makeCompareMap(keyEquivalence, valueEquivalence) {
+  return makeCompareSet((self, that) => keyEquivalence(self[0], that[0]) && valueEquivalence(self[1], that[1]));
+}
+function makeCompareSet(equivalence) {
+  return function compareSets(self, that) {
+    return compareHashed(self, that, sameGroup, equivalence);
+  };
+}
+var isEqual = (u) => hasProperty(u, symbol2);
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Redactable.js
+var symbolRedactable = /* @__PURE__ */ Symbol.for("~effect/Redactable");
+var isRedactable = (u) => hasProperty(u, symbolRedactable);
+function redact(u) {
+  if (isRedactable(u))
+    return getRedacted(u);
+  return u;
+}
+function getRedacted(redactable) {
+  return redactable[symbolRedactable](globalThis[currentFiberTypeId]?.context ?? emptyContext);
+}
+var currentFiberTypeId = "~effect/Fiber/currentFiber";
+var emptyMap = /* @__PURE__ */ new Map;
+var emptyContext = {
+  "~effect/Context": {},
+  base: emptyMap,
+  depth: 0,
+  mapUnsafe: emptyMap,
+  pipe() {
+    return pipeArguments(this, arguments);
+  }
+};
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Formatter.js
+function format(input, options) {
+  const space = options?.space ?? 0;
+  const ancestors = new WeakSet;
+  const gap = !space ? "" : typeof space === "number" ? " ".repeat(space) : space;
+  const ind = (d) => gap.repeat(d);
+  const wrap = (v, body) => {
+    const ctor = v?.constructor;
+    return ctor && ctor !== Object.prototype.constructor && ctor.name ? `${ctor.name}(${body})` : body;
+  };
+  const ownKeys = (o) => {
+    try {
+      return Reflect.ownKeys(o);
+    } catch {
+      return ["[ownKeys threw]"];
+    }
+  };
+  function recur(v, d = 0) {
+    try {
+      return recurUnsafe(v, d);
+    } catch {
+      if (typeof v === "object" && v !== null || typeof v === "function")
+        ancestors.delete(v);
+      return "[inspection threw]";
+    }
+  }
+  function recurUnsafe(v, d = 0) {
+    if (typeof v === "string")
+      return JSON.stringify(v);
+    if (typeof v === "number" || v == null || typeof v === "boolean" || typeof v === "symbol")
+      return String(v);
+    if (typeof v === "bigint")
+      return String(v) + "n";
+    if (typeof v === "object" || typeof v === "function") {
+      if (ancestors.has(v))
+        return CIRCULAR;
+      ancestors.add(v);
+      let output;
+      if (symbolRedactable in v) {
+        output = recur(getRedacted(v), d);
+      } else if (Array.isArray(v)) {
+        output = !gap || v.length <= 1 ? `[${v.map((x) => recur(x, d)).join(",")}]` : `[
+${ind(d + 1)}${v.map((x) => recur(x, d + 1)).join(`,
+` + ind(d + 1))}
+${ind(d)}]`;
+      } else if (v instanceof Date) {
+        output = formatDate(v);
+      } else if (!options?.ignoreToString && hasProperty(v, "toString") && typeof v["toString"] === "function" && v["toString"] !== Object.prototype.toString && v["toString"] !== Array.prototype.toString) {
+        const s = safeToString(v);
+        output = v instanceof Error && v.cause !== undefined ? `${s} (cause: ${recur(v.cause, d)})` : s;
+      } else if (Symbol.iterator in v) {
+        output = `${v.constructor.name}(${recur(Array.from(v), d)})`;
+      } else {
+        const keys = ownKeys(v);
+        if (!gap || keys.length <= 1) {
+          const body = `{${keys.map((k) => `${formatPropertyKey(k)}:${recur(safeGet(v, k), d)}`).join(",")}}`;
+          output = wrap(v, body);
+        } else {
+          const body = `{
+${keys.map((k) => `${ind(d + 1)}${formatPropertyKey(k)}: ${recur(safeGet(v, k), d + 1)}`).join(`,
+`)}
+${ind(d)}}`;
+          output = wrap(v, body);
+        }
+      }
+      ancestors.delete(v);
+      return output;
+    }
+    return String(v);
+  }
+  return recur(input, 0);
+}
+var CIRCULAR = "[Circular]";
+function formatPropertyKey(name) {
+  return typeof name === "string" ? JSON.stringify(name) : String(name);
+}
+function formatPath(path) {
+  return path.map((key) => `[${formatPropertyKey(key)}]`).join("");
+}
+function formatDate(date) {
+  try {
+    return date.toISOString();
+  } catch {
+    return "Invalid Date";
+  }
+}
+function safeToString(input) {
+  try {
+    const s = input.toString();
+    return typeof s === "string" ? s : String(s);
+  } catch {
+    return "[toString threw]";
+  }
+}
+function safeGet(input, key) {
+  try {
+    return input[key];
+  } catch {
+    return "[property access threw]";
+  }
+}
+function formatJson(input, options) {
+  const ancestors = [];
+  const sources = new WeakMap;
+  return JSON.stringify(input, function(key, value) {
+    const original = Object.getOwnPropertyDescriptor(sources.get(this) ?? this, key)?.value;
+    const redacted = hasProperty(original, symbolRedactable) ? redact(original) : redact(value);
+    if (typeof redacted === "bigint") {
+      return format(redacted);
+    }
+    if (typeof redacted !== "object" || redacted === null) {
+      return redacted;
+    }
+    const current = redacted instanceof Error && !hasProperty(redacted, "toJSON") ? {
+      ...redacted,
+      name: redacted.name,
+      message: redacted.message
+    } : redacted;
+    while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) {
+      ancestors.pop();
+    }
+    if (ancestors.includes(redacted)) {
+      return;
+    }
+    ancestors.push(redacted);
+    if (current !== redacted) {
+      ancestors.push(current);
+    }
+    if (!hasGetter(current) || isJsonPrimitiveWrapper(current)) {
+      return current;
+    }
+    const view = redactingView(current);
+    sources.set(view, current);
+    ancestors.push(view);
+    return view;
+  }, options?.space) ?? "null";
+}
+function hasGetter(object) {
+  for (const key of Object.getOwnPropertyNames(object)) {
+    if (Object.getOwnPropertyDescriptor(object, key)?.get !== undefined) {
+      return true;
+    }
+  }
+  return false;
+}
+function redactingView(object) {
+  const view = Array.isArray(object) ? [] : {};
+  const keys = Array.isArray(object) ? Array.from({
+    length: object.length
+  }, (_, i) => String(i)) : Object.keys(object);
+  for (const key of keys) {
+    Object.defineProperty(view, key, {
+      enumerable: true,
+      get: () => {
+        const value = Reflect.get(object, key);
+        return Object.getOwnPropertyDescriptor(object, key)?.get !== undefined ? redact(value) : value;
+      }
+    });
+  }
+  return view;
+}
+function isJsonPrimitiveWrapper(object) {
+  for (const valueOf of [Number.prototype.valueOf, Boolean.prototype.valueOf, String.prototype.valueOf]) {
+    try {
+      Reflect.apply(valueOf, object, []);
+      return true;
+    } catch {}
+  }
+  return false;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Inspectable.js
+var NodeInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
+var toJson = (input) => {
+  try {
+    input = redact(input);
+    if (hasProperty(input, "toJSON") && isFunction(input["toJSON"]) && input["toJSON"].length === 0) {
+      return input.toJSON();
+    } else if (Array.isArray(input)) {
+      return input.map(toJson);
+    }
+    return input;
+  } catch {
+    return "[toJSON threw]";
+  }
+};
+var BaseProto = {
+  toJSON() {
+    return toJson(this);
+  },
+  [NodeInspectSymbol]() {
+    return this.toJSON();
+  },
+  toString() {
+    return format(this.toJSON());
+  }
+};
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/stackTraceLimit.js
+var isStackTraceLimitWritable = () => {
+  const desc = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
+  if (desc === undefined) {
+    return Object.isExtensible(Error);
+  }
+  return Object.hasOwn(desc, "writable") ? desc.writable === true : desc.set !== undefined;
+};
+var canWriteStackTraceLimit = /* @__PURE__ */ isStackTraceLimitWritable();
+var getStackTraceLimit = () => Error.stackTraceLimit;
+var setStackTraceLimit = (value) => {
+  if (canWriteStackTraceLimit) {
+    Error.stackTraceLimit = value;
+  }
+};
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Utils.js
+class SingleShotGen {
+  constructor(self) {
+    this.value = self;
+    this.done = false;
+  }
+  next(a) {
+    if (this.done) {
+      this.value = a;
+      return this;
+    }
+    this.done = true;
+    return {
+      value: this.value,
+      done: false
+    };
+  }
+}
+var pickInternalCall = () => {
+  const InternalTypeId = "~effect/Utils/internal";
+  const standard = {
+    [InternalTypeId]: (body) => {
+      return body();
+    }
+  };
+  const forced = {
+    [InternalTypeId]: (body) => {
+      try {
+        return body();
+      } finally {}
+    }
+  };
+  const limit = getStackTraceLimit();
+  if (limit === 0)
+    return forced[InternalTypeId];
+  setStackTraceLimit(2);
+  const error = standard[InternalTypeId](() => new Error);
+  setStackTraceLimit(limit);
+  return error.stack?.includes(InternalTypeId) === true ? standard[InternalTypeId] : forced[InternalTypeId];
+};
+var internalCall = /* @__PURE__ */ pickInternalCall();
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/record.js
+function assignProperty(self, key, value) {
+  if (key === "__proto__") {
+    Object.defineProperty(self, key, {
+      value,
+      writable: true,
+      enumerable: true,
+      configurable: true
+    });
+  } else {
+    self[key] = value;
+  }
+}
+function assignProperties(self, source) {
+  if (!Object.hasOwn(source, "__proto__")) {
+    Object.assign(self, source);
+    return;
+  }
+  for (const key of Reflect.ownKeys(source)) {
+    if (Object.prototype.propertyIsEnumerable.call(source, key)) {
+      assignProperty(self, key, source[key]);
+    }
+  }
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/core.js
+var EffectTypeId = `~effect/Effect`;
+var ExitTypeId = `~effect/Exit`;
+var effectVariance = {
+  _A: identity,
+  _E: identity,
+  _R: identity
+};
+var identifier = `${EffectTypeId}/identifier`;
+var args = `${EffectTypeId}/args`;
+var evaluate = `${EffectTypeId}/evaluate`;
+var contA = `${EffectTypeId}/successCont`;
+var contE = `${EffectTypeId}/failureCont`;
+var contAll = `${EffectTypeId}/ensureCont`;
+var Yield = /* @__PURE__ */ Symbol.for("effect/Effect/Yield");
+var PipeInspectableProto = {
+  pipe() {
+    return pipeArguments(this, arguments);
+  },
+  toJSON() {
+    return {
+      ...this
+    };
+  },
+  toString() {
+    return format(this.toJSON(), {
+      ignoreToString: true,
+      space: 2
+    });
+  },
+  [NodeInspectSymbol]() {
+    return this.toJSON();
+  }
+};
+var StructuralProto = {
+  [symbol]() {
+    return structureKeys(this, Object.keys(this));
+  },
+  [symbol2](that) {
+    const selfKeys = Object.keys(this);
+    const thatKeys = Object.keys(that);
+    if (selfKeys.length !== thatKeys.length)
+      return false;
+    for (let i = 0;i < selfKeys.length; i++) {
+      if (selfKeys[i] !== thatKeys[i] || !equals(this[selfKeys[i]], that[selfKeys[i]])) {
+        return false;
+      }
+    }
+    return true;
+  }
+};
+var EffectProto = {
+  [EffectTypeId]: effectVariance,
+  ...PipeInspectableProto,
+  [Symbol.iterator]() {
+    return new SingleShotGen(this);
+  },
+  toJSON() {
+    return {
+      _id: "Effect",
+      op: this[identifier],
+      ...args in this ? {
+        args: this[args]
+      } : undefined
+    };
+  }
+};
+var isExit = (u) => hasProperty(u, ExitTypeId);
+var CauseTypeId = "~effect/Cause";
+var CauseReasonTypeId = "~effect/Cause/Reason";
+var isCause = (self) => hasProperty(self, CauseTypeId);
+class CauseImpl {
+  constructor(failures) {
+    this[CauseTypeId] = CauseTypeId;
+    this.reasons = failures;
+  }
+  pipe() {
+    return pipeArguments(this, arguments);
+  }
+  toJSON() {
+    return {
+      _id: "Cause",
+      reasons: this.reasons.map((f) => f.toJSON())
+    };
+  }
+  toString() {
+    return `Cause(${format(this.reasons)})`;
+  }
+  [NodeInspectSymbol]() {
+    return this.toJSON();
+  }
+  [symbol2](that) {
+    return isCause(that) && this.reasons.length === that.reasons.length && this.reasons.every((e, i) => equals(e, that.reasons[i]));
+  }
+  [symbol]() {
+    return array(this.reasons);
+  }
+}
+var annotationsMap = /* @__PURE__ */ new WeakMap;
+
+class ReasonBase {
+  [CauseReasonTypeId];
+  annotations;
+  _tag;
+  constructor(_tag, annotations, originalError) {
+    this[CauseReasonTypeId] = CauseReasonTypeId;
+    this._tag = _tag;
+    if (annotations !== constEmptyAnnotations && typeof originalError === "object" && originalError !== null && annotations.size > 0) {
+      const prevAnnotations = annotationsMap.get(originalError);
+      if (prevAnnotations) {
+        annotations = new Map([...prevAnnotations, ...annotations]);
+      }
+      annotationsMap.set(originalError, annotations);
+    }
+    this.annotations = annotations;
+  }
+  annotate(annotations, options) {
+    if (annotations.mapUnsafe.size === 0)
+      return this;
+    const newAnnotations = new Map(this.annotations);
+    annotations.mapUnsafe.forEach((value, key) => {
+      if (options?.overwrite !== true && newAnnotations.has(key))
+        return;
+      newAnnotations.set(key, value);
+    });
+    if (options?.overwrite !== true && newAnnotations.size === this.annotations.size)
+      return this;
+    const self = Object.assign(Object.create(Object.getPrototypeOf(this)), this);
+    self.annotations = newAnnotations;
+    return self;
+  }
+  pipe() {
+    return pipeArguments(this, arguments);
+  }
+  toString() {
+    return format(this);
+  }
+  [NodeInspectSymbol]() {
+    return this.toString();
+  }
+}
+var constEmptyAnnotations = /* @__PURE__ */ new Map;
+
+class Fail extends ReasonBase {
+  constructor(error, annotations = constEmptyAnnotations) {
+    super("Fail", annotations, error);
+    this.error = error;
+  }
+  toString() {
+    return `Fail(${format(this.error)})`;
+  }
+  toJSON() {
+    return {
+      _tag: "Fail",
+      error: this.error
+    };
+  }
+  [symbol2](that) {
+    return isFailReason(that) && equals(this.error, that.error) && equals(this.annotations, that.annotations);
+  }
+  [symbol]() {
+    return combine(string(this._tag))(combine(hash(this.error))(hash(this.annotations)));
+  }
+}
+var causeFromReasons = (reasons) => new CauseImpl(reasons);
+var dedupeReasons = (self, that) => {
+  const buckets = new Map;
+  const out = [];
+  for (const reason of self.concat(that)) {
+    const hash2 = hash(reason);
+    const bucket = buckets.get(hash2);
+    if (bucket === undefined) {
+      buckets.set(hash2, [reason]);
+    } else if (bucket.some((previous) => equals(previous, reason))) {
+      continue;
+    } else {
+      bucket.push(reason);
+    }
+    out.push(reason);
+  }
+  return out;
+};
+var causeCombine = /* @__PURE__ */ dual(2, (self, that) => {
+  if (self.reasons.length === 0) {
+    return that;
+  } else if (that.reasons.length === 0) {
+    return self;
+  }
+  const newCause = new CauseImpl(dedupeReasons(self.reasons, that.reasons));
+  return equals(self, newCause) ? self : newCause;
+});
+var causeAddInterrupts = (self, interrupts) => {
+  const reasons = self.reasons.slice();
+  for (const reason of interrupts.reasons) {
+    if (isInterruptReason(reason) && !reasons.some((r) => isInterruptReason(r) && r.fiberId === reason.fiberId && r.annotations === reason.annotations)) {
+      reasons.push(reason);
+    }
+  }
+  return reasons.length === self.reasons.length ? self : new CauseImpl(reasons);
+};
+var causeFail = (error) => new CauseImpl([new Fail(error)]);
+
+class Die extends ReasonBase {
+  constructor(defect, annotations = constEmptyAnnotations) {
+    super("Die", annotations, defect);
+    this.defect = defect;
+  }
+  toString() {
+    return `Die(${format(this.defect)})`;
+  }
+  toJSON() {
+    return {
+      _tag: "Die",
+      defect: this.defect
+    };
+  }
+  [symbol2](that) {
+    return isDieReason(that) && equals(this.defect, that.defect) && equals(this.annotations, that.annotations);
+  }
+  [symbol]() {
+    return combine(string(this._tag))(combine(hash(this.defect))(hash(this.annotations)));
+  }
+}
+var causeDie = (defect) => new CauseImpl([new Die(defect)]);
+var causeAnnotate = /* @__PURE__ */ dual((args) => isCause(args[0]), (self, annotations, options) => {
+  if (annotations.mapUnsafe.size === 0)
+    return self;
+  return new CauseImpl(self.reasons.map((f) => f.annotate(annotations, options)));
+});
+var isFailReason = (self) => self._tag === "Fail";
+var isDieReason = (self) => self._tag === "Die";
+var isInterruptReason = (self) => self._tag === "Interrupt";
+function defaultEvaluate(_fiber) {
+  return exitDie(`Effect.evaluate: Not implemented`);
+}
+var makePrimitiveProto = (options) => ({
+  ...EffectProto,
+  [identifier]: options.op,
+  [evaluate]: options[evaluate] ?? defaultEvaluate,
+  [contA]: options[contA],
+  [contE]: options[contE],
+  [contAll]: options[contAll]
+});
+var makePrimitive = (options) => {
+  const Proto = makePrimitiveProto(options);
+  const PrimitiveImpl = function(value) {
+    this[args] = value;
+  };
+  PrimitiveImpl.prototype = Proto;
+  return function(value) {
+    return new PrimitiveImpl(value);
+  };
+};
+var makeExit = (options) => {
+  const Proto = {
+    [ExitTypeId]: ExitTypeId,
+    _tag: options.op,
+    get [options.prop]() {
+      return this[args];
+    },
+    ...makePrimitiveProto(options),
+    toString() {
+      return `${options.op}(${format(this[args])})`;
+    },
+    toJSON() {
+      return {
+        _id: "Exit",
+        _tag: options.op,
+        [options.prop]: this[args]
+      };
+    },
+    [symbol2](that) {
+      return isExit(that) && that._tag === this._tag && equals(this[args], that[args]);
+    },
+    [symbol]() {
+      return combine(string(options.op), hash(this[args]));
+    }
+  };
+  const ExitPrimitive = function(value) {
+    this[args] = value;
+  };
+  ExitPrimitive.prototype = Proto;
+  return function(value) {
+    return new ExitPrimitive(value);
+  };
+};
+var exitSucceed = /* @__PURE__ */ makeExit({
+  op: "Success",
+  prop: "value",
+  [evaluate](fiber) {
+    const cont = fiber.getCont(contA);
+    return cont ? cont[contA](this[args], fiber, this) : fiber.yieldWith(this);
+  }
+});
+var StackTraceKey = {
+  key: "effect/Cause/StackTrace"
+};
+var InterruptorStackTrace = {
+  key: "effect/Cause/InterruptorStackTrace"
+};
+var exitFailCause = /* @__PURE__ */ makeExit({
+  op: "Failure",
+  prop: "cause",
+  [evaluate](fiber) {
+    let cause = this[args];
+    let annotated = false;
+    if (fiber.cache.stackFrame) {
+      cause = causeAnnotate(cause, {
+        mapUnsafe: new Map([[StackTraceKey.key, fiber.cache.stackFrame]])
+      });
+      annotated = true;
+    }
+    let cont = fiber.getCont(contE);
+    const interruptedCause = fiber._interruptedCause;
+    if (interruptedCause && fiber.interruptible) {
+      let skippedHandler = false;
+      while (cont && fiber.interruptible) {
+        skippedHandler ||= identifier in cont;
+        cont = fiber.getCont(contE);
+      }
+      if (skippedHandler) {
+        cause = causeFromReasons(cause.reasons.filter((reason) => reason._tag !== "Fail"));
+      }
+      cause = causeAddInterrupts(cause, interruptedCause);
+      annotated = true;
+    }
+    return cont ? cont[contE](cause, fiber, annotated ? undefined : this) : fiber.yieldWith(annotated ? exitFailCause(cause) : this);
+  }
+});
+var exitFail = (e) => exitFailCause(causeFail(e));
+var exitDie = (defect) => exitFailCause(causeDie(defect));
+var withFiber = /* @__PURE__ */ makePrimitive({
+  op: "WithFiber",
+  [evaluate](fiber) {
+    return this[args](fiber);
+  }
+});
+var withFiberSucceed = /* @__PURE__ */ makePrimitive({
+  op: "WithFiberSucceed",
+  [evaluate](fiber) {
+    const value = this[args](fiber);
+    const cont = fiber.getCont(contA);
+    return cont ? cont[contA](value, fiber) : fiber.yieldWith(exitSucceed(value));
+  }
+});
+var YieldableError = /* @__PURE__ */ function() {
+
+  class YieldableError extends globalThis.Error {
+  }
+  const proto = /* @__PURE__ */ makePrimitiveProto({
+    op: "YieldableError",
+    [evaluate]() {
+      return exitFail(this);
+    }
+  });
+  delete proto.toString;
+  Object.assign(YieldableError.prototype, proto);
+  return YieldableError;
+}();
+var Error2 = /* @__PURE__ */ function() {
+  const plainArgsSymbol = /* @__PURE__ */ Symbol.for("effect/Data/Error/plainArgs");
+  return class Base extends YieldableError {
+    constructor(args) {
+      super(args?.message, args?.cause ? {
+        cause: args.cause
+      } : undefined);
+      if (args) {
+        assignProperties(this, args);
+        Object.defineProperty(this, plainArgsSymbol, {
+          value: args,
+          enumerable: false
+        });
+      }
+    }
+    toJSON() {
+      return {
+        ...this[plainArgsSymbol],
+        ...this
+      };
+    }
+  };
+}();
+var TaggedError = (tag) => {
+
+  class Base extends Error2 {
+    _tag = tag;
+  }
+  Base.prototype.name = tag;
+  return Base;
+};
+var DoneTypeId = "~effect/Cause/Done";
+var isDone = (u) => hasProperty(u, DoneTypeId);
+var DoneVoid = {
+  [DoneTypeId]: DoneTypeId,
+  _tag: "Done",
+  value: undefined
+};
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Effectable.js
+var Prototype2 = (options) => makePrimitiveProto({
+  op: options.label,
+  [evaluate]: options.evaluate
+});
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Equivalence.js
+var make = (isEquivalent) => (self, that) => self === that || isEquivalent(self, that);
+var isStrictEquivalent = (x, y) => x === y;
+var strictEqual = () => isStrictEquivalent;
+function Array_(item) {
+  return make((self, that) => {
+    if (self.length !== that.length)
+      return false;
+    for (let i = 0;i < self.length; i++) {
+      if (!item(self[i], that[i]))
+        return false;
+    }
+    return true;
+  });
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/option.js
+var TypeId = "~effect/Option";
+var CommonProto = {
+  [TypeId]: {
+    _A: (_) => _
+  },
+  ...PipeInspectableProto,
+  [Symbol.iterator]() {
+    return new SingleShotGen(this);
+  }
+};
+var SomeProto = /* @__PURE__ */ Object.defineProperty(/* @__PURE__ */ Object.assign(/* @__PURE__ */ Object.create(CommonProto), {
+  _tag: "Some",
+  _op: "Some",
+  [symbol2](that) {
+    return isOption(that) && isSome(that) && equals(this.value, that.value);
+  },
+  [symbol]() {
+    return combine(hash(this._tag))(hash(this.value));
+  },
+  toString() {
+    return `some(${format(this.value)})`;
+  },
+  toJSON() {
+    return {
+      _id: "Option",
+      _tag: this._tag,
+      value: toJson(this.value)
+    };
+  }
+}), "valueOrUndefined", {
+  get() {
+    return this.value;
+  }
+});
+var NoneHash = /* @__PURE__ */ hash("None");
+var NoneProto = /* @__PURE__ */ Object.assign(/* @__PURE__ */ Object.create(CommonProto), {
+  _tag: "None",
+  _op: "None",
+  valueOrUndefined: undefined,
+  [symbol2](that) {
+    return isOption(that) && isNone(that);
+  },
+  [symbol]() {
+    return NoneHash;
+  },
+  toString() {
+    return `none()`;
+  },
+  toJSON() {
+    return {
+      _id: "Option",
+      _tag: this._tag
+    };
+  }
+});
+var isOption = (input) => hasProperty(input, TypeId);
+var isNone = (fa) => fa._tag === "None";
+var isSome = (fa) => fa._tag === "Some";
+var none = /* @__PURE__ */ Object.create(NoneProto);
+var SomeImpl = function(value) {
+  this.value = value;
+};
+SomeImpl.prototype = SomeProto;
+var some = (value) => new SomeImpl(value);
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/result.js
+var TypeId2 = "~effect/Result";
+var CommonProto2 = {
+  [TypeId2]: {
+    _A: (_) => _,
+    _E: (_) => _
+  },
+  ...PipeInspectableProto,
+  [Symbol.iterator]() {
+    return new SingleShotGen(this);
+  }
+};
+var SuccessProto = /* @__PURE__ */ Object.assign(/* @__PURE__ */ Object.create(CommonProto2), {
+  _tag: "Success",
+  _op: "Success",
+  [symbol2](that) {
+    return isResult(that) && isSuccess(that) && equals(this.success, that.success);
+  },
+  [symbol]() {
+    return combine(hash(this._tag))(hash(this.success));
+  },
+  toString() {
+    return `success(${format(this.success)})`;
+  },
+  toJSON() {
+    return {
+      _id: "Result",
+      _tag: this._tag,
+      value: toJson(this.success)
+    };
+  }
+});
+var FailureProto = /* @__PURE__ */ Object.assign(/* @__PURE__ */ Object.create(CommonProto2), {
+  _tag: "Failure",
+  _op: "Failure",
+  [symbol2](that) {
+    return isResult(that) && isFailure(that) && equals(this.failure, that.failure);
+  },
+  [symbol]() {
+    return combine(hash(this._tag))(hash(this.failure));
+  },
+  toString() {
+    return `failure(${format(this.failure)})`;
+  },
+  toJSON() {
+    return {
+      _id: "Result",
+      _tag: this._tag,
+      failure: toJson(this.failure)
+    };
+  }
+});
+var isResult = (input) => hasProperty(input, TypeId2);
+var isFailure = (result) => result._tag === "Failure";
+var isSuccess = (result) => result._tag === "Success";
+var FailureImpl = function(failure) {
+  this.failure = failure;
+};
+FailureImpl.prototype = FailureProto;
+var fail = (failure) => new FailureImpl(failure);
+var SuccessImpl = function(success) {
+  this.success = success;
+};
+SuccessImpl.prototype = SuccessProto;
+var succeed = (success) => new SuccessImpl(success);
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Order.js
+function make2(compare) {
+  return (self, that) => self === that ? 0 : compare(self, that);
+}
+var Number2 = /* @__PURE__ */ make2((self, that) => {
+  if (globalThis.Number.isNaN(self) && globalThis.Number.isNaN(that))
+    return 0;
+  if (globalThis.Number.isNaN(self))
+    return -1;
+  if (globalThis.Number.isNaN(that))
+    return 1;
+  return self < that ? -1 : 1;
+});
+var isLessThan = (O) => dual(2, (self, that) => O(self, that) === -1);
+var isGreaterThan = (O) => dual(2, (self, that) => O(self, that) === 1);
+var isLessThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== 1);
+var isGreaterThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== -1);
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Option.js
+var none2 = () => none;
+var some2 = some;
+var isNone2 = isNone;
+var isSome2 = isSome;
+var match = /* @__PURE__ */ dual(2, (self, {
+  onNone,
+  onSome
+}) => isNone2(self) ? onNone() : onSome(self.value));
+var liftThrowable = (f) => (...a) => {
+  try {
+    return some2(f(...a));
+  } catch {
+    return none2();
+  }
+};
+var filter = /* @__PURE__ */ dual(2, (self, predicate) => isNone2(self) ? none2() : predicate(self.value) ? some2(self.value) : none2());
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Context.js
+var ServiceTypeId = "~effect/Context/Service";
+var Service = function() {
+  function KeyClass() {}
+  const self = KeyClass;
+  Object.setPrototypeOf(self, ServiceProto);
+  const init = (key, options) => {
+    self.key = key;
+    if (options?.defaultValue) {
+      self[ReferenceTypeId] = ReferenceTypeId;
+      self.defaultValue = options.defaultValue;
+    }
+    if (options?.make) {
+      self.make = options.make;
+    }
+    if (options?.fiberCached) {
+      cacheKeys.add(key);
+    }
+    return self;
+  };
+  return arguments.length > 0 ? init(arguments[0], arguments[1]) : init;
+};
+var ServiceProto = {
+  [ServiceTypeId]: ServiceTypeId,
+  .../* @__PURE__ */ Prototype2({
+    label: "Service",
+    evaluate(fiber) {
+      return exitSucceed(get(fiber.context, this));
+    }
+  }),
+  toJSON() {
+    return {
+      _id: "Service",
+      key: this.key
+    };
+  },
+  of(self) {
+    return self;
+  },
+  context(self) {
+    return make3(this, self);
+  },
+  use(f) {
+    return withFiber((fiber) => f(get(fiber.context, this)));
+  },
+  useSync(f) {
+    return withFiber((fiber) => exitSucceed(f(get(fiber.context, this))));
+  }
+};
+var cacheKeys = /* @__PURE__ */ new Set;
+var ReferenceTypeId = "~effect/Context/Reference";
+var TypeId3 = "~effect/Context";
+var FlattenAfterBaseHits = 8;
+var makeImpl = (cacheRoot, base, overlay, depth, maxDepth) => {
+  const self = Object.create(Proto);
+  self.cacheRoot = cacheRoot ?? self;
+  self.base = base;
+  self.overlay = overlay;
+  self.depth = depth;
+  self._flat = undefined;
+  self.baseHits = 0;
+  self.maxDepth = maxDepth;
+  return self;
+};
+var applyOverlays = (map, overlay) => {
+  if (!overlay)
+    return;
+  applyOverlays(map, overlay.parent);
+  map.set(overlay.key, overlay.value);
+};
+var flatten = (self) => {
+  if (self._flat)
+    return self._flat;
+  if (!self.overlay)
+    return self._flat = self.base;
+  const map = new Map(self.base);
+  applyOverlays(map, self.overlay);
+  return self._flat = map;
+};
+var notFound = /* @__PURE__ */ Symbol();
+var lookup = (self, key) => {
+  const impl = self;
+  for (let overlay = impl.overlay;overlay; overlay = overlay.parent) {
+    if (overlay.key === key)
+      return overlay.value;
+  }
+  const value = impl.base.get(key);
+  if (value === undefined && !impl.base.has(key))
+    return notFound;
+  if (impl.overlay && ++impl.baseHits >= impl.base.size && impl.baseHits >= FlattenAfterBaseHits) {
+    impl.base = flatten(impl);
+    impl.overlay = undefined;
+    impl.depth = 0;
+  }
+  return value;
+};
+var makeUnsafe = (mapUnsafe, options) => {
+  const maxDepth = options?.maxDepth;
+  return makeImpl(undefined, mapUnsafe, undefined, 0, Number.isInteger(maxDepth) && maxDepth >= 0 ? maxDepth : 8);
+};
+var Proto = {
+  get mapUnsafe() {
+    return flatten(this);
+  },
+  ...PipeInspectableProto,
+  [TypeId3]: {
+    _Services: (_) => _
+  },
+  toJSON() {
+    return {
+      _id: "Context",
+      services: Array.from(this.mapUnsafe).map(([key, value]) => ({
+        key,
+        value
+      }))
+    };
+  },
+  [symbol2](that) {
+    if (!isContext(that))
+      return false;
+    const self = this.mapUnsafe;
+    const other = that.mapUnsafe;
+    if (self.size !== other.size)
+      return false;
+    for (const [key, value] of self) {
+      if (!other.has(key) || !equals(value, other.get(key)))
+        return false;
+    }
+    return true;
+  },
+  [symbol]() {
+    return number(this.mapUnsafe.size);
+  }
+};
+var hasSameCache = (self, that) => self.cacheRoot === that.cacheRoot;
+var isContext = (u) => hasProperty(u, TypeId3);
+var isReference = (u) => !!u[ReferenceTypeId];
+var empty = () => emptyContext2;
+var emptyContext2 = /* @__PURE__ */ makeUnsafe(/* @__PURE__ */ new Map);
+var make3 = (key, service) => makeUnsafe(new Map([[key.key, service]]));
+var add = /* @__PURE__ */ dual(3, (self, key, service) => addUnsafe(self, key.key, service));
+var addUnsafe = (self, key, service) => {
+  const impl = self;
+  const cacheRoot = cacheKeys.has(key) ? undefined : impl.cacheRoot;
+  if (impl.depth >= impl.maxDepth) {
+    const map = new Map(impl._flat ?? impl.base);
+    if (!impl._flat)
+      applyOverlays(map, impl.overlay);
+    map.set(key, service);
+    return makeImpl(cacheRoot, map, undefined, 0, impl.maxDepth);
+  }
+  return makeImpl(cacheRoot, impl.base, {
+    key,
+    value: service,
+    parent: impl.overlay
+  }, impl.depth + 1, impl.maxDepth);
+};
+var getOrUndefinedUnsafe = (self, key) => {
+  const value = lookup(self, key);
+  return value === notFound ? undefined : value;
+};
+var getUnsafe = /* @__PURE__ */ dual(2, (self, service) => {
+  const value = lookup(self, service.key);
+  if (value === notFound) {
+    if (isReference(service))
+      return getDefaultValue(service);
+    throw serviceNotFoundError(service);
+  }
+  return value;
+});
+var get = getUnsafe;
+var defaultValueCacheKey = "~effect/Context/defaultValue";
+var getDefaultValue = (ref) => {
+  if (defaultValueCacheKey in ref) {
+    return ref[defaultValueCacheKey];
+  }
+  return ref[defaultValueCacheKey] = ref.defaultValue();
+};
+var serviceNotFoundError = (service) => {
+  const error = new Error(`Service not found${service.key ? `: ${String(service.key)}` : ""}`);
+  if (error.stack) {
+    const lines = error.stack.split(`
+`);
+    lines.splice(1, 3);
+    error.stack = lines.join(`
+`);
+  }
+  return error;
+};
+var Reference = Service;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/array.js
+var isArrayNonEmpty = (self) => self.length > 0;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Result.js
+var succeed2 = succeed;
+var fail2 = fail;
+var isFailure2 = isFailure;
+var isSuccess2 = isSuccess;
+var map = /* @__PURE__ */ dual(2, (self, f) => isSuccess2(self) ? succeed2(f(self.success)) : self);
+var match2 = /* @__PURE__ */ dual(2, (self, {
+  onFailure,
+  onSuccess
+}) => isFailure2(self) ? onFailure(self.failure) : onSuccess(self.success));
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Array.js
+var Array2 = globalThis.Array;
+var append = /* @__PURE__ */ dual(2, (self, last) => [...self, last]);
+var isArray = Array2.isArray;
+var isArrayNonEmpty2 = isArrayNonEmpty;
+var isReadonlyArrayNonEmpty = isArrayNonEmpty;
+var empty2 = () => [];
+var map2 = /* @__PURE__ */ dual(2, (self, f) => self.map(f));
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Scheduler.js
+var Scheduler = /* @__PURE__ */ Reference("effect/Scheduler", {
+  fiberCached: true,
+  defaultValue: () => new MixedScheduler
+});
+var setMicrotask = (f) => {
+  let cancelled = false;
+  Promise.resolve().then(() => {
+    if (!cancelled)
+      f();
+  });
+  return () => {
+    cancelled = true;
+  };
+};
+var setTimer = "setImmediate" in globalThis ? (f) => {
+  const timer = globalThis.setImmediate(f);
+  return () => globalThis.clearImmediate(timer);
+} : (f) => {
+  const timer = setTimeout(f, 0);
+  return () => clearTimeout(timer);
+};
+var setImmediate = (f) => {
+  try {
+    return setTimer(f);
+  } catch {
+    return setMicrotask(f);
+  }
+};
+
+class PriorityBuckets {
+  buckets = [];
+  scheduleTask(task, priority) {
+    const buckets = this.buckets;
+    const len = buckets.length;
+    let bucket;
+    let index = 0;
+    for (;index < len; index++) {
+      if (buckets[index][0] > priority)
+        break;
+      bucket = buckets[index];
+    }
+    if (bucket && bucket[0] === priority) {
+      bucket[1].push(task);
+    } else if (index === len) {
+      buckets.push([priority, [task]]);
+    } else {
+      buckets.splice(index, 0, [priority, [task]]);
+    }
+  }
+  drain() {
+    const buckets = this.buckets;
+    this.buckets = [];
+    return buckets;
+  }
+}
+
+class MixedScheduler {
+  executionMode;
+  setImmediate;
+  constructor(executionMode = "async", setImmediateFn) {
+    this.executionMode = executionMode;
+    this.setImmediate = setImmediateFn ?? (executionMode === "sync" ? setMicrotask : setImmediate);
+  }
+  shouldYield(fiber) {
+    return fiber.currentOpCount >= fiber.cache.maxOpsBeforeYield;
+  }
+  makeDispatcher() {
+    return new MixedSchedulerDispatcher(this.setImmediate);
+  }
+}
+
+class MixedSchedulerDispatcher {
+  tasks = /* @__PURE__ */ new PriorityBuckets;
+  running = undefined;
+  setImmediate;
+  constructor(setImmediateFn = setImmediate) {
+    this.setImmediate = setImmediateFn;
+  }
+  scheduleTask(task, priority) {
+    this.tasks.scheduleTask(task, priority);
+    if (this.running === undefined) {
+      this.running = this.setImmediate(this.afterScheduled);
+    }
+  }
+  afterScheduled = () => {
+    this.running = undefined;
+    this.runTasks();
+  };
+  runTasks() {
+    const buckets = this.tasks.drain();
+    for (let i = 0;i < buckets.length; i++) {
+      const toRun = buckets[i][1];
+      for (let j = 0;j < toRun.length; j++) {
+        toRun[j]();
+      }
+    }
+  }
+  flush() {
+    while (this.tasks.buckets.length > 0) {
+      if (this.running !== undefined) {
+        this.running();
+        this.running = undefined;
+      }
+      this.runTasks();
+    }
+  }
+}
+var MaxOpsBeforeYield = /* @__PURE__ */ Reference("effect/Scheduler/MaxOpsBeforeYield", {
+  fiberCached: true,
+  defaultValue: () => 2048
+});
+var PreventSchedulerYield = /* @__PURE__ */ Reference("effect/Scheduler/PreventSchedulerYield", {
+  fiberCached: true,
+  defaultValue: () => false
+});
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Data.js
+var Class2 = class extends Class {
+  constructor(props) {
+    super();
+    if (props) {
+      assignProperties(this, props);
+    }
+  }
+};
+var TaggedError2 = TaggedError;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/encoding/EncodingError.js
+var EncodingErrorTypeId = "~effect/encoding/EncodingError";
+
+class EncodingError extends (/* @__PURE__ */ TaggedError2("EncodingError")) {
+  [EncodingErrorTypeId] = EncodingErrorTypeId;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Tracer.js
+var ParentSpanKey = "effect/Tracer/ParentSpan";
+var TracerKey = "effect/Tracer";
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/metric.js
+var FiberRuntimeMetricsKey = "effect/Metric/FiberRuntimeMetrics";
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/references.js
+var CurrentStackFrame = /* @__PURE__ */ Reference("effect/References/CurrentStackFrame", {
+  fiberCached: true,
+  defaultValue: constUndefined
+});
+var TracerEnabled = /* @__PURE__ */ Reference("effect/References/TracerEnabled", {
+  fiberCached: true,
+  defaultValue: constTrue
+});
+var CurrentLogLevel = /* @__PURE__ */ Reference("effect/References/CurrentLogLevel", {
+  fiberCached: true,
+  defaultValue: () => "Info"
+});
+var MinimumLogLevel = /* @__PURE__ */ Reference("effect/References/MinimumLogLevel", {
+  fiberCached: true,
+  defaultValue: () => "Info"
+});
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/effect.js
+class Interrupt extends ReasonBase {
+  constructor(fiberId, annotations = constEmptyAnnotations) {
+    super("Interrupt", annotations, "Interrupted");
+    this.fiberId = fiberId;
+  }
+  toString() {
+    return `Interrupt(${this.fiberId})`;
+  }
+  toJSON() {
+    return {
+      _tag: "Interrupt",
+      fiberId: this.fiberId
+    };
+  }
+  [symbol2](that) {
+    return isInterruptReason(that) && this.fiberId === that.fiberId && this.annotations === that.annotations;
+  }
+  [symbol]() {
+    return string(`${this._tag}:${this.fiberId}`);
+  }
+}
+var causeInterrupt = (fiberId) => new CauseImpl([new Interrupt(fiberId)]);
+var hasFails = (self) => self.reasons.some(isFailReason);
+var hasDies = (self) => self.reasons.some(isDieReason);
+var causeElectDefects = (self) => hasDies(self) && hasFails(self) ? causeFromReasons(self.reasons.map((reason) => reason._tag === "Fail" && !isDone(reason.error) ? new Die(reason.error, reason.annotations) : reason)) : self;
+var hasInterrupts = (self) => self.reasons.some(isInterruptReason);
+var causeMap = /* @__PURE__ */ dual(2, (self, f) => {
+  let hasFail = false;
+  const failures = self.reasons.map((failure) => {
+    if (isFailReason(failure)) {
+      hasFail = true;
+      return new Fail(f(failure.error), failure.annotations);
+    }
+    return failure;
+  });
+  return hasFail ? causeFromReasons(failures) : self;
+});
+var FiberTypeId = "~effect/Fiber";
+var fiberVariance = {
+  _A: identity,
+  _E: identity
+};
+var fiberIdStore = {
+  id: 0
+};
+var AsyncResource = /* @__PURE__ */ (() => {
+  try {
+    return globalThis.process?.getBuiltinModule?.("node:async_hooks")?.AsyncResource;
+  } catch {
+    return;
+  }
+})();
+var captureAsyncContext = () => AsyncResource === undefined ? undefined : new AsyncResource("effect/Fiber");
+var getCurrentFiber = () => globalThis[currentFiberTypeId];
+
+class FiberImpl {
+  constructor(context, interruptible = true) {
+    this.setContext(context);
+    this.id = ++fiberIdStore.id;
+    this.currentOpCount = 0;
+    this.interruptible = interruptible;
+    this._stack = [];
+    this._observers = undefined;
+    this._exit = undefined;
+    this._children = undefined;
+    this._interruptedCause = undefined;
+    this._yielded = undefined;
+    this._running = false;
+    this._deferredInterrupt = false;
+    this._parent = undefined;
+    this._asyncContext = undefined;
+    this.cache.runtimeMetrics?.recordFiberStart(this.context);
+  }
+  get [FiberTypeId]() {
+    return fiberVariance;
+  }
+  get currentDispatcher() {
+    return this._dispatcher ??= this.cache.scheduler.makeDispatcher();
+  }
+  getRef(ref) {
+    return get(this.context, ref);
+  }
+  addObserver(cb) {
+    if (this._exit) {
+      cb(this._exit);
+      return constVoid;
+    }
+    if (this._observers === undefined) {
+      this._observers = [cb];
+    } else {
+      this._observers.push(cb);
+    }
+    return () => this.removeObserver(cb);
+  }
+  removeObserver(cb) {
+    if (this._exit || this._observers === undefined)
+      return;
+    const index = this._observers.indexOf(cb);
+    if (index >= 0) {
+      this._observers.splice(index, 1);
+    }
+  }
+  interruptUnsafe(fiberId, annotations) {
+    if (this._exit) {
+      return;
+    }
+    let cause = causeInterrupt(fiberId);
+    if (this.cache.stackFrame) {
+      cause = causeAnnotate(cause, make3(StackTraceKey, this.cache.stackFrame));
+    }
+    if (annotations) {
+      cause = causeAnnotate(cause, annotations);
+    }
+    this._interruptedCause = this._interruptedCause ? causeAddInterrupts(this._interruptedCause, cause) : cause;
+    if (this.interruptible) {
+      if (this._running) {
+        this._deferredInterrupt = true;
+      } else {
+        this.evaluate(failCause(this._interruptedCause));
+      }
+    }
+  }
+  pollUnsafe() {
+    return this._exit;
+  }
+  evaluate(effect) {
+    if (this._exit) {
+      return;
+    } else if (this._asyncContext !== undefined) {
+      const asyncContext = this._asyncContext;
+      this._asyncContext = undefined;
+      try {
+        return asyncContext.runInAsyncScope(this.evaluate, this, effect);
+      } finally {
+        asyncContext.emitDestroy();
+      }
+    } else if (this._yielded !== undefined) {
+      const yielded = this._yielded;
+      this._yielded = undefined;
+      yielded();
+    }
+    const exit = this.runLoop(effect);
+    if (exit === Yield) {
+      this._asyncContext = captureAsyncContext();
+      return;
+    }
+    const interruptChildren = fiberMiddleware.interruptChildren && fiberMiddleware.interruptChildren(this);
+    if (interruptChildren !== undefined) {
+      return this.evaluate(flatMap(interruptChildren, () => exit));
+    }
+    this._exit = exit;
+    this.cache.runtimeMetrics?.recordFiberEnd(this.context, this._exit);
+    if (this._parent) {
+      this._parent._children?.delete(this);
+      this._parent = undefined;
+    }
+    if (this._observers !== undefined) {
+      const observers = this._observers;
+      this._observers = undefined;
+      for (let i = 0;i < observers.length; i++) {
+        observers[i](exit);
+      }
+    }
+    this._stack.length = 0;
+    this._children = undefined;
+    this.context = empty();
+  }
+  runLoop(effect) {
+    const prevFiber = globalThis[currentFiberTypeId];
+    globalThis[currentFiberTypeId] = this;
+    const prevRunning = this._running;
+    this._running = true;
+    let yielding = false;
+    let current = effect;
+    this.currentOpCount = 0;
+    try {
+      while (true) {
+        try {
+          if (this._deferredInterrupt) {
+            this._deferredInterrupt = false;
+            current = failCause(this._interruptedCause);
+          }
+          this.currentOpCount++;
+          const cache = this.cache;
+          if (!yielding && !cache.preventYield && cache.scheduler.shouldYield(this)) {
+            yielding = true;
+            const prev = current;
+            current = flatMap(yieldNow, () => prev);
+          }
+          current = cache.tracerContext ? cache.tracerContext(current, this) : current[evaluate](this);
+          if (current === Yield) {
+            const yielded = this._yielded;
+            if (ExitTypeId in yielded) {
+              this._deferredInterrupt = false;
+              this._yielded = undefined;
+              return yielded;
+            } else if (this._deferredInterrupt) {
+              this._yielded = undefined;
+              yielded();
+              continue;
+            }
+            return Yield;
+          }
+        } catch (error) {
+          if (!hasProperty(current, evaluate)) {
+            return exitDie(`Fiber.runLoop: Not a valid effect: ${String(current)}`);
+          }
+          current = exitDie(error);
+        }
+      }
+    } finally {
+      this._running = prevRunning;
+      globalThis[currentFiberTypeId] = prevFiber;
+    }
+  }
+  getCont(symbol) {
+    if (this._deferredInterrupt) {
+      this._deferredInterrupt = false;
+      return deferredInterruptCont;
+    }
+    while (true) {
+      const op = this._stack.pop();
+      if (!op)
+        return;
+      const all = op[contAll];
+      if (all !== undefined) {
+        const cont = all.call(op, this);
+        if (cont) {
+          cont[symbol] = cont;
+          return cont;
+        }
+      }
+      if (op[symbol])
+        return op;
+    }
+  }
+  succeedWith(value) {
+    if ((++this.currentOpCount & maxInlineSteps - 1) === 0) {
+      return exitSucceed(value);
+    }
+    const cont = this.getCont(contA);
+    return cont ? cont[contA](value, this) : this.yieldWith(exitSucceed(value));
+  }
+  yieldWith(value) {
+    this._yielded = value;
+    return Yield;
+  }
+  children() {
+    return this._children ??= new Set;
+  }
+  pipe() {
+    return pipeArguments(this, arguments);
+  }
+  setContext(context) {
+    const previous = this.context;
+    this.context = context;
+    if (previous !== undefined && hasSameCache(previous, context))
+      return;
+    const root = context.cacheRoot;
+    const cache = root._fiberCache ??= makeFiberContextCache(context);
+    if (this.cache?.scheduler !== cache.scheduler) {
+      this._dispatcher = undefined;
+    }
+    this.cache = cache;
+  }
+  get currentSpanLocal() {
+    const span = this.cache.span;
+    return span?._tag === "Span" ? span : undefined;
+  }
+}
+var makeFiberContextCache = (context) => {
+  const currentTracer = getOrUndefinedUnsafe(context, TracerKey);
+  return {
+    scheduler: get(context, Scheduler),
+    tracer: currentTracer,
+    tracerContext: currentTracer ? currentTracer["context"] : undefined,
+    tracerEnabled: get(context, TracerEnabled),
+    span: getOrUndefinedUnsafe(context, ParentSpanKey),
+    logLevel: get(context, CurrentLogLevel),
+    minimumLogLevel: get(context, MinimumLogLevel),
+    stackFrame: get(context, CurrentStackFrame),
+    runtimeMetrics: getOrUndefinedUnsafe(context, FiberRuntimeMetricsKey),
+    maxOpsBeforeYield: get(context, MaxOpsBeforeYield),
+    preventYield: get(context, PreventSchedulerYield)
+  };
+};
+var deferredInterruptCont = {
+  [contA](_value, fiber) {
+    return failCause(fiber._interruptedCause);
+  },
+  [contE](_cause, fiber) {
+    return failCause(fiber._interruptedCause);
+  }
+};
+var maxInlineSteps = 32;
+var fiberMiddleware = {
+  interruptChildren: undefined
+};
+var fiberStackAnnotations = (fiber) => {
+  if (!fiber.cache.stackFrame)
+    return;
+  const annotations = new Map;
+  annotations.set(InterruptorStackTrace.key, fiber.cache.stackFrame);
+  return makeUnsafe(annotations);
+};
+var fiberAwaitAll = (self) => callback((resume) => {
+  const iter = self[Symbol.iterator]();
+  const exits = [];
+  let cancel = undefined;
+  function loop() {
+    let result = iter.next();
+    while (!result.done) {
+      if (result.value._exit) {
+        exits.push(result.value._exit);
+        result = iter.next();
+        continue;
+      }
+      cancel = result.value.addObserver((exit) => {
+        exits.push(exit);
+        loop();
+      });
+      return;
+    }
+    resume(succeed3(exits));
+  }
+  loop();
+  return sync(() => cancel?.());
+});
+var fiberInterruptAll = (fibers) => withFiber((parent) => {
+  const annotations = fiberStackAnnotations(parent);
+  let fiberArr = empty2();
+  for (const fiber of fibers) {
+    fiber.interruptUnsafe(parent.id, annotations);
+    fiberArr.push(fiber);
+  }
+  return asVoid(fiberAwaitAll(fiberArr));
+});
+var succeed3 = exitSucceed;
+var failCause = exitFailCause;
+var fail3 = exitFail;
+var sync = /* @__PURE__ */ makePrimitive({
+  op: "Sync",
+  [evaluate](fiber) {
+    const thunk = this[args];
+    const value = thunk();
+    const cont = fiber.getCont(contA);
+    return cont ? cont[contA](value, fiber) : fiber.yieldWith(exitSucceed(value));
+  }
+});
+var suspend = /* @__PURE__ */ makePrimitive({
+  op: "Suspend",
+  [evaluate](_fiber) {
+    const thunk = this[args];
+    return thunk();
+  }
+});
+var fromResult = /* @__PURE__ */ match2({
+  onFailure: fail3,
+  onSuccess: succeed3
+});
+var yieldNowWith = /* @__PURE__ */ makePrimitive({
+  op: "Yield",
+  [evaluate](fiber) {
+    let resumed = false;
+    fiber.currentDispatcher.scheduleTask(() => {
+      if (resumed)
+        return;
+      fiber.evaluate(exitVoid);
+    }, this[args] ?? 0);
+    return fiber.yieldWith(() => {
+      resumed = true;
+    });
+  }
+});
+var yieldNow = /* @__PURE__ */ yieldNowWith(0);
+var failCauseSync = (evaluate) => suspend(() => failCause(evaluate()));
+var die = (defect) => exitDie(defect);
+var void_ = /* @__PURE__ */ succeed3(undefined);
+var try_ = (options) => {
+  const evaluate = typeof options === "function" ? options : options.try;
+  const catcher = typeof options === "function" ? (cause) => new UnknownError(cause, "An error occurred in Effect.try") : options.catch;
+  return suspend(() => {
+    try {
+      return succeed3(evaluate());
+    } catch (err) {
+      return fail3(catcher(err));
+    }
+  });
+};
+var tryPromise = (options) => {
+  const f = typeof options === "function" ? options : options.try;
+  const catcher = typeof options === "function" ? (cause) => new UnknownError(cause, "An error occurred in Effect.tryPromise") : options.catch;
+  return callbackOptions(function(resume, signal) {
+    const failWithCatch = (cause) => suspend(() => {
+      try {
+        return fail3(internalCall(() => catcher(cause)));
+      } catch (err) {
+        return die(err);
+      }
+    });
+    try {
+      f(signal).then((a) => resume(succeed3(a)), (e) => resume(failWithCatch(e)));
+    } catch (err) {
+      resume(failWithCatch(err));
+    }
+  }, f.length !== 0);
+};
+var callbackOptions = /* @__PURE__ */ function() {
+  const Proto = /* @__PURE__ */ makePrimitiveProto({
+    op: "Async",
+    [evaluate](fiber) {
+      let resumed = false;
+      let yielded = false;
+      const controller = this.withSignal ? new AbortController : undefined;
+      const onCancel = this.register.call(fiber.cache.scheduler, (effect) => {
+        if (resumed)
+          return;
+        resumed = true;
+        if (yielded) {
+          fiber.evaluate(effect);
+        } else {
+          yielded = effect;
+        }
+      }, controller?.signal);
+      if (yielded !== false)
+        return yielded;
+      yielded = true;
+      fiber.yieldWith(() => {
+        resumed = true;
+      });
+      if (controller === undefined && onCancel === undefined) {
+        return Yield;
+      }
+      fiber._stack.push(asyncFinalizer(() => {
+        resumed = true;
+        controller?.abort();
+        return onCancel ?? exitVoid;
+      }));
+      return Yield;
+    }
+  });
+  const AsyncImpl = function(register, withSignal) {
+    this.register = register;
+    this.withSignal = withSignal;
+  };
+  AsyncImpl.prototype = Proto;
+  return function(register, withSignal) {
+    return new AsyncImpl(register, withSignal);
+  };
+}();
+var asyncFinalizer = /* @__PURE__ */ makePrimitive({
+  op: "AsyncFinalizer",
+  [contAll](fiber) {
+    if (fiber.interruptible) {
+      fiber.interruptible = false;
+      fiber._stack.push(setInterruptibleTrue);
+    }
+  },
+  [contE](cause, _fiber) {
+    return hasInterrupts(cause) ? flatMap(combineFinalizerCause(exitFailCause(cause), this[args]()), () => failCause(cause)) : failCause(cause);
+  }
+});
+var callback = (register) => callbackOptions(register, register.length >= 2);
+var fnBody = (bodyOrOptions, pipeables) => typeof bodyOrOptions === "function" ? bodyOrOptions : pipeables.shift().bind(bodyOrOptions.self);
+var defineFunctionLength = (length, fn) => Object.defineProperty(fn, "length", {
+  value: length,
+  configurable: true
+});
+var fnUntracedEager = (bodyOrOptions, ...pipeables) => {
+  const body = fnBody(bodyOrOptions, pipeables);
+  return defineFunctionLength(body.length, pipeables.length === 0 ? function() {
+    return fromIteratorEagerUnsafe(() => body.apply(this, arguments));
+  } : function() {
+    let effect = fromIteratorEagerUnsafe(() => body.apply(this, arguments));
+    for (const pipeable of pipeables) {
+      effect = pipeable(effect, ...arguments);
+    }
+    return effect;
+  });
+};
+var fromIteratorEagerUnsafe = (evaluate) => {
+  try {
+    const iterator = evaluate();
+    let value = undefined;
+    while (true) {
+      const state = iterator.next(value);
+      if (state.done) {
+        return succeed3(state.value);
+      }
+      const primitive = state.value;
+      if (primitive && primitive._tag === "Success") {
+        value = primitive.value;
+        continue;
+      } else if (primitive && primitive._tag === "Failure") {
+        return state.value;
+      } else {
+        let isFirstExecution = true;
+        return suspend(() => {
+          if (isFirstExecution) {
+            isFirstExecution = false;
+            return flatMap(state.value, (value) => fromIteratorUnsafe(iterator, value));
+          } else {
+            return suspend(() => fromIteratorUnsafe(evaluate()));
+          }
+        });
+      }
+    }
+  } catch (error) {
+    return die(error);
+  }
+};
+var fromIteratorUnsafe = /* @__PURE__ */ function() {
+  const Proto = /* @__PURE__ */ makePrimitiveProto({
+    op: "Iterator",
+    [contA](value, fiber) {
+      const iter = this.iterator;
+      while (true) {
+        const state = iter.next(value);
+        if (state.done)
+          return succeed3(state.value);
+        if (!effectIsExit(state.value)) {
+          fiber._stack.push(this);
+          return state.value;
+        } else if (state.value._tag === "Failure") {
+          return state.value;
+        }
+        value = state.value.value;
+      }
+    },
+    [evaluate](fiber) {
+      return this[contA](this.initial, fiber);
+    }
+  });
+  const IteratorImpl = function(iterator, initial) {
+    this.iterator = iterator;
+    this.initial = initial;
+  };
+  IteratorImpl.prototype = Proto;
+  return function(iterator, initial) {
+    return new IteratorImpl(iterator, initial);
+  };
+}();
+var evaluateCont = function(fiber) {
+  fiber._stack.push(this);
+  return this[args];
+};
+var OnSuccessProto = /* @__PURE__ */ makePrimitiveProto({
+  op: "OnSuccess",
+  [evaluate]: evaluateCont
+});
+var ContImpl = function(self, cont, payload) {
+  this[args] = self;
+  this[contA] = cont;
+  this.payload = payload;
+};
+ContImpl.prototype = OnSuccessProto;
+var returnPayload = function() {
+  return this.payload;
+};
+var continuationMarksStack = /* @__PURE__ */ (() => {
+  const limit = /* @__PURE__ */ getStackTraceLimit();
+  if (limit === 0)
+    return false;
+  const marker = "~effect/Effect/stackProbe";
+  const probe = {
+    [marker]: function stackProbe() {
+      return new Error;
+    }
+  };
+  setStackTraceLimit(1);
+  const error = /* @__PURE__ */ probe[marker]();
+  setStackTraceLimit(limit);
+  return error.stack?.includes("[as " + marker + "]") === true;
+})();
+var mapCont = function(value, fiber) {
+  const f = this.payload;
+  return fiber.succeedWith(continuationMarksStack ? f(value) : internalCall(() => f(value)));
+};
+var andThenCont = function(value) {
+  const f = this.payload;
+  return f(value);
+};
+var asVoid = (self) => new ContImpl(self, returnPayload, exitVoid);
+var flatMap = /* @__PURE__ */ dual(2, (self, f) => new ContImpl(self, andThenCont, f));
+var effectIsExit = (effect) => effect[ExitTypeId] !== undefined;
+var flatMapEager = /* @__PURE__ */ dual(2, (self, f) => {
+  if (effectIsExit(self)) {
+    return self._tag === "Success" ? f(self.value) : self;
+  }
+  return flatMap(self, f);
+});
+var map3 = /* @__PURE__ */ dual(2, (self, f) => new ContImpl(self, mapCont, f));
+var mapEager = /* @__PURE__ */ dual(2, (self, f) => effectIsExit(self) ? exitMap(self, f) : map3(self, f));
+var mapErrorEager = /* @__PURE__ */ dual(2, (self, f) => effectIsExit(self) ? exitMapError(self, f) : mapError(self, f));
+var mapBothEager = /* @__PURE__ */ dual(2, (self, options) => effectIsExit(self) ? exitMapBoth(self, options) : mapBoth(self, options));
+var exitIsSuccess = (self) => self._tag === "Success";
+var exitVoid = /* @__PURE__ */ exitSucceed(undefined);
+var exitMap = /* @__PURE__ */ dual(2, (self, f) => self._tag === "Success" ? exitSucceed(f(self.value)) : self);
+var exitMapError = /* @__PURE__ */ dual(2, (self, f) => {
+  if (self._tag === "Success")
+    return self;
+  return exitFailCause(causeMap(self.cause, f));
+});
+var exitMapBoth = /* @__PURE__ */ dual(2, (self, options) => {
+  if (self._tag === "Success")
+    return exitSucceed(options.onSuccess(self.value));
+  return exitFailCause(causeMap(self.cause, options.onFailure));
+});
+var catchCause = /* @__PURE__ */ dual(2, (self, f) => new OnFailureImpl(self, f.length !== 1 ? (cause) => f(cause) : f));
+var OnFailureProto = /* @__PURE__ */ makePrimitiveProto({
+  op: "OnFailure",
+  [evaluate]: evaluateCont
+});
+var OnFailureImpl = function(self, f) {
+  this[args] = self;
+  this[contE] = f;
+};
+OnFailureImpl.prototype = OnFailureProto;
+var mapError = /* @__PURE__ */ dual(2, (self, f) => catchCause(self, (cause) => failCause(causeMap(cause, f))));
+var mapBoth = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(self, {
+  onFailure: (cause) => failCause(causeMap(cause, options.onFailure)),
+  onSuccess: (a) => sync(() => options.onSuccess(a))
+}));
+var matchCauseEffect = /* @__PURE__ */ dual(2, (self, options) => new OnSuccessAndFailureImpl(self, options.onSuccess.length !== 1 ? (a) => options.onSuccess(a) : options.onSuccess, options.onFailure.length !== 1 ? (cause) => options.onFailure(cause) : options.onFailure));
+var OnSuccessAndFailureProto = /* @__PURE__ */ makePrimitiveProto({
+  op: "OnSuccessAndFailure",
+  [evaluate]: evaluateCont
+});
+var OnSuccessAndFailureImpl = function(self, onSuccess, onFailure) {
+  this[args] = self;
+  this[contA] = onSuccess;
+  this[contE] = onFailure;
+};
+OnSuccessAndFailureImpl.prototype = OnSuccessAndFailureProto;
+var exit = (self) => effectIsExit(self) ? exitSucceed(self) : exitPrimitive(self);
+var exitPrimitive = /* @__PURE__ */ makePrimitive({
+  op: "Exit",
+  [evaluate](fiber) {
+    fiber._stack.push(this);
+    return this[args];
+  },
+  [contA](value, fiber, exit) {
+    return fiber.succeedWith(exit ?? exitSucceed(value));
+  },
+  [contE](cause, fiber, exit) {
+    return fiber.succeedWith(exit ?? exitFailCause(cause));
+  }
+});
+var combineFinalizerCause = (exit_, finalizer) => exitIsSuccess(exit_) ? finalizer : catchCause(finalizer, (cause) => failCause(causeElectDefects(causeCombine(exit_.cause, cause))));
+var uninterruptible = (self) => withFiber((fiber) => {
+  if (!fiber.interruptible)
+    return self;
+  fiber.interruptible = false;
+  fiber._stack.push(setInterruptibleTrue);
+  return self;
+});
+var setInterruptible = /* @__PURE__ */ makePrimitive({
+  op: "SetInterruptible",
+  [contAll](fiber) {
+    fiber.interruptible = this[args];
+    if (fiber._interruptedCause && fiber.interruptible) {
+      return () => failCause(fiber._interruptedCause);
+    }
+  }
+});
+var setInterruptibleTrue = /* @__PURE__ */ setInterruptible(true);
+var whileLoop = /* @__PURE__ */ makePrimitive({
+  op: "While",
+  [contA](value, fiber) {
+    this[args].step(value);
+    if (this[args].while()) {
+      fiber._stack.push(this);
+      return this[args].body();
+    }
+    return exitVoid;
+  },
+  [evaluate](fiber) {
+    if (this[args].while()) {
+      fiber._stack.push(this);
+      return this[args].body();
+    }
+    return exitVoid;
+  }
+});
+var resolveConcurrency = (concurrency) => concurrency === "unbounded" ? Number.POSITIVE_INFINITY : Math.max(1, concurrency ?? 1);
+var iterateEager = () => (options) => {
+  const onItem = options.onItem;
+  const step = options.step;
+  const resumeSequential = (state, items, index, end, effect) => flatMap(exit(effect), (itemExit) => step(state, items[index], itemExit, index) ?? runSequential(state, items, index + 1, end) ?? void_);
+  const runSequential = (state, items, index = 0, end = items.length) => {
+    for (;index < end; index++) {
+      const item = items[index];
+      const effect = onItem(state, item, index);
+      if (!effectIsExit(effect)) {
+        return resumeSequential(state, items, index, end, effect);
+      }
+      const terminal = step(state, item, effect, index);
+      if (terminal)
+        return terminal._tag === "Failure" ? terminal : undefined;
+    }
+  };
+  return runSequential;
+};
+var iterateConcurrentImpl = (options) => {
+  const onItem = options.onItem;
+  const step = options.step;
+  return (state, items, opts) => {
+    let index = 0;
+    const end = opts.end ?? items.length;
+    const concurrency = opts.concurrency;
+    let done = false;
+    let parentFiber;
+    let fibers;
+    let resume;
+    let terminal;
+    let effect;
+    const failDefect = (error) => {
+      const defect = exitDie(error);
+      terminal = defect;
+      done = true;
+      return fibers && fibers.size > 0 ? flatMap(uninterruptible(fiberInterruptAll(Array.from(fibers))), () => terminal ?? defect) : defect;
+    };
+    const go = () => {
+      let paused = false;
+      for (;!terminal && index < end; index++) {
+        const item = items[index];
+        const eff = effect ?? onItem(state, item, index);
+        if (effectIsExit(eff)) {
+          terminal = step(state, item, eff, index);
+          if (terminal)
+            break;
+        } else if (!parentFiber) {
+          return callback((cb) => {
+            parentFiber = getCurrentFiber();
+            fibers = new Set;
+            effect = eff;
+            resume = cb;
+            let result;
+            try {
+              result = go();
+            } catch (error) {
+              return cb(failDefect(error));
+            }
+            if (result)
+              return cb(result);
+            return suspend(() => {
+              terminal ??= exitVoid;
+              return flatMap(fibers ? fiberInterruptAll(fibers) : void_, () => terminal?._tag === "Failure" ? terminal : void_);
+            });
+          });
+        } else {
+          effect = undefined;
+          const fiber = forkUnsafe(parentFiber, eff, true, true, "inherit");
+          if (fiber._exit) {
+            terminal = step(state, item, fiber._exit, index);
+            if (terminal)
+              break;
+            continue;
+          }
+          fibers.add(fiber);
+          const currentIndex = index;
+          fiber.addObserver((exit) => {
+            fibers.delete(fiber);
+            try {
+              if (terminal) {
+                if (exit._tag === "Failure") {
+                  const reasons = exit.cause.reasons.filter((reason) => reason._tag !== "Interrupt");
+                  if (reasons.length > 0) {
+                    const cause = causeFromReasons(reasons);
+                    terminal = exitFailCause(terminal._tag === "Failure" ? causeElectDefects(causeCombine(terminal.cause, cause)) : cause);
+                  }
+                }
+              } else {
+                const result = step(state, item, exit, currentIndex);
+                if (result) {
+                  terminal = result;
+                  go();
+                }
+              }
+              if (paused) {
+                const eff = go();
+                if (eff)
+                  resume(eff);
+              } else if (done && fibers.size === 0) {
+                resume(terminal ?? void_);
+              }
+            } catch (error) {
+              resume(failDefect(error));
+            }
+          });
+          if (fibers.size < concurrency)
+            continue;
+          paused = true;
+          index++;
+          return;
+        }
+      }
+      done = true;
+      if (terminal) {
+        if (fibers && fibers.size > 0) {
+          const annotations = fiberStackAnnotations(parentFiber);
+          fibers.forEach((f) => f.interruptUnsafe(parentFiber.id, annotations));
+          return;
+        }
+        if (resume || terminal._tag === "Failure") {
+          return terminal;
+        }
+      } else if (resume) {
+        if (!fibers) {
+          return exitVoid;
+        } else if (fibers.size === 0) {
+          resume(void_);
+        }
+      }
+    };
+    return go();
+  };
+};
+var iterateConcurrent = () => (options) => iterateConcurrentImpl(options);
+var forkUnsafe = (parent, effect, immediate = false, daemon = false, uninterruptible = false) => {
+  const parentRuntime = parent;
+  const interruptible = uninterruptible === "inherit" ? parentRuntime.interruptible : !uninterruptible;
+  const child = new FiberImpl(parentRuntime.context, interruptible);
+  if (!daemon) {
+    parentRuntime.children().add(child);
+    child._parent = parentRuntime;
+  }
+  if (immediate) {
+    child.evaluate(effect);
+  } else {
+    child._asyncContext = captureAsyncContext();
+    parentRuntime.currentDispatcher.scheduleTask(() => child.evaluate(effect), 0);
+  }
+  return child;
+};
+var runForkWith = (context) => (effect, options) => {
+  const fiber = new FiberImpl(options?.scheduler ? add(context, Scheduler, options.scheduler) : context, options?.uninterruptible !== true);
+  fiber.evaluate(effect);
+  if (fiber._exit)
+    return fiber;
+  if (options?.signal) {
+    if (options.signal.aborted) {
+      fiber.interruptUnsafe();
+    } else {
+      const abort = () => fiber.interruptUnsafe();
+      options.signal.addEventListener("abort", abort, {
+        once: true
+      });
+      fiber.addObserver(() => options.signal.removeEventListener("abort", abort));
+    }
+  }
+  if (options?.onFiberStart) {
+    options.onFiberStart(fiber);
+  }
+  return fiber;
+};
+var runSyncExitWith = (context) => {
+  const runFork = runForkWith(context);
+  return (effect) => {
+    if (effectIsExit(effect))
+      return effect;
+    const scheduler = new MixedScheduler("sync");
+    const fiber = runFork(effect, {
+      scheduler
+    });
+    fiber._dispatcher?.flush();
+    return fiber._exit ?? exitDie(new AsyncFiberError(fiber));
+  };
+};
+var runSyncExit = /* @__PURE__ */ runSyncExitWith(/* @__PURE__ */ empty());
+var MAX_TIMER_MILLIS = 2 ** 31 - 1;
+var IllegalArgumentErrorTypeId = "~effect/Cause/IllegalArgumentError";
+class IllegalArgumentError extends (/* @__PURE__ */ TaggedError("IllegalArgumentError")) {
+  [IllegalArgumentErrorTypeId] = IllegalArgumentErrorTypeId;
+  constructor(message) {
+    super({
+      message
+    });
+  }
+}
+var AsyncFiberErrorTypeId = "~effect/Cause/AsyncFiberError";
+class AsyncFiberError extends (/* @__PURE__ */ TaggedError("AsyncFiberError")) {
+  [AsyncFiberErrorTypeId] = AsyncFiberErrorTypeId;
+  constructor(fiber) {
+    super({
+      message: "An asynchronous Effect was executed with Effect.runSync",
+      fiber
+    });
+  }
+}
+var UnknownErrorTypeId = "~effect/Cause/UnknownError";
+class UnknownError extends (/* @__PURE__ */ TaggedError("UnknownError")) {
+  [UnknownErrorTypeId] = UnknownErrorTypeId;
+  constructor(cause, message) {
+    super({
+      message,
+      cause
+    });
+  }
+}
+var LoggerTypeId = "~effect/Logger";
+var LoggerProto = {
+  [LoggerTypeId]: {
+    _Message: identity,
+    _Output: identity
+  },
+  pipe() {
+    return pipeArguments(this, arguments);
+  }
+};
+var colors = {
+  bold: "1",
+  red: "31",
+  green: "32",
+  yellow: "33",
+  blue: "34",
+  cyan: "36",
+  white: "37",
+  gray: "90",
+  black: "30",
+  bgBrightRed: "101"
+};
+var logLevelColors = {
+  None: [],
+  All: [],
+  Trace: [colors.gray],
+  Debug: [colors.blue],
+  Info: [colors.green],
+  Warn: [colors.yellow],
+  Error: [colors.red],
+  Fatal: [colors.bgBrightRed, colors.black]
+};
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Cause.js
+var isFailReason2 = isFailReason;
+var die2 = causeDie;
+var map4 = causeMap;
+var IllegalArgumentError2 = IllegalArgumentError;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Exit.js
+var succeed4 = exitSucceed;
+var failCause2 = exitFailCause;
+var fail4 = exitFail;
+var void_2 = exitVoid;
+var isSuccess3 = exitIsSuccess;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/dateTime.js
+var TypeId4 = "~effect/DateTime";
+var TimeZoneTypeId = "~effect/DateTime/TimeZone";
+var Proto2 = {
+  [TypeId4]: TypeId4,
+  pipe() {
+    return pipeArguments(this, arguments);
+  },
+  [NodeInspectSymbol]() {
+    return this.toString();
+  },
+  toJSON() {
+    return toDateUtc(this).toJSON();
+  }
+};
+var ProtoUtc = {
+  ...Proto2,
+  _tag: "Utc",
+  [symbol]() {
+    return number(this.epochMilliseconds);
+  },
+  [symbol2](that) {
+    return isDateTime(that) && that._tag === "Utc" && this.epochMilliseconds === that.epochMilliseconds;
+  },
+  toString() {
+    return `DateTime.Utc(${toDateUtc(this).toJSON()})`;
+  }
+};
+var ProtoZoned = {
+  ...Proto2,
+  _tag: "Zoned",
+  [symbol]() {
+    return combine(number(this.epochMilliseconds))(hash(this.zone));
+  },
+  [symbol2](that) {
+    return isDateTime(that) && that._tag === "Zoned" && this.epochMilliseconds === that.epochMilliseconds && equals(this.zone, that.zone);
+  },
+  toString() {
+    return `DateTime.Zoned(${formatIsoZoned(this)})`;
+  }
+};
+var ProtoTimeZone = {
+  [TimeZoneTypeId]: TimeZoneTypeId,
+  [NodeInspectSymbol]() {
+    return this.toString();
+  }
+};
+var ProtoTimeZoneNamed = {
+  ...ProtoTimeZone,
+  _tag: "Named",
+  [symbol]() {
+    return string(`Named:${this.id}`);
+  },
+  [symbol2](that) {
+    return isTimeZone(that) && that._tag === "Named" && this.id === that.id;
+  },
+  toString() {
+    return `TimeZone.Named(${this.id})`;
+  },
+  toJSON() {
+    return {
+      _id: "TimeZone",
+      _tag: "Named",
+      id: this.id
+    };
+  }
+};
+var ProtoTimeZoneOffset = {
+  ...ProtoTimeZone,
+  _tag: "Offset",
+  [symbol]() {
+    return string(`Offset:${this.offset}`);
+  },
+  [symbol2](that) {
+    return isTimeZone(that) && that._tag === "Offset" && this.offset === that.offset;
+  },
+  toString() {
+    return `TimeZone.Offset(${offsetToString(this.offset)})`;
+  },
+  toJSON() {
+    return {
+      _id: "TimeZone",
+      _tag: "Offset",
+      offset: this.offset
+    };
+  }
+};
+var isDateTime = (u) => hasProperty(u, TypeId4);
+var isTimeZone = (u) => hasProperty(u, TimeZoneTypeId);
+var isUtc = (self) => self._tag === "Utc";
+var makeUtc = (epochMillis) => {
+  const self = Object.create(ProtoUtc);
+  self.epochMilliseconds = epochMillis;
+  Object.defineProperty(self, "partsUtc", {
+    value: undefined,
+    enumerable: false,
+    writable: true
+  });
+  return self;
+};
+var fromDateUnsafe = (date) => {
+  const epochMillis = date.getTime();
+  if (Number.isNaN(epochMillis)) {
+    throw new IllegalArgumentError2("Invalid date");
+  }
+  return makeUtc(epochMillis);
+};
+var makeUnsafe2 = (input) => {
+  if (isDateTime(input)) {
+    return input;
+  } else if (input instanceof Date) {
+    return fromDateUnsafe(input);
+  } else if (typeof input === "object") {
+    if ("epochMilliseconds" in input) {
+      return fromDateUnsafe(new Date(input.epochMilliseconds));
+    }
+    const date = new Date(0);
+    setPartsDate(date, input);
+    return fromDateUnsafe(date);
+  } else if (typeof input === "string" && !hasZone(input)) {
+    return fromDateUnsafe(new Date(input + "Z"));
+  }
+  return fromDateUnsafe(new Date(input));
+};
+var hasZone = (input) => /Z|GMT|[+-]\d{2}$|[+-]\d{2}:?\d{2}$|\]$/.test(input) || /z$|gmt$/i.test(input);
+var minEpochMillis = -8640000000000000 + 12 * 60 * 60 * 1000;
+var maxEpochMillis = 8640000000000000 - 14 * 60 * 60 * 1000;
+var make4 = /* @__PURE__ */ liftThrowable(makeUnsafe2);
+var toUtc = (self) => makeUtc(self.epochMilliseconds);
+var toDateUtc = (self) => new Date(self.epochMilliseconds);
+var toDate = (self) => {
+  if (self._tag === "Utc") {
+    return new Date(self.epochMilliseconds);
+  } else if (self.zone._tag === "Offset") {
+    return new Date(self.epochMilliseconds + self.zone.offset);
+  } else if (self.adjustedEpochMilliseconds !== undefined) {
+    return new Date(self.adjustedEpochMilliseconds);
+  }
+  let bc = false;
+  const parts = self.zone.format.formatToParts(self.epochMilliseconds).filter((_) => {
+    if (_.type === "era") {
+      bc = _.value === "BC";
+      return false;
+    }
+    return _.type !== "literal";
+  });
+  const year = Number(parts[2].value);
+  const date = new Date(0);
+  date.setUTCFullYear(bc ? 1 - year : year, Number(parts[0].value) - 1, Number(parts[1].value));
+  date.setUTCHours(Number(parts[3].value), Number(parts[4].value), Number(parts[5].value), parts[6]?.type === "fractionalSecond" ? Number(parts[6].value) : (self.epochMilliseconds % 1000 + 1000) % 1000);
+  self.adjustedEpochMilliseconds = date.getTime();
+  return date;
+};
+var zonedOffset = (self) => {
+  const date = toDate(self);
+  return date.getTime() - toEpochMillis(self);
+};
+var offsetToString = (offset) => {
+  const abs = Math.abs(offset);
+  let hours = Math.floor(abs / (60 * 60 * 1000));
+  let minutes = Math.round(abs % (60 * 60 * 1000) / (60 * 1000));
+  if (minutes === 60) {
+    hours += 1;
+    minutes = 0;
+  }
+  return `${offset < 0 ? "-" : "+"}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+};
+var zonedOffsetIso = (self) => offsetToString(zonedOffset(self));
+var toEpochMillis = (self) => self.epochMilliseconds;
+var setPartsDate = (date, parts) => {
+  if (parts.year !== undefined || parts.month !== undefined || parts.day !== undefined) {
+    date.setUTCFullYear(parts.year ?? date.getUTCFullYear(), parts.month !== undefined ? parts.month - 1 : date.getUTCMonth(), parts.day ?? date.getUTCDate());
+  }
+  if (parts.weekDay !== undefined) {
+    const diff = parts.weekDay - date.getUTCDay();
+    date.setUTCDate(date.getUTCDate() + diff);
+  }
+  if (parts.hour !== undefined) {
+    date.setUTCHours(parts.hour);
+  }
+  if (parts.minute !== undefined) {
+    date.setUTCMinutes(parts.minute);
+  }
+  if (parts.second !== undefined) {
+    date.setUTCSeconds(parts.second);
+  }
+  if (parts.millisecond !== undefined) {
+    date.setUTCMilliseconds(parts.millisecond);
+  }
+};
+var constDayMillis = 24 * 60 * 60 * 1000;
+var formatIso = (self) => toDateUtc(self).toISOString();
+var formatIsoOffset = (self) => {
+  const date = toDate(self);
+  return self._tag === "Utc" ? date.toISOString() : `${date.toISOString().slice(0, -1)}${zonedOffsetIso(self)}`;
+};
+var formatIsoZoned = (self) => self.zone._tag === "Offset" ? formatIsoOffset(self) : `${formatIsoOffset(self)}[${self.zone.id}]`;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/String.js
+var String2 = globalThis.String;
+var trim = (self) => self.trim();
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Effect.js
+var tryPromise2 = tryPromise;
+var succeed5 = succeed3;
+var suspend2 = suspend;
+var fail5 = fail3;
+var failCauseSync2 = failCauseSync;
+var die3 = die;
+var try_2 = try_;
+var fromResult2 = fromResult;
+var flatMap2 = flatMap;
+var exit2 = exit;
+var catchCause2 = catchCause;
+var mapError2 = mapError;
+var runSyncExit2 = runSyncExit;
+var mapEager2 = mapEager;
+var mapErrorEager2 = mapErrorEager;
+var mapBothEager2 = mapBothEager;
+var flatMapEager2 = flatMapEager;
+var fnUntracedEager2 = fnUntracedEager;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/encoding/Base64.js
+var encode = (input) => encodeBytes(typeof input === "string" ? encoder.encode(input) : input);
+var decode = (str) => {
+  const stripped = stripCrlf(str);
+  const length = stripped.length;
+  if (length % 4 !== 0) {
+    return fail2(new EncodingError({
+      kind: "Decode",
+      module: "Base64",
+      input: stripped,
+      message: `Length must be a multiple of 4, but is ${length}`
+    }));
+  }
+  const index = stripped.indexOf("=");
+  if (index !== -1 && (index < length - 2 || index === length - 2 && stripped[length - 1] !== "=")) {
+    return fail2(new EncodingError({
+      kind: "Decode",
+      module: "Base64",
+      input: stripped,
+      message: "Found a '=' character, but it is not at the end"
+    }));
+  }
+  try {
+    const missingOctets = stripped.endsWith("==") ? 2 : stripped.endsWith("=") ? 1 : 0;
+    const result = new Uint8Array(3 * (length / 4) - missingOctets);
+    for (let i = 0, j = 0;i < length; i += 4, j += 3) {
+      const buffer = getCode(stripped.charCodeAt(i)) << 18 | getCode(stripped.charCodeAt(i + 1)) << 12 | getCode(stripped.charCodeAt(i + 2)) << 6 | getCode(stripped.charCodeAt(i + 3));
+      result[j] = buffer >> 16;
+      result[j + 1] = buffer >> 8 & 255;
+      result[j + 2] = buffer & 255;
+    }
+    return succeed2(result);
+  } catch (cause) {
+    return fail2(new EncodingError({
+      kind: "Decode",
+      module: "Base64",
+      input: stripped,
+      message: cause instanceof Error ? cause.message : "Invalid input"
+    }));
+  }
+};
+var encodeBytes = (bytes) => {
+  const length = bytes.length;
+  const toBase64 = Uint8Array.prototype.toBase64;
+  if (length >= 32 && typeof toBase64 === "function")
+    return toBase64.call(bytes);
+  return length < 128 ? encodeShort(bytes) : encodeLong(bytes);
+};
+var encodeShort = (bytes) => {
+  const length = bytes.length;
+  let result = "";
+  let i;
+  for (i = 2;i < length; i += 3) {
+    result += alphabet[bytes[i - 2] >> 2];
+    result += alphabet[(bytes[i - 2] & 3) << 4 | bytes[i - 1] >> 4];
+    result += alphabet[(bytes[i - 1] & 15) << 2 | bytes[i] >> 6];
+    result += alphabet[bytes[i] & 63];
+  }
+  if (i === length + 1) {
+    result += alphabet[bytes[i - 2] >> 2];
+    result += alphabet[(bytes[i - 2] & 3) << 4];
+    result += "==";
+  }
+  if (i === length) {
+    result += alphabet[bytes[i - 2] >> 2];
+    result += alphabet[(bytes[i - 2] & 3) << 4 | bytes[i - 1] >> 4];
+    result += alphabet[(bytes[i - 1] & 15) << 2];
+    result += "=";
+  }
+  return result;
+};
+var encodeLong = (bytes) => {
+  const length = bytes.length;
+  const result = new Uint8Array(Math.ceil(length / 3) * 4);
+  let i;
+  let j = 0;
+  for (i = 2;i < length; i += 3, j += 4) {
+    result[j] = alphabetCodes[bytes[i - 2] >> 2];
+    result[j + 1] = alphabetCodes[(bytes[i - 2] & 3) << 4 | bytes[i - 1] >> 4];
+    result[j + 2] = alphabetCodes[(bytes[i - 1] & 15) << 2 | bytes[i] >> 6];
+    result[j + 3] = alphabetCodes[bytes[i] & 63];
+  }
+  if (i === length + 1) {
+    result[j] = alphabetCodes[bytes[i - 2] >> 2];
+    result[j + 1] = alphabetCodes[(bytes[i - 2] & 3) << 4];
+    result[j + 2] = paddingCode;
+    result[j + 3] = paddingCode;
+  }
+  if (i === length) {
+    result[j] = alphabetCodes[bytes[i - 2] >> 2];
+    result[j + 1] = alphabetCodes[(bytes[i - 2] & 3) << 4 | bytes[i - 1] >> 4];
+    result[j + 2] = alphabetCodes[(bytes[i - 1] & 15) << 2];
+    result[j + 3] = paddingCode;
+  }
+  return decoder.decode(result);
+};
+var encoder = /* @__PURE__ */ new TextEncoder;
+var decoder = /* @__PURE__ */ new TextDecoder;
+var stripCrlf = (str) => str.replace(/[\n\r]/g, "");
+var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+var alphabetCodes = /* @__PURE__ */ encoder.encode(alphabet);
+var paddingCode = 61;
+var codes = /* @__PURE__ */ new Uint8Array(123).fill(255);
+for (let i = 0;i < alphabet.length; i++)
+  codes[/* @__PURE__ */ alphabet.charCodeAt(i)] = i;
+codes[61] = 0;
+var getCode = (charCode) => {
+  if (charCode >= codes.length || codes[charCode] === 255) {
+    throw new TypeError(`Invalid character ${String.fromCharCode(charCode)}`);
+  }
+  return codes[charCode];
+};
+
+// node_modules/@opencode/schema/node_modules/effect/dist/encoding/Base64Url.js
+var encode2 = (input) => encode(input).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+var decode2 = (str) => {
+  const stripped = str.replace(/[\n\r]/g, "");
+  const length = stripped.length;
+  const padded = stripped.endsWith("=");
+  if (padded ? length % 4 !== 0 : length % 4 === 1) {
+    return fail2(new EncodingError({
+      module: "Base64Url",
+      kind: "Decode",
+      input: stripped,
+      message: padded ? `Padded length should be a multiple of 4, but is ${length}` : `Unpadded length should not be 1 more than a multiple of 4, but is ${length}`
+    }));
+  }
+  if (!/^[-_A-Z0-9]*?={0,2}$/i.test(stripped)) {
+    return fail2(new EncodingError({
+      module: "Base64Url",
+      kind: "Decode",
+      input: stripped,
+      message: "Invalid input"
+    }));
+  }
+  let sanitized = length % 4 === 2 ? `${stripped}==` : length % 4 === 3 ? `${stripped}=` : stripped;
+  sanitized = sanitized.replace(/-/g, "+").replace(/_/g, "/");
+  return decode(sanitized);
+};
+var decodeString = (str) => map(decode2(str), (_) => decoder2.decode(_));
+var decoder2 = /* @__PURE__ */ new TextDecoder;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/DateTime.js
+var isDateTime2 = isDateTime;
+var isUtc2 = isUtc;
+var makeUnsafe3 = makeUnsafe2;
+var make5 = make4;
+var toUtc2 = toUtc;
+var toEpochMillis2 = toEpochMillis;
+var formatIso2 = formatIso;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/schema/annotations.js
+function resolve(ast) {
+  return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations;
+}
+var STRUCTURAL_ANNOTATION_KEY = "~structural";
+var SENTINELS_ANNOTATION_KEY = "~sentinels";
+var CONSTRUCTOR_ANNOTATION_KEY = "~constructor";
+var getExpected = /* @__PURE__ */ memoize((ast) => {
+  const identifier = resolve(ast)?.identifier;
+  if (typeof identifier === "string")
+    return identifier;
+  return ast.getExpected(getExpected);
+});
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/schema/parser.js
+var missing = /* @__PURE__ */ Symbol();
+var succeed6 = succeed4;
+var missingExit = /* @__PURE__ */ succeed6(missing);
+var sameExit = /* @__PURE__ */ succeed6(missing);
+var toOption = (value) => value === missing ? none2() : some2(value);
+var fromOptionExit = (option) => option._tag === "None" ? missingExit : succeed6(option.value);
+
+// node_modules/@opencode/schema/node_modules/effect/dist/SchemaIssue.js
+var TypeId5 = "~effect/SchemaIssue/Issue";
+function isIssue(u) {
+  return hasProperty(u, TypeId5) && u[TypeId5] === TypeId5;
+}
+function hasInput(issue) {
+  return Object.hasOwn(issue, "input");
+}
+
+class IssueNodeImpl {
+  [TypeId5] = TypeId5;
+  constructor(input, options) {
+    if (options?.reportInput === true && input !== missing) {
+      this.input = input;
+    }
+  }
+}
+var Filter = class extends IssueNodeImpl {
+  _tag = "Filter";
+  filter;
+  issue;
+  constructor(filter, issue, input, options) {
+    super(input, options);
+    this.filter = filter;
+    this.issue = issue;
+  }
+};
+var Encoding = class extends IssueNodeImpl {
+  _tag = "Encoding";
+  ast;
+  issue;
+  constructor(ast, issue, input, options) {
+    super(input, options);
+    this.ast = ast;
+    this.issue = issue;
+  }
+};
+var Pointer = class extends IssueNodeImpl {
+  _tag = "Pointer";
+  path;
+  issue;
+  constructor(path, issue) {
+    super();
+    this.path = path;
+    this.issue = issue;
+  }
+};
+var MissingKey = class extends IssueNodeImpl {
+  _tag = "MissingKey";
+  annotations;
+  constructor(annotations) {
+    super();
+    this.annotations = annotations;
+  }
+};
+var UnexpectedKey = class extends IssueNodeImpl {
+  _tag = "UnexpectedKey";
+  ast;
+  constructor(ast, input, options) {
+    super(input, options);
+    this.ast = ast;
+  }
+};
+var Composite = class extends IssueNodeImpl {
+  _tag = "Composite";
+  ast;
+  issues;
+  constructor(ast, issues, input, options) {
+    super(input, options);
+    this.ast = ast;
+    this.issues = issues;
+  }
+};
+var InvalidType = class extends IssueNodeImpl {
+  _tag = "InvalidType";
+  ast;
+  constructor(ast, input, options) {
+    super(input, options);
+    this.ast = ast;
+  }
+};
+var InvalidValue = class extends IssueNodeImpl {
+  _tag = "InvalidValue";
+  annotations;
+  constructor(annotations, input, options) {
+    super(input, options);
+    this.annotations = annotations;
+  }
+};
+var Forbidden = class extends IssueNodeImpl {
+  _tag = "Forbidden";
+  annotations;
+  constructor(annotations, input, options) {
+    super(input, options);
+    this.annotations = annotations;
+  }
+};
+var AnyOf = class extends IssueNodeImpl {
+  _tag = "AnyOf";
+  ast;
+  issues;
+  constructor(ast, issues, input, options) {
+    super(input, options);
+    this.ast = ast;
+    this.issues = issues;
+  }
+};
+var OneOf = class extends IssueNodeImpl {
+  _tag = "OneOf";
+  ast;
+  successes;
+  constructor(ast, successes, input, options) {
+    super(input, options);
+    this.ast = ast;
+    this.successes = successes;
+  }
+};
+function makeFilterIssue(entry, input, options) {
+  if (isIssue(entry)) {
+    return entry;
+  }
+  if (typeof entry === "string") {
+    return new InvalidValue({
+      message: entry
+    }, input, options);
+  }
+  const inner = typeof entry.issue === "string" ? new InvalidValue({
+    message: entry.issue
+  }, input, options) : entry.issue;
+  return new Pointer(entry.path, inner);
+}
+function makeSingle(out, input, options) {
+  if (out === undefined) {
+    return;
+  }
+  if (typeof out === "boolean") {
+    return out ? undefined : new InvalidValue(undefined, input, options);
+  }
+  return makeFilterIssue(out, input, options);
+}
+function normalizeFilterOutput(ast, out, input, options) {
+  if (Array.isArray(out)) {
+    if (!isReadonlyArrayNonEmpty(out)) {
+      return;
+    }
+    return out.length === 1 ? makeFilterIssue(out[0], input, options) : new Composite(ast, map2(out, (entry) => makeFilterIssue(entry, input, options)), input, options);
+  }
+  return makeSingle(out, input, options);
+}
+var defaultLeafHook = (issue) => {
+  const message = findMessage(issue);
+  if (message !== undefined)
+    return message;
+  switch (issue._tag) {
+    case "InvalidType":
+      return getExpectedMessage(getExpected(issue.ast), issue);
+    case "InvalidValue": {
+      const expected = findExpected(issue);
+      if (expected !== undefined)
+        return getExpectedMessage(expected, issue);
+      const input = formatInput(issue);
+      return input === undefined ? "Expected a valid value" : `Invalid data ${input}`;
+    }
+    case "MissingKey":
+      return "Missing key";
+    case "UnexpectedKey": {
+      const input = formatInput(issue);
+      return input === undefined ? "Expected no excess property" : `Unexpected key with value ${input}`;
+    }
+    case "Forbidden":
+      return "Forbidden operation";
+    case "OneOf": {
+      const input = formatInput(issue);
+      return input === undefined ? "Expected exactly one member to match" : `Expected exactly one member to match the input ${input}`;
+    }
+  }
+};
+var defaultCheckHook = (issue) => findMessage(issue) ?? findMessage(issue.issue);
+function formatInput(issue) {
+  return hasInput(issue) ? format(issue.input) : undefined;
+}
+function findExpected(issue) {
+  const expected = issue.annotations?.expected;
+  return typeof expected === "string" ? expected : undefined;
+}
+function getExpectedMessage(expected, issue) {
+  const input = formatInput(issue);
+  return input === undefined ? `Expected ${expected}` : `Expected ${expected}, got ${input}`;
+}
+function getFilterMessage(issue, checkHook) {
+  const message = checkHook(issue);
+  if (message !== undefined || issue.issue._tag !== "InvalidValue")
+    return message;
+  const expected = findExpected(issue.issue);
+  return expected === undefined ? getExpectedMessage(formatCheck(issue.filter), issue) : getExpectedMessage(expected, issue.issue);
+}
+function formatCheck(check) {
+  const expected = check.annotations?.expected;
+  if (typeof expected === "string")
+    return expected;
+  switch (check._tag) {
+    case "Filter":
+      return "<filter>";
+    case "FilterGroup":
+      return check.checks.map((check) => formatCheck(check)).join(" & ");
+  }
+}
+function makeFormatterDefault() {
+  return (issue) => formatIssue(issue, "");
+}
+var defaultFormatter = /* @__PURE__ */ makeFormatterDefault();
+function formatIssue(issue, path, messageOverride) {
+  let message;
+  switch (issue._tag) {
+    case "Filter":
+      return formatIssue(issue.issue, path, messageOverride ?? getFilterMessage(issue, defaultCheckHook));
+    case "Encoding":
+      return formatIssue(issue.issue, path, messageOverride);
+    case "Pointer":
+      return formatIssue(issue.issue, path + formatPath(issue.path), messageOverride);
+    case "Composite":
+    case "AnyOf": {
+      if (issue._tag === "Composite" || issue.issues.length > 0) {
+        return issue.issues.map((issue) => formatIssue(issue, path, messageOverride)).join(`
+`);
+      }
+      message = messageOverride ?? findMessage(issue) ?? getExpectedMessage(getExpected(issue.ast), issue);
+      break;
+    }
+    default:
+      message = messageOverride ?? defaultLeafHook(issue);
+      break;
+  }
+  return path ? `${message}
+  at ${path}` : message;
+}
+function findMessage(issue) {
+  if (issue._tag === "Pointer" || issue._tag === "Composite")
+    return;
+  if (issue._tag === "Encoding")
+    return findMessage(issue.issue);
+  const annotations = issue._tag === "Filter" ? issue.filter.annotations : ("annotations" in issue) ? issue.annotations : issue.ast.annotations;
+  const message = annotations?.[issue._tag === "MissingKey" ? "messageMissingKey" : issue._tag === "UnexpectedKey" ? "messageUnexpectedKey" : "message"];
+  if (typeof message === "string")
+    return message;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/schema/cause.js
+function getSchemaIssue(cause) {
+  let issue;
+  for (const reason of cause.reasons) {
+    if (!isFailReason2(reason) || !isIssue(reason.error)) {
+      return;
+    }
+    issue ??= reason.error;
+  }
+  return issue;
+}
+function getSchemaIssueOrThrow(cause, message) {
+  const issue = getSchemaIssue(cause);
+  if (issue === undefined) {
+    throw new Error(message, {
+      cause
+    });
+  }
+  return issue;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/SchemaGetter.js
+var makeGetter = (fields) => Object.assign(Object.create(Prototype), fields);
+function fail6(f) {
+  return transformOptionalEffect((oe, options) => fail5(f(oe, options)));
+}
+function forbidden(message) {
+  return fail6((oe, options) => {
+    const annotations = {
+      message: message(oe)
+    };
+    return isSome2(oe) ? new Forbidden(annotations, oe.value, options) : new Forbidden(annotations);
+  });
+}
+var forbiddenEncoding = /* @__PURE__ */ forbidden(() => "Encoding is not supported");
+var passthrough_ = /* @__PURE__ */ makeGetter({
+  _tag: "Passthrough"
+});
+function passthrough() {
+  return passthrough_;
+}
+function transform(f) {
+  return makeGetter({
+    _tag: "Transform",
+    transform: f
+  });
+}
+function transformEffect(f) {
+  return makeGetter({
+    _tag: "TransformEffect",
+    transform: f
+  });
+}
+function transformOptional(f) {
+  return makeGetter({
+    _tag: "TransformOptional",
+    transform: f
+  });
+}
+function transformOptionalEffect(f) {
+  return makeGetter({
+    _tag: "TransformOptionalEffect",
+    transform: f
+  });
+}
+function String3() {
+  return transform(globalThis.String);
+}
+function Number3() {
+  return transform(globalThis.Number);
+}
+function trim2() {
+  return transform(trim);
+}
+function parseJson(options) {
+  return transformEffect((input, parseOptions) => try_2({
+    try: () => JSON.parse(input, options?.reviver),
+    catch: () => new InvalidValue({
+      expected: "a valid JSON string"
+    }, input, parseOptions)
+  }));
+}
+function stringifyJson(options) {
+  return transformEffect((input, parseOptions) => try_2({
+    try: () => {
+      const output = JSON.stringify(input, options?.replacer, options?.space);
+      if (output === undefined) {
+        throw new TypeError("Value cannot be represented as JSON");
+      }
+      return output;
+    },
+    catch: () => new InvalidValue({
+      expected: "a JSON-serializable value"
+    }, input, parseOptions)
+  }));
+}
+function encodeBase64() {
+  return transform(encode);
+}
+function decodeBase64() {
+  return transformEffect((input, options) => mapErrorEager2(fromResult2(decode(input)), () => new InvalidValue({
+    expected: "a valid Base64 string"
+  }, input, options)));
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/schema/content.js
+var ContentTypeId = /* @__PURE__ */ Symbol.for("~effect/Schema/content");
+function setContent(operation, content) {
+  Object.defineProperty(operation, ContentTypeId, {
+    value: content
+  });
+  return operation;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/SchemaTransformation.js
+var TypeId6 = "~effect/SchemaTransformation/Transformation";
+var Transformation = class extends Class {
+  [TypeId6] = TypeId6;
+  _tag = "Transformation";
+  decode;
+  encode;
+  constructor(decode, encode) {
+    super();
+    this.decode = decode;
+    this.encode = encode;
+  }
+  flip() {
+    return new Transformation(this.encode, this.decode);
+  }
+};
+function isTransformation(u) {
+  return hasProperty(u, TypeId6) && u[TypeId6] === TypeId6;
+}
+var makeTransformation = (options) => {
+  if (isTransformation(options)) {
+    return options;
+  }
+  return new Transformation(options.decode, options.encode);
+};
+function transformEffect2(options) {
+  return new Transformation(transformEffect(options.decode), transformEffect(options.encode));
+}
+function transform2(options) {
+  return new Transformation(transform(options.decode), transform(options.encode));
+}
+function trim3() {
+  return new Transformation(trim2(), passthrough());
+}
+var passthrough_2 = /* @__PURE__ */ new Transformation(/* @__PURE__ */ passthrough(), /* @__PURE__ */ passthrough());
+function passthrough2() {
+  return passthrough_2;
+}
+var numberFromString = /* @__PURE__ */ new Transformation(/* @__PURE__ */ Number3(), /* @__PURE__ */ String3());
+var isJsonError = (input) => isObject(input) && typeof input["message"] === "string";
+var decodeJsonError = (input) => {
+  const hasCause = Object.hasOwn(input, "cause");
+  const err = hasCause ? new Error(input.message, {
+    cause: decodeDefect(input.cause)
+  }) : new Error(input.message);
+  if (typeof input.name === "string" && input.name !== "Error")
+    err.name = input.name;
+  if (typeof input.stack === "string")
+    err.stack = input.stack;
+  return err;
+};
+var encodeUnknownAsJson = (input) => {
+  try {
+    const json = formatJson(input);
+    return json === undefined ? format(input) : JSON.parse(json);
+  } catch {
+    return format(input);
+  }
+};
+var encodeJsonError = (input, options, encodeDefect) => {
+  const encoded = {
+    name: input.name,
+    message: typeof input.message === "string" ? input.message : ""
+  };
+  if (options?.includeStack && typeof input.stack === "string") {
+    encoded.stack = input.stack;
+  }
+  if (!options?.excludeCause && input.cause !== undefined) {
+    encoded.cause = encodeDefect(input.cause);
+  }
+  return encoded;
+};
+var makeEncodeDefect = (options) => {
+  const seen = new WeakSet;
+  const encode = (input) => {
+    if (isError(input)) {
+      if (seen.has(input)) {
+        return "[Circular]";
+      }
+      seen.add(input);
+      const encoded = encodeJsonError(input, options, encode);
+      seen.delete(input);
+      return encoded;
+    }
+    return encodeUnknownAsJson(input);
+  };
+  return encode;
+};
+var decodeDefect = (input) => isJsonError(input) ? decodeJsonError(input) : input;
+var defectFromJson = (options) => transform2({
+  decode: decodeDefect,
+  encode: makeEncodeDefect(options)
+});
+var urlFromString = /* @__PURE__ */ transformEffect2({
+  decode: (s, options) => URL.canParse(s) ? succeed5(new URL(s)) : fail5(new InvalidValue({
+    expected: "a valid URL string"
+  }, s, options)),
+  encode: (url) => succeed5(url.href)
+});
+var uint8ArrayFromBase64String = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeBase64(), /* @__PURE__ */ encodeBase64());
+function fromJsonString(options) {
+  return new Transformation(parseJson(options ?? {}), setContent(stringifyJson(options), {
+    mediaType: "application/json",
+    preserveSchema: options?.reviver === undefined && options?.replacer === undefined
+  }));
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/SchemaAST.js
+function makeGuard(tag) {
+  return (ast) => ast._tag === tag;
+}
+var isDeclaration = /* @__PURE__ */ makeGuard("Declaration");
+var isNever2 = /* @__PURE__ */ makeGuard("Never");
+var isLiteral = /* @__PURE__ */ makeGuard("Literal");
+var isUniqueSymbol = /* @__PURE__ */ makeGuard("UniqueSymbol");
+var isArrays = /* @__PURE__ */ makeGuard("Arrays");
+var isObjects = /* @__PURE__ */ makeGuard("Objects");
+var isUnion = /* @__PURE__ */ makeGuard("Union");
+var isSuspend = /* @__PURE__ */ makeGuard("Suspend");
+var Link = class {
+  to;
+  transformation;
+  constructor(to, transformation) {
+    this.to = to;
+    this.transformation = transformation;
+  }
+};
+var defaultParseOptions = {};
+var Context = class {
+  isOptional;
+  isMutable;
+  constructorDefault;
+  annotations;
+  constructor(isOptional, isMutable, constructorDefault = undefined, annotations = undefined) {
+    this.isOptional = isOptional;
+    this.isMutable = isMutable;
+    this.constructorDefault = constructorDefault;
+    this.annotations = annotations;
+  }
+};
+var TypeId7 = "~effect/Schema";
+
+class ASTNodeImpl {
+  [TypeId7] = TypeId7;
+  annotations;
+  checks;
+  encoding;
+  context;
+  constructor(annotations = undefined, checks = undefined, encoding = undefined, context = undefined) {
+    this.annotations = annotations;
+    this.checks = checks;
+    this.encoding = encoding;
+    this.context = context;
+  }
+  toString() {
+    return `<${this._tag}>`;
+  }
+}
+var Declaration = class extends ASTNodeImpl {
+  _tag = "Declaration";
+  typeParameters;
+  run;
+  encodingChecks;
+  encodingRun;
+  constructor(typeParameters, run, annotations, checks, encoding, context, encodingChecks, encodingRun) {
+    super(annotations, checks, encoding, context);
+    this.typeParameters = typeParameters;
+    this.run = run;
+    this.encodingChecks = encodingChecks;
+    this.encodingRun = encodingRun;
+  }
+  getParser() {
+    let run;
+    return (input, options) => {
+      if (input === missing)
+        return missingExit;
+      run ??= this.run(this.typeParameters);
+      try {
+        return run(input, this, options);
+      } catch (error) {
+        return die3(error);
+      }
+    };
+  }
+  _rebuild(recur, checks, encodingChecks, run, encodingRun) {
+    const tps = mapOrSame(this.typeParameters, recur);
+    return tps === this.typeParameters && checks === this.checks && encodingChecks === this.encodingChecks && run === this.run && encodingRun === this.encodingRun ? this : new Declaration(tps, run, this.annotations, checks, undefined, this.context, encodingChecks, encodingRun);
+  }
+  recur(recur) {
+    return this._rebuild(recur, this.checks, this.encodingChecks, this.run, this.encodingRun);
+  }
+  flip(recur) {
+    return this._rebuild(recur, this.encodingChecks, this.checks, this.encodingRun ?? this.run, this.run);
+  }
+  getExpected() {
+    const expected = this.annotations?.expected;
+    if (typeof expected === "string")
+      return expected;
+    return "<Declaration>";
+  }
+};
+var Null = class extends ASTNodeImpl {
+  _tag = "Null";
+  getParser() {
+    return fromConst(this, null);
+  }
+  getExpected() {
+    return "null";
+  }
+};
+var null_ = /* @__PURE__ */ new Null;
+var Undefined = class extends ASTNodeImpl {
+  _tag = "Undefined";
+  getParser() {
+    return fromConst(this, undefined);
+  }
+  toCodecJson() {
+    return replaceEncoding(this, [undefinedToNull]);
+  }
+  getExpected() {
+    return "undefined";
+  }
+};
+var undefinedToNull = /* @__PURE__ */ new Link(null_, /* @__PURE__ */ new Transformation(/* @__PURE__ */ transform(() => {
+  return;
+}), /* @__PURE__ */ transform(() => null)));
+var undefined_2 = /* @__PURE__ */ new Undefined;
+var Any = class extends ASTNodeImpl {
+  _tag = "Any";
+  getParser() {
+    return fromRefinement(this, isUnknown);
+  }
+  getExpected() {
+    return "any";
+  }
+};
+var any = /* @__PURE__ */ new Any;
+var Unknown = class extends ASTNodeImpl {
+  _tag = "Unknown";
+  getParser() {
+    return fromRefinement(this, isUnknown);
+  }
+  getExpected() {
+    return "unknown";
+  }
+};
+var unknown = /* @__PURE__ */ new Unknown;
+function formatTemplateLiteralPath(path) {
+  return typeof path === "number" ? `parts[${path}]` : path;
+}
+function isTemplateLiteralPart(ast, path, validated) {
+  if (validated.has(ast))
+    return true;
+  if (ast.encoding) {
+    throw new Error(`TemplateLiteral parts cannot have an encoding at ${formatTemplateLiteralPath(path)}`);
+  }
+  let valid;
+  switch (ast._tag) {
+    case "String":
+    case "Number":
+    case "BigInt":
+      valid = true;
+      break;
+    case "Literal":
+      valid = !ast.checks;
+      break;
+    case "TemplateLiteral": {
+      const currentPath = formatTemplateLiteralPath(path);
+      valid = !ast.checks && ast.parts.every((part, index) => isTemplateLiteralPart(part, `${currentPath}.parts[${index}]`, validated));
+      break;
+    }
+    case "Union": {
+      const currentPath = formatTemplateLiteralPath(path);
+      valid = !ast.checks && ast.types.every((part, index) => isTemplateLiteralPart(part, `${currentPath}.types[${index}]`, validated));
+      break;
+    }
+    default:
+      return false;
+  }
+  if (valid)
+    validated.add(ast);
+  return valid;
+}
+var TemplateLiteral = class extends ASTNodeImpl {
+  _tag = "TemplateLiteral";
+  parts;
+  encodedParts;
+  literals;
+  suffixLengths;
+  constructor(parts, annotations, checks, encoding, context) {
+    super(annotations, checks, encoding, context);
+    const encodedParts = [];
+    const literals = [];
+    const validated = new Set;
+    for (let index = 0;index < parts.length; index++) {
+      const part = parts[index];
+      if (!isTemplateLiteralPart(part, index, validated)) {
+        throw new Error(`Invalid TemplateLiteral part ${part._tag}`);
+      }
+      encodedParts.push(part);
+      literals.push(part._tag === "Literal" ? globalThis.String(part.literal) : undefined);
+    }
+    const suffixLengths = new Array(encodedParts.length + 1);
+    suffixLengths[encodedParts.length] = 0;
+    for (let i = encodedParts.length - 1;i >= 0; i--) {
+      suffixLengths[i] = suffixLengths[i + 1] + (literals[i]?.length ?? 0);
+    }
+    this.parts = parts;
+    this.encodedParts = encodedParts;
+    this.literals = literals;
+    this.suffixLengths = suffixLengths;
+  }
+  getParser(compile) {
+    const tuple = new Arrays(false, this.parts.map(partFromString), []);
+    const parser = compile(decodeTo(string2, tuple, templateLiteralTransformation(this)));
+    return (input, options) => {
+      if (input === missing)
+        return missingExit;
+      const result = parser(input, options);
+      if (result._tag === "Success") {
+        return sameExit;
+      }
+      return mapBothEager2(result, {
+        onSuccess: () => input,
+        onFailure: (issue) => new Composite(this, [issue], input, options)
+      });
+    };
+  }
+  getExpected() {
+    return "string";
+  }
+  matchPart(s, options) {
+    return segmentTemplateLiteralParts(this, s, options) === undefined ? undefined : s;
+  }
+};
+function templateLiteralTransformation(template) {
+  return new Transformation(transformEffect((s, options) => {
+    const segments = segmentTemplateLiteralParts(template, s, options);
+    if (segments)
+      return succeed5(segments);
+    return fail5(new InvalidValue({
+      expected: "a string matching template literal parts"
+    }, s, options));
+  }), transform((parts) => parts.join("")));
+}
+var Literal = class extends ASTNodeImpl {
+  _tag = "Literal";
+  literal;
+  constructor(literal, annotations, checks, encoding, context) {
+    super(annotations, checks, encoding, context);
+    if (typeof literal === "number" && !globalThis.Number.isFinite(literal)) {
+      throw new Error(`A numeric literal must be finite, got ${format(literal)}`);
+    }
+    this.literal = literal;
+  }
+  getParser() {
+    return fromConst(this, this.literal);
+  }
+  matchPart(s, _options) {
+    return s === globalThis.String(this.literal) ? this.literal : undefined;
+  }
+  toCodecJson() {
+    return typeof this.literal === "bigint" ? literalToString(this) : this;
+  }
+  toCodecStringTree() {
+    return typeof this.literal === "string" ? this : literalToString(this);
+  }
+  getExpected() {
+    return typeof this.literal === "string" ? JSON.stringify(this.literal) : globalThis.String(this.literal);
+  }
+};
+function literalToString(ast) {
+  const literalAsString = globalThis.String(ast.literal);
+  return replaceEncoding(ast, [new Link(new Literal(literalAsString), new Transformation(transform(() => ast.literal), transform(() => literalAsString)))]);
+}
+var String4 = class extends ASTNodeImpl {
+  _tag = "String";
+  getParser() {
+    return fromRefinement(this, isString);
+  }
+  matchPart(s, options) {
+    const checks = this.checks;
+    return checks && !options.disableChecks && collectIssues(checks, s, undefined, this, options) ? undefined : s;
+  }
+  getExpected() {
+    return "string";
+  }
+};
+var string2 = /* @__PURE__ */ new String4;
+var Number4 = class extends ASTNodeImpl {
+  _tag = "Number";
+  getParser() {
+    return fromRefinement(this, isNumber);
+  }
+  matchKey(s, options) {
+    return this._match(isStringNumberRegExp, s, options);
+  }
+  matchPart(s, options) {
+    return this._match(isStringFiniteRegExp, s, options);
+  }
+  _match(regexp, s, options) {
+    if (!regexp.test(s))
+      return;
+    const value = globalThis.Number(s);
+    if (options.disableChecks || !this.checks)
+      return value;
+    return collectIssues(this.checks, value, undefined, this, options) ? undefined : value;
+  }
+  toCodecJson() {
+    if (this.checks && (hasCheck(this.checks, "effect/schema/isFinite") || hasCheck(this.checks, "effect/schema/isInt"))) {
+      return this;
+    }
+    return replaceEncoding(this, [numberToJson]);
+  }
+  toCodecStringTree() {
+    if (this.toCodecJson() === this) {
+      return replaceEncoding(this, [finiteToString]);
+    }
+    return replaceEncoding(this, [numberToString]);
+  }
+  getExpected() {
+    return "number";
+  }
+};
+function hasCheck(checks, id) {
+  return checks.some((check) => check.annotations?.representation?.id === id || check._tag === "FilterGroup" && hasCheck(check.checks, id));
+}
+var number2 = /* @__PURE__ */ new Number4;
+var Boolean2 = class extends ASTNodeImpl {
+  _tag = "Boolean";
+  getParser() {
+    return fromRefinement(this, isBoolean);
+  }
+  getExpected() {
+    return "boolean";
+  }
+};
+var boolean = /* @__PURE__ */ new Boolean2;
+var Arrays = class extends ASTNodeImpl {
+  _tag = "Arrays";
+  isMutable;
+  elements;
+  rest;
+  encodingChecks;
+  constructor(isMutable, elements, rest, annotations, checks, encoding, context, encodingChecks) {
+    super(annotations, checks, encoding, context);
+    this.isMutable = isMutable;
+    this.elements = elements;
+    this.rest = rest;
+    this.encodingChecks = encodingChecks;
+    let hasOptional = false;
+    for (let i = 0;i < elements.length; i++) {
+      if (isOptional(elements[i])) {
+        hasOptional = true;
+      } else if (hasOptional) {
+        throw new Error("A required element cannot follow an optional element. ts(1257)");
+      }
+    }
+    if (hasOptional && rest.length > 1) {
+      throw new Error("A required element cannot follow an optional element. ts(1257)");
+    }
+    for (let i = 1;i < rest.length; i++) {
+      if (isOptional(rest[i])) {
+        throw new Error("An optional element cannot follow a rest element. ts(1266)");
+      }
+    }
+  }
+  getParser(compile, compileField = compile) {
+    const ast = this;
+    let elements;
+    let rest;
+    const elementLen = ast.elements.length;
+    const tailLen = Math.max(0, ast.rest.length - 1);
+    function getParser(tailThreshold, index) {
+      if (index < elementLen) {
+        return elements[index];
+      } else if (index >= tailThreshold) {
+        return rest[index - tailThreshold + 1];
+      }
+      return rest[0];
+    }
+    const finish = (state) => {
+      const {
+        input,
+        len,
+        options
+      } = state;
+      if (ast.rest.length === 0 && len > elementLen) {
+        for (let i = elementLen;i < len; i++) {
+          const unexpected = new UnexpectedKey(ast, input[i], options);
+          const issue = new Pointer([i], unexpected);
+          if (options.errors === "all") {
+            if (state.issues)
+              state.issues.push(issue);
+            else
+              state.issues = [issue];
+          } else {
+            return fail5(new Composite(ast, [issue], input, options));
+          }
+        }
+      }
+      if (state.issues) {
+        return fail5(new Composite(ast, state.issues, input, options));
+      }
+      return succeed6(state.output);
+    };
+    const parse = (input, options) => {
+      const len = input.length;
+      const state = {
+        ast,
+        getParser,
+        input,
+        len,
+        tailThreshold: Math.max(elementLen, len - tailLen),
+        output: [],
+        issues: undefined,
+        options
+      };
+      const end = ast.rest.length === 0 ? elementLen : Math.max(len, elementLen + tailLen);
+      const concurrency = options.concurrency === undefined ? 1 : resolveConcurrency(options.concurrency);
+      const eff = concurrency === 1 ? parseArray(state, input, 0, end) : parseArrayConcurrent(state, input, {
+        concurrency,
+        end
+      });
+      if (!eff)
+        return finish(state);
+      if (effectIsExit(eff))
+        return flatMapEager2(eff, () => finish(state));
+      let first = true;
+      return suspend2(() => {
+        if (!first)
+          return parse(input, options);
+        first = false;
+        return flatMap2(eff, () => finish(state));
+      });
+    };
+    return (input, options) => {
+      if (input === missing)
+        return missingExit;
+      try {
+        if (!Array.isArray(input)) {
+          return fail5(new InvalidType(ast, input, options));
+        }
+        if (!elements) {
+          elements = ast.elements.map((ast) => ({
+            ast,
+            parser: compileField(ast)
+          }));
+          rest = ast.rest.map((ast) => ({
+            ast,
+            parser: compileField(ast)
+          }));
+        }
+        return parse(input, options);
+      } catch (error) {
+        return die3(error);
+      }
+    };
+  }
+  _rebuild(recur, checks, encodingChecks) {
+    const elements = mapOrSame(this.elements, recur);
+    const rest = mapOrSame(this.rest, recur);
+    return elements === this.elements && rest === this.rest && checks === this.checks && encodingChecks === this.encodingChecks ? this : new Arrays(this.isMutable, elements, rest, this.annotations, checks, undefined, this.context, encodingChecks);
+  }
+  recur(recur) {
+    return this._rebuild(recur, this.checks, this.encodingChecks);
+  }
+  flip(recur) {
+    return this._rebuild(recur, this.encodingChecks, this.checks);
+  }
+  getExpected() {
+    return "array";
+  }
+};
+function stepArray(s, item, exit, i) {
+  if (exit._tag === "Failure") {
+    return wrapPropertyKeyIssue(s, s.ast, i, exit);
+  }
+  const value = exit === sameExit ? item : exit[args];
+  if (value !== missing) {
+    s.output[i] = value;
+  } else {
+    const p = s.getParser(s.tailThreshold, i);
+    if (isOptional(p.ast))
+      return;
+    const issue = new Pointer([i], new MissingKey(p.ast.context?.annotations));
+    if (s.options.errors === "all") {
+      if (s.issues)
+        s.issues.push(issue);
+      else
+        s.issues = [issue];
+    } else {
+      return fail4(new Composite(s.ast, [issue], s.input, s.options));
+    }
+  }
+}
+var parseArrayOptions = {
+  onItem(s, item, i) {
+    const value = i < s.len ? item : missing;
+    return s.getParser(s.tailThreshold, i).parser(value, s.options);
+  },
+  step: stepArray
+};
+var parseArray = /* @__PURE__ */ iterateEager()(parseArrayOptions);
+var parseArrayConcurrent = /* @__PURE__ */ iterateConcurrent()(parseArrayOptions);
+var wrapPropertyKeyIssue = (s, ast, key, exit) => {
+  if (exit.cause.reasons.length === 0) {
+    return exit;
+  }
+  const issue = getSchemaIssue(exit.cause);
+  if (issue === undefined) {
+    return failCause2(map4(exit.cause, (issue) => new Composite(ast, [new Pointer([key], issue)], s.input, s.options)));
+  }
+  const pointer = new Pointer([key], issue);
+  if (s.options.errors === "all") {
+    if (s.issues)
+      s.issues.push(pointer);
+    else
+      s.issues = [pointer];
+  } else {
+    return fail4(new Composite(ast, [pointer], s.input, s.options));
+  }
+};
+var FINITE_PATTERN = "[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:[Ee][+-]?\\d+)?";
+function getIndexSignatureKeys(input, parameter, options = defaultParseOptions) {
+  let stringKeys;
+  let symbolKeys;
+  function go(parameter) {
+    switch (parameter._tag) {
+      case "String":
+      case "TemplateLiteral":
+        return (stringKeys ??= Object.keys(input)).filter((k) => parameter.matchPart(k, options) !== undefined);
+      case "Number":
+        return (stringKeys ??= Object.keys(input)).filter((k) => parameter.matchKey(k, options) !== undefined);
+      case "Symbol":
+        return (symbolKeys ??= Object.getOwnPropertySymbols(input)).filter((k) => Object.prototype.propertyIsEnumerable.call(input, k) && parameter.matchKey(k, options) !== undefined);
+      case "Union":
+        return [...new Set(parameter.types.flatMap(go))];
+      default:
+        return [];
+    }
+  }
+  return go(parameterFromPropertyKey(toEncoded(parameter)));
+}
+var PropertySignature = class {
+  name;
+  type;
+  constructor(name, type) {
+    this.name = name;
+    this.type = type;
+  }
+};
+function isIndexSignatureParameterSide(ast) {
+  switch (ast._tag) {
+    case "String":
+    case "Number":
+    case "Symbol":
+    case "TemplateLiteral":
+      return true;
+    case "Union":
+      return ast.types.every(isIndexSignatureParameterSide);
+    default:
+      return false;
+  }
+}
+function isIndexSignatureParameterEncodedSide(ast) {
+  const encoded = getLastEncoding(ast);
+  switch (encoded._tag) {
+    case "String":
+    case "Number":
+    case "Symbol":
+    case "TemplateLiteral":
+      return true;
+    case "Union":
+      return encoded.types.every(isIndexSignatureParameterEncodedSide);
+    default:
+      return false;
+  }
+}
+function isIndexSignatureParameter(ast) {
+  return isIndexSignatureParameterSide(ast) && isIndexSignatureParameterEncodedSide(ast);
+}
+var IndexSignature = class {
+  parameter;
+  type;
+  constructor(parameter, type) {
+    if (!isIndexSignatureParameter(parameter)) {
+      throw new Error(`Invalid index signature parameter ${parameter._tag}`);
+    }
+    this.parameter = parameter;
+    this.type = type;
+    if (isOptional(type) || type.encoding !== undefined && isOptional(toEncoded(type))) {
+      throw new Error("Cannot use `Schema.optionalKey` or `Schema.optional` with index signatures. Index signatures already allow keys to be absent; use `Schema.UndefinedOr` to allow `undefined` values.");
+    }
+  }
+};
+var Objects = class extends ASTNodeImpl {
+  _tag = "Objects";
+  propertySignatures;
+  indexSignatures;
+  encodingChecks;
+  constructor(propertySignatures, indexSignatures, annotations, checks, encoding, context, encodingChecks) {
+    super(annotations, checks, encoding, context);
+    this.propertySignatures = propertySignatures;
+    this.indexSignatures = indexSignatures;
+    this.encodingChecks = encodingChecks;
+  }
+  getParser(compile, compileField = compile) {
+    const ast = this;
+    const hasProperties = ast.propertySignatures.length;
+    const indexCount = ast.indexSignatures.length;
+    if (!hasProperties && !indexCount) {
+      return fromRefinement(ast, isNotNullish);
+    }
+    let properties;
+    let indexes;
+    const compileMembers = () => {
+      if (!properties) {
+        properties = ast.propertySignatures.map((ps) => ({
+          parser: compileField(ps.type),
+          name: ps.name,
+          type: ps.type
+        }));
+        indexes = indexCount ? ast.indexSignatures.map((is) => ({
+          is,
+          parserKey: compile(parameterFromPropertyKey(is.parameter)),
+          parserValue: compileField(is.type)
+        })) : undefined;
+      }
+      return properties;
+    };
+    const makeFallback = () => {
+      const expectedKeys = new Set(ast.propertySignatures.map((ps) => typeof ps.name === "number" ? globalThis.String(ps.name) : ps.name));
+      const finishIndex = (s, key, k2, inputValue, exitValue) => {
+        if (exitValue._tag === "Failure") {
+          return wrapPropertyKeyIssue(s, ast, key, exitValue) ?? void_2;
+        }
+        const value = exitValue === sameExit ? inputValue : exitValue[args];
+        if (k2 !== missing && value !== missing) {
+          if (hasProperties && (expectedKeys.has(key) || expectedKeys.has(typeof k2 === "number" ? globalThis.String(k2) : k2)))
+            return void_2;
+          assignProperty(s.out, k2, value);
+        }
+        return void_2;
+      };
+      const parseIndex = (s, key, index, exitKey) => {
+        if (!exitKey) {
+          const eff = index.parserKey(key, s.options);
+          if (!effectIsExit(eff)) {
+            return flatMap2(exit2(eff), (exit) => parseIndex(s, key, index, exit));
+          }
+          exitKey = eff;
+        }
+        if (exitKey._tag === "Failure") {
+          return wrapPropertyKeyIssue(s, ast, key, exitKey) ?? void_2;
+        }
+        const k2 = exitKey === sameExit ? key : exitKey[args];
+        const inputValue = s.input[key];
+        const result = index.parserValue(inputValue, s.options);
+        return effectIsExit(result) ? finishIndex(s, key, k2, inputValue, result) : flatMap2(exit2(result), (exit) => finishIndex(s, key, k2, inputValue, exit));
+      };
+      const parseStringIndex = (s, key, index) => {
+        const inputValue = s.input[key];
+        const result = index.parserValue(inputValue, s.options);
+        return effectIsExit(result) ? finishIndex(s, key, key, inputValue, result) : flatMap2(exit2(result), (exit) => finishIndex(s, key, key, inputValue, exit));
+      };
+      const parseIndexes = indexCount ? iterateConcurrent()({
+        onItem: (s, [key, index]) => index.is.parameter === string2 ? parseStringIndex(s, key, index) : parseIndex(s, key, index),
+        step: (_s, _item, exit) => exit._tag === "Failure" ? exit : undefined
+      }) : undefined;
+      return fnUntracedEager2(function* (input, options) {
+        if (input === missing) {
+          return missing;
+        }
+        if (!(typeof input === "object" && input !== null && !Array.isArray(input))) {
+          return yield* fail5(new InvalidType(ast, input, options));
+        }
+        compileMembers();
+        const record = input;
+        const out = {};
+        const state = {
+          ast,
+          input: record,
+          out,
+          issues: undefined,
+          options
+        };
+        const errorsAllOption = options.errors === "all";
+        const onExcessPropertyError = options.onExcessProperty === "error";
+        const concurrency = options.concurrency === undefined ? 1 : resolveConcurrency(options.concurrency);
+        const indexKeys = indexCount && onExcessPropertyError ? ast.indexSignatures.map((index) => getIndexSignatureKeys(record, index.parameter, options)) : undefined;
+        if (onExcessPropertyError) {
+          const coveredKeys = indexKeys ? new Set(expectedKeys) : expectedKeys;
+          if (indexKeys) {
+            for (const keys of indexKeys) {
+              for (const key of keys)
+                coveredKeys.add(key);
+            }
+          }
+          const inputKeys = Reflect.ownKeys(record);
+          for (let i = 0;i < inputKeys.length; i++) {
+            const key = inputKeys[i];
+            if (!coveredKeys.has(key) && Object.prototype.propertyIsEnumerable.call(record, key)) {
+              const unexpected = new UnexpectedKey(ast, record[key], options);
+              const issue = new Pointer([key], unexpected);
+              if (errorsAllOption) {
+                if (state.issues) {
+                  state.issues.push(issue);
+                } else {
+                  state.issues = [issue];
+                }
+                continue;
+              } else {
+                return yield* fail5(new Composite(ast, [issue], input, options));
+              }
+            }
+          }
+        }
+        if (hasProperties) {
+          const eff = concurrency === 1 ? parseProperties(state, properties) : parsePropertiesConcurrent(state, properties, {
+            concurrency
+          });
+          if (eff)
+            yield* eff;
+        }
+        if (indexCount && concurrency === 1) {
+          for (let i = 0;i < indexCount; i++) {
+            const index = indexes[i];
+            const parse = index.is.parameter === string2 ? parseStringIndex : parseIndex;
+            const keys = indexKeys?.[i] ?? (index.is.parameter === string2 ? Object.keys(record) : getIndexSignatureKeys(record, index.is.parameter, options));
+            for (let j = 0;j < keys.length; j++) {
+              const eff = parse(state, keys[j], index);
+              if (!effectIsExit(eff))
+                yield* eff;
+              else if (eff._tag === "Failure")
+                return yield* eff;
+            }
+          }
+        } else if (parseIndexes) {
+          const keyPairs = empty2();
+          for (let i = 0;i < indexCount; i++) {
+            const index = indexes[i];
+            const keys = indexKeys?.[i] ?? (index.is.parameter === string2 ? Object.keys(record) : getIndexSignatureKeys(record, index.is.parameter, options));
+            for (let j = 0;j < keys.length; j++) {
+              keyPairs.push([keys[j], index]);
+            }
+          }
+          const eff = parseIndexes(state, keyPairs, {
+            concurrency
+          });
+          if (eff)
+            yield* eff;
+        }
+        if (state.issues) {
+          return yield* fail5(new Composite(ast, state.issues, input, options));
+        }
+        return out;
+      });
+    };
+    if (indexCount)
+      return makeFallback();
+    let fallback;
+    const resume = (snapshot, index, pending) => {
+      const property = properties[index];
+      return flatMap2(exit2(pending), (exit) => {
+        const state = {
+          ...snapshot,
+          out: {
+            ...snapshot.out
+          }
+        };
+        const terminal = stepProperty(state, property, exit);
+        if (terminal)
+          return terminal;
+        const done = () => succeed6(state.out);
+        const eff = parseProperties(state, properties.slice(index + 1));
+        return eff ? flatMapEager2(eff, done) : done();
+      });
+    };
+    return (input, options) => {
+      if (input === missing)
+        return missingExit;
+      if (options.errors === "all" || options.onExcessProperty !== undefined || options.concurrency !== undefined && resolveConcurrency(options.concurrency) !== 1) {
+        return (fallback ??= makeFallback())(input, options);
+      }
+      if (!(typeof input === "object" && input !== null && !Array.isArray(input))) {
+        return fail5(new InvalidType(ast, input, options));
+      }
+      const props = compileMembers();
+      const record = input;
+      const out = {};
+      const state = {
+        ast,
+        input: record,
+        out,
+        issues: undefined,
+        options
+      };
+      try {
+        for (let index = 0;index < props.length; index++) {
+          const property = props[index];
+          const name = property.name;
+          const hasKey = hasPropertySignature(record, name);
+          const value = hasKey ? record[name] : missing;
+          const exit = property.parser(value, options);
+          if (!effectIsExit(exit)) {
+            return resume(state, index, exit);
+          }
+          if (exit === sameExit) {
+            if (hasKey)
+              assignProperty(out, name, value);
+            continue;
+          }
+          const terminal = stepProperty(state, property, exit);
+          if (terminal)
+            return terminal;
+        }
+      } catch (error) {
+        return die3(error);
+      }
+      return succeed6(out);
+    };
+  }
+  _rebuild(recur, recurParameter, checks, encodingChecks) {
+    const props = mapOrSame(this.propertySignatures, (ps) => {
+      const t = recur(ps.type);
+      return t === ps.type ? ps : new PropertySignature(ps.name, t);
+    });
+    const indexes = mapOrSame(this.indexSignatures, (is) => {
+      const p = recurParameter(is.parameter);
+      const t = recur(is.type);
+      return p === is.parameter && t === is.type ? is : new IndexSignature(p, t);
+    });
+    return props === this.propertySignatures && indexes === this.indexSignatures && checks === this.checks && encodingChecks === this.encodingChecks ? this : new Objects(props, indexes, this.annotations, checks, undefined, this.context, encodingChecks);
+  }
+  flip(recur) {
+    return this._rebuild(recur, recur, this.encodingChecks, this.checks);
+  }
+  recur(recur, recurParameter = recur) {
+    return this._rebuild(recur, recurParameter, this.checks, this.encodingChecks);
+  }
+  getExpected() {
+    if (this.propertySignatures.length === 0 && this.indexSignatures.length === 0)
+      return "object | array";
+    return "object";
+  }
+};
+function stepProperty(s, p, exit) {
+  if (exit._tag === "Failure") {
+    return wrapPropertyKeyIssue(s, s.ast, p.name, exit);
+  }
+  if (exit === sameExit)
+    return;
+  const value = exit[args];
+  if (value !== missing) {
+    assignProperty(s.out, p.name, value);
+    return;
+  }
+  delete s.out[p.name];
+  if (!isOptional(p.type)) {
+    const issue = new Pointer([p.name], new MissingKey(p.type.context?.annotations));
+    if (s.options.errors === "all") {
+      if (s.issues)
+        s.issues.push(issue);
+      else
+        s.issues = [issue];
+      return;
+    } else {
+      return fail4(new Composite(s.ast, [issue], s.input, s.options));
+    }
+  }
+}
+var parsePropertiesOptions = {
+  onItem(s, p) {
+    if (!hasPropertySignature(s.input, p.name)) {
+      return p.parser(missing, s.options);
+    }
+    const value = s.input[p.name];
+    assignProperty(s.out, p.name, value);
+    return p.parser(value, s.options);
+  },
+  step: stepProperty
+};
+var parseProperties = /* @__PURE__ */ iterateEager()(parsePropertiesOptions);
+var parsePropertiesConcurrent = /* @__PURE__ */ iterateConcurrent()(parsePropertiesOptions);
+function combineChecks(a, b) {
+  if (!a)
+    return b;
+  if (!b)
+    return a;
+  return [...a, ...b];
+}
+function struct(fields, checks, annotations) {
+  return new Objects(Reflect.ownKeys(fields).map((key) => {
+    return new PropertySignature(key, fields[key].ast);
+  }), [], annotations, checks);
+}
+function getAST(self) {
+  return self.ast;
+}
+function union(members, options, checks) {
+  return new Union(members.map(getAST), options, undefined, checks);
+}
+function structWithRest(ast, records) {
+  if (ast.encoding || records.some((r) => r.encoding)) {
+    throw new Error("StructWithRest does not support encodings");
+  }
+  let propertySignatures = ast.propertySignatures;
+  let indexSignatures = ast.indexSignatures;
+  let checks = ast.checks;
+  for (const record of records) {
+    for (const propertySignature of record.propertySignatures) {
+      if (propertySignatures.some((ps) => ps.name === propertySignature.name)) {
+        throw new Error(`Duplicate identifier: ${JSON.stringify(propertySignature.name)}. ts(2300)`);
+      }
+    }
+    propertySignatures = propertySignatures.concat(record.propertySignatures);
+    indexSignatures = indexSignatures.concat(record.indexSignatures);
+    checks = combineChecks(checks, record.checks);
+  }
+  return new Objects(propertySignatures, indexSignatures, undefined, checks);
+}
+var toCandidate = /* @__PURE__ */ memoizeIdempotent((ast) => {
+  while (true) {
+    if (isSuspend(ast))
+      return unknown;
+    const encoding = ast.encoding;
+    if (!encoding) {
+      return ast.recur?.(toCandidate, identity) ?? ast;
+    }
+    if (encoding.some((link) => link.transformation._tag === "Middleware" && link.transformation.decode !== identity))
+      return unknown;
+    ast = encoding[encoding.length - 1].to;
+  }
+});
+function getCandidateTypes(ast) {
+  switch (ast._tag) {
+    case "Null":
+      return ["null"];
+    case "Undefined":
+      return ["undefined"];
+    case "String":
+    case "TemplateLiteral":
+      return ["string"];
+    case "Number":
+      return ["number"];
+    case "Boolean":
+      return ["boolean"];
+    case "Symbol":
+    case "UniqueSymbol":
+      return ["symbol"];
+    case "BigInt":
+      return ["bigint"];
+    case "Arrays":
+      return ["array"];
+    case "ObjectKeyword":
+      return ["object", "array", "function"];
+    case "Objects":
+      return ast.propertySignatures.length || ast.indexSignatures.length ? ["object"] : ["string", "number", "boolean", "symbol", "bigint", "object", "array", "function"];
+    case "Enum":
+      return Array.from(new Set(ast.enums.map(([, v]) => typeof v)));
+    case "Literal":
+      return [typeof ast.literal];
+    case "Union":
+      return Array.from(new Set(ast.types.flatMap(getCandidateTypes)));
+    default:
+      return ["null", "undefined", "string", "number", "boolean", "symbol", "bigint", "object", "array", "function"];
+  }
+}
+function collectSentinels(ast) {
+  switch (ast._tag) {
+    default:
+      return [];
+    case "Declaration": {
+      const s = ast.annotations?.[SENTINELS_ANNOTATION_KEY];
+      return Array.isArray(s) ? s : [];
+    }
+    case "Objects":
+      return ast.propertySignatures.flatMap((ps) => {
+        const type = ps.type;
+        if (!isOptional(type)) {
+          if (isLiteral(type)) {
+            return [{
+              key: ps.name,
+              literal: type.literal
+            }];
+          }
+          if (isUniqueSymbol(type)) {
+            return [{
+              key: ps.name,
+              literal: type.symbol
+            }];
+          }
+        }
+        return [];
+      });
+    case "Arrays":
+      return ast.elements.flatMap((e, i) => {
+        if (!isOptional(e)) {
+          if (isLiteral(e)) {
+            return [{
+              key: i,
+              literal: e.literal
+            }];
+          }
+          if (isUniqueSymbol(e)) {
+            return [{
+              key: i,
+              literal: e.symbol
+            }];
+          }
+        }
+        return [];
+      });
+    case "Union": {
+      if (ast.types.length === 0)
+        return [];
+      const members = ast.types.map((type) => collectSentinels(toCandidate(type)));
+      return members[0].filter((s) => members.every((sentinels) => sentinels.some((o) => o.key === s.key && o.literal === s.literal)));
+    }
+    case "Suspend":
+      return collectSentinels(ast.thunk());
+  }
+}
+var candidateIndexCache = /* @__PURE__ */ new WeakMap;
+var emptyCandidates = /* @__PURE__ */ Object.freeze([]);
+var getRuntimeType = (input) => input === null ? "null" : Array.isArray(input) ? "array" : typeof input;
+var hasPropertySignature = (input, key) => key === "__proto__" ? Object.hasOwn(input, key) : (key in input);
+function getCandidateIndex(types) {
+  let index = candidateIndexCache.get(types);
+  if (index)
+    return index;
+  let bySentinel;
+  let sentinelCandidateCount = 0;
+  let otherwise;
+  let literalCandidates;
+  let onlyLiterals = true;
+  const literalOf = [];
+  for (let i = 0;i < types.length; i++) {
+    const a = types[i];
+    const encoded = toCandidate(a);
+    if (isNever2(encoded))
+      continue;
+    if (isLiteral(encoded) || isUniqueSymbol(encoded)) {
+      literalCandidates ??= new Map;
+      const literal = isLiteral(encoded) ? encoded.literal : encoded.symbol;
+      literalOf[i] = literal;
+      let arr = literalCandidates.get(literal);
+      if (!arr)
+        literalCandidates.set(literal, arr = []);
+      arr.push(i);
+    } else {
+      onlyLiterals = false;
+    }
+    const sentinels = collectSentinels(encoded);
+    if (sentinels.length) {
+      bySentinel ??= new Map;
+      sentinelCandidateCount++;
+      for (const {
+        key,
+        literal
+      } of sentinels) {
+        let entry = bySentinel.get(key);
+        if (!entry)
+          bySentinel.set(key, entry = [new Map, new Set]);
+        entry[1].add(i);
+        let indexes = entry[0].get(literal);
+        if (!indexes)
+          entry[0].set(literal, indexes = new Set);
+        indexes.add(i);
+      }
+    } else {
+      otherwise ??= {};
+      const candidateTypes = getCandidateTypes(encoded);
+      for (const t of candidateTypes)
+        (otherwise[t] ??= []).push(i);
+    }
+  }
+  const fallbacks = {};
+  const getFallback = (type) => fallbacks[type] ??= Object.freeze(otherwise?.[type] ?? emptyCandidates);
+  if (onlyLiterals && literalCandidates) {
+    literalCandidates.forEach(Object.freeze);
+    index = (input) => literalCandidates.get(input) ?? emptyCandidates;
+  } else if (bySentinel?.size === 1 && !otherwise) {
+    const [key, [byValue]] = bySentinel.entries().next().value;
+    const candidates = new Map;
+    for (const [literal, indexes] of byValue) {
+      candidates.set(literal, Object.freeze(Array.from(indexes)));
+    }
+    const all = Object.freeze(types.map((_, i) => i));
+    index = (input, isConstructor) => {
+      if (isObjectKeyword(input)) {
+        const value = hasPropertySignature(input, key) ? input[key] : undefined;
+        if (value !== undefined)
+          return candidates.get(value) ?? emptyCandidates;
+        if (isConstructor)
+          return all;
+      }
+      return emptyCandidates;
+    };
+  } else if (bySentinel) {
+    let commonSentinel;
+    for (const entry of bySentinel) {
+      if ((!commonSentinel || entry[1][0].size > commonSentinel[1][0].size) && entry[1][1].size === sentinelCandidateCount) {
+        commonSentinel = entry;
+      }
+    }
+    index = (input, isConstructor) => {
+      const runtimeType = getRuntimeType(input);
+      if (!isObjectKeyword(input))
+        return getFallback(runtimeType);
+      const selected = new Set(otherwise?.[runtimeType]);
+      let directKey;
+      if (commonSentinel) {
+        const [key, [byValue]] = commonSentinel;
+        const hasKey = hasPropertySignature(input, key);
+        const value = hasKey ? input[key] : undefined;
+        if (hasKey && (!isConstructor || value !== undefined)) {
+          const match = byValue.get(value);
+          if (!match)
+            return getFallback(runtimeType);
+          for (const i of match)
+            selected.add(i);
+          directKey = key;
+        }
+      }
+      if (directKey === undefined) {
+        for (const [key, [byValue, all]] of bySentinel) {
+          const hasKey = hasPropertySignature(input, key);
+          const value = hasKey ? input[key] : undefined;
+          if (hasKey && (!isConstructor || value !== undefined)) {
+            const match = byValue.get(value);
+            if (match) {
+              for (const i of match)
+                selected.add(i);
+            }
+          } else if (isConstructor) {
+            for (const i of all)
+              selected.add(i);
+          }
+        }
+      }
+      for (const [key, [byValue, all]] of bySentinel) {
+        if (key === directKey)
+          continue;
+        const hasKey = hasPropertySignature(input, key);
+        const value = hasKey ? input[key] : undefined;
+        if (hasKey && (!isConstructor || value !== undefined)) {
+          const match = byValue.get(value);
+          for (const i of selected) {
+            if (all.has(i) && !match?.has(i))
+              selected.delete(i);
+          }
+        }
+      }
+      return Array.from(selected).sort((a, b) => a - b);
+    };
+  } else {
+    index = (input) => {
+      const fallback = getFallback(getRuntimeType(input));
+      return literalCandidates ? fallback.filter((i) => literalOf[i] === undefined || literalOf[i] === input) : fallback;
+    };
+  }
+  candidateIndexCache.set(types, index);
+  return index;
+}
+var Union = class extends ASTNodeImpl {
+  _tag = "Union";
+  types;
+  options;
+  encodingChecks;
+  constructor(types, options, annotations, checks, encoding, context, encodingChecks) {
+    super(annotations, checks, encoding, context);
+    this.types = types;
+    this.options = options;
+    this.encodingChecks = encodingChecks;
+  }
+  getParser(compile, compileField) {
+    const ast = this;
+    const isConstructor = compileField !== undefined;
+    const parsers = [];
+    const parser = (i) => parsers[i] ??= compile(ast.types[i]);
+    let index;
+    return (input, options) => {
+      if (input === missing) {
+        return missingExit;
+      }
+      const candidates = (index ??= getCandidateIndex(ast.types))(input, isConstructor);
+      if (candidates.length === 0) {
+        return fail5(new AnyOf(ast, [], input, options));
+      }
+      if (candidates.length === 1) {
+        const result = parser(candidates[0])(input, options);
+        if (result._tag === "Success")
+          return result;
+        return effectIsExit(result) ? failSingleUnionCandidate(ast, result.cause, input, options) : catchSingleUnionCandidate(ast, result, input, options);
+      }
+      return parseUnionCandidates(ast, parser, candidates, input, options);
+    };
+  }
+  _rebuild(recur, checks, encodingChecks) {
+    const types = mapOrSame(this.types, recur);
+    return types === this.types && checks === this.checks && encodingChecks === this.encodingChecks ? this : new Union(types, this.options, this.annotations, checks, undefined, this.context, encodingChecks);
+  }
+  recur(recur) {
+    return this._rebuild(recur, this.checks, this.encodingChecks);
+  }
+  flip(recur) {
+    return this._rebuild(recur, this.encodingChecks, this.checks);
+  }
+  matchPart(s, options) {
+    for (const type of this.types) {
+      const out = type.matchPart(s, options);
+      if (out !== undefined)
+        return out;
+    }
+    return;
+  }
+  getExpected(getExpected) {
+    const expected = this.annotations?.expected;
+    if (typeof expected === "string")
+      return expected;
+    if (this.types.length === 0)
+      return "never";
+    const types = this.types.map((type) => {
+      const encoded = toEncoded(type);
+      switch (encoded._tag) {
+        case "Arrays": {
+          const literals = encoded.elements.filter(isLiteral);
+          if (literals.length > 0) {
+            return `${formatIsMutable(encoded.isMutable)}[ ${literals.map((e) => getExpected(e) + formatIsOptional(e.context?.isOptional)).join(", ")}, ... ]`;
+          }
+          break;
+        }
+        case "Objects": {
+          const literals = encoded.propertySignatures.filter((ps) => isLiteral(ps.type));
+          if (literals.length > 0) {
+            return `{ ${literals.map((ps) => `${formatIsMutable(ps.type.context?.isMutable)}${formatPropertyKey(ps.name)}${formatIsOptional(ps.type.context?.isOptional)}: ${getExpected(ps.type)}`).join(", ")}, ... }`;
+          }
+          break;
+        }
+      }
+      return getExpected(encoded);
+    });
+    return Array.from(new Set(types)).join(" | ");
+  }
+};
+function failSingleUnionCandidate(ast, cause, input, options) {
+  const issue = getSchemaIssue(cause);
+  if (!issue)
+    return failCause2(cause);
+  return fail4(new AnyOf(ast, [issue], input, options));
+}
+function catchSingleUnionCandidate(ast, result, input, options) {
+  return catchCause2(result, (cause) => failSingleUnionCandidate(ast, cause, input, options));
+}
+function parseUnionCandidates(ast, parser, candidates, input, options) {
+  const state = {
+    ast,
+    parser,
+    input,
+    out: undefined,
+    successes: ast.options?.mode === "oneOf" ? [] : undefined,
+    issues: undefined,
+    options
+  };
+  const eff = parseUnion(state, candidates);
+  if (!eff) {
+    if (state.out)
+      return state.out;
+    return fail5(new AnyOf(ast, state.issues ?? [], input, options));
+  }
+  if (effectIsExit(eff))
+    return resumeUnion(eff, state);
+  let first = true;
+  return suspend2(() => {
+    if (!first)
+      return parseUnionCandidates(ast, parser, candidates, input, options);
+    first = false;
+    return resumeUnion(eff, state);
+  });
+}
+function resumeUnion(eff, state) {
+  return flatMapEager2(eff, (_) => {
+    if (state.out === sameExit)
+      return succeed5(state.input);
+    if (state.out)
+      return state.out;
+    return fail5(new AnyOf(state.ast, state.issues ?? [], state.input, state.options));
+  });
+}
+var parseUnion = /* @__PURE__ */ iterateEager()({
+  onItem(s, i) {
+    return s.parser(i)(s.input, s.options);
+  },
+  step(s, i, exit) {
+    if (exit._tag === "Failure") {
+      const issue = getSchemaIssue(exit.cause);
+      if (issue === undefined) {
+        return exit;
+      }
+      if (s.issues)
+        s.issues.push(issue);
+      else
+        s.issues = [issue];
+    } else {
+      if (s.out && s.successes) {
+        s.successes.push(s.ast.types[i]);
+        return fail4(new OneOf(s.ast, s.successes, s.input, s.options));
+      }
+      s.out = exit;
+      if (s.successes) {
+        s.successes.push(s.ast.types[i]);
+      } else {
+        return void_2;
+      }
+    }
+  }
+});
+var nonFiniteLiterals = /* @__PURE__ */ new Union([/* @__PURE__ */ new Literal("Infinity"), /* @__PURE__ */ new Literal("-Infinity"), /* @__PURE__ */ new Literal("NaN")]);
+function formatIsMutable(isMutable) {
+  return isMutable ? "" : "readonly ";
+}
+function formatIsOptional(isOptional) {
+  return isOptional ? "?" : "";
+}
+var Suspend = class extends ASTNodeImpl {
+  _tag = "Suspend";
+  thunk;
+  constructor(thunk, annotations, checks, encoding, context) {
+    if (checks) {
+      throw new Error("Cannot add checks to Suspend");
+    }
+    super(annotations, undefined, encoding, context);
+    let ast;
+    this.thunk = () => ast ??= thunk();
+  }
+  getParser(compile) {
+    let parser;
+    return (input, options) => (parser ??= compile(this.thunk()))(input, options);
+  }
+  recur(recur) {
+    return new Suspend(() => recur(this.thunk()), this.annotations, undefined, undefined, this.context);
+  }
+  getExpected(getExpected) {
+    return getExpected(this.thunk());
+  }
+};
+var Filter2 = class extends Class {
+  _tag = "Filter";
+  run;
+  annotations;
+  aborted;
+  constructor(run, annotations = undefined, aborted = false) {
+    super();
+    this.run = run;
+    this.annotations = annotations;
+    this.aborted = aborted;
+  }
+  annotate(annotations) {
+    return new Filter2(this.run, {
+      ...this.annotations,
+      ...annotations
+    }, this.aborted);
+  }
+  abort() {
+    return new Filter2(this.run, this.annotations, true);
+  }
+  and(other, annotations) {
+    return new FilterGroup([this, other], annotations);
+  }
+};
+var FilterGroup = class extends Class {
+  _tag = "FilterGroup";
+  checks;
+  annotations;
+  constructor(checks, annotations = undefined) {
+    super();
+    this.checks = checks;
+    this.annotations = annotations;
+  }
+  annotate(annotations) {
+    return new FilterGroup(this.checks, {
+      ...this.annotations,
+      ...annotations
+    });
+  }
+  and(other, annotations) {
+    return new FilterGroup([this, other], annotations);
+  }
+};
+function makeFilter(filter, annotations, aborted = false) {
+  return new Filter2((input, ast, options) => normalizeFilterOutput(ast, filter(input, ast, options), input, options), annotations, aborted);
+}
+function isFinite(annotations) {
+  return makeFilter((n) => globalThis.Number.isFinite(n), {
+    expected: "a finite number",
+    representation: {
+      id: "effect/schema/isFinite",
+      payload: null
+    },
+    toJsonSchema: () => ({
+      type: "number"
+    }),
+    toCode: () => ({
+      runtime: "Schema.isFinite()"
+    }),
+    arbitraryConstraint: {
+      number: "finite"
+    },
+    ...annotations
+  });
+}
+var finite = /* @__PURE__ */ appendChecks(number2, [/* @__PURE__ */ isFinite()]);
+var numberToJson = /* @__PURE__ */ new Link(/* @__PURE__ */ new Union([finite, nonFiniteLiterals]), /* @__PURE__ */ new Transformation(/* @__PURE__ */ Number3(), /* @__PURE__ */ transform((n) => globalThis.Number.isFinite(n) ? n : globalThis.String(n))));
+function isPattern(regExp, annotations) {
+  const copy = new globalThis.RegExp(regExp);
+  const payload = {
+    source: copy.source,
+    flags: copy.flags
+  };
+  return makeFilter((s) => {
+    copy.lastIndex = 0;
+    return copy.test(s);
+  }, {
+    expected: `a string matching the RegExp ${payload.source}`,
+    representation: {
+      id: "effect/schema/isPattern",
+      payload
+    },
+    toJsonSchema: () => [{}, true],
+    arbitraryConstraint: {
+      patterns: [payload]
+    },
+    ...annotations
+  });
+}
+var bodyOwners = /* @__PURE__ */ new WeakMap;
+function copy(ast, changes) {
+  const out = Object.assign(Object.create(Object.getPrototypeOf(ast)), ast, changes);
+  if (Reflect.ownKeys(changes).every((key) => key === "context" || key === "encoding")) {
+    bodyOwners.set(out, getContextOwner(ast));
+  }
+  return out;
+}
+function getContextOwner(ast) {
+  const existing = bodyOwners.get(ast);
+  if (existing !== undefined)
+    return existing;
+  if (ast.encoding === undefined)
+    return ast;
+  const owner = Object.assign(Object.create(Object.getPrototypeOf(ast)), ast, {
+    encoding: undefined
+  });
+  bodyOwners.set(ast, owner);
+  return owner;
+}
+function replaceEncoding(ast, encoding) {
+  return ast.encoding === encoding ? ast : copy(ast, {
+    encoding
+  });
+}
+function replaceContext(ast, context) {
+  if (ast.context === context) {
+    return ast;
+  }
+  const owner = getContextOwner(ast);
+  if (owner.context === context && owner.encoding === ast.encoding) {
+    return owner;
+  }
+  return copy(ast, {
+    context
+  });
+}
+function getLastEncoding(ast) {
+  return ast.encoding ? getLastEncoding(ast.encoding[ast.encoding.length - 1].to) : ast;
+}
+function annotate(ast, annotations) {
+  if (ast.checks) {
+    const last = ast.checks[ast.checks.length - 1];
+    return replaceChecks(ast, append(ast.checks.slice(0, -1), last.annotate(annotations)));
+  }
+  return copy(ast, {
+    annotations: {
+      ...ast.annotations,
+      ...annotations
+    }
+  });
+}
+function replaceChecks(ast, checks) {
+  if (ast._tag === "Suspend" && checks) {
+    throw new Error("Cannot add checks to Suspend");
+  }
+  if (ast.checks === checks) {
+    return ast;
+  }
+  return copy(ast, {
+    checks
+  });
+}
+function appendChecks(ast, checks) {
+  return replaceChecks(ast, combineChecks(ast.checks, checks));
+}
+function mapLink(link, f) {
+  const to = f(link.to);
+  return to === link.to ? link : new Link(to, link.transformation);
+}
+function updateLastLink(encoding, f) {
+  const links = encoding;
+  const last = links[links.length - 1];
+  const out = mapLink(last, f);
+  return out === last ? encoding : append(encoding.slice(0, encoding.length - 1), out);
+}
+function applyToLastLink(f) {
+  return (ast) => ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, f)) : ast;
+}
+function applyToSelfOrLastLinkEncodingIdempotent(f, options) {
+  function out(ast) {
+    if (ast.encoding) {
+      const last = ast.encoding[ast.encoding.length - 1];
+      return options?.stopAt?.(last) ? ast : replaceEncoding(ast, updateLastLink(ast.encoding, out));
+    }
+    return f(ast);
+  }
+  return memoizeIdempotent(out);
+}
+function appendTransformation(from, transformation, to) {
+  const link = new Link(from, transformation);
+  return replaceEncoding(to, to.encoding ? [...to.encoding, link] : [link]);
+}
+function mapOrSame(as, f) {
+  let out;
+  for (let i = 0;i < as.length; i++) {
+    const a = as[i];
+    const fa = f(a);
+    if (out) {
+      out[i] = fa;
+    } else if (fa !== a) {
+      out = new Array(as.length);
+      for (let j = 0;j < i; j++) {
+        out[j] = as[j];
+      }
+      out[i] = fa;
+    }
+  }
+  return out ?? as;
+}
+function annotateKey(ast, annotations) {
+  const context = ast.context ? new Context(ast.context.isOptional, ast.context.isMutable, ast.context.constructorDefault, {
+    ...ast.context.annotations,
+    ...annotations
+  }) : new Context(false, false, undefined, annotations);
+  return replaceContext(ast, context);
+}
+var optionalKey = /* @__PURE__ */ memoizeIdempotent((ast) => {
+  const context = ast.context ? ast.context.isOptional === false ? new Context(true, ast.context.isMutable, ast.context.constructorDefault, ast.context.annotations) : ast.context : new Context(true, false);
+  return optionalKeyLastLink(replaceContext(ast, context));
+});
+var optionalKeyLastLink = /* @__PURE__ */ applyToLastLink(optionalKey);
+var optional = /* @__PURE__ */ memoize((ast) => optionalKey(new Union([ast, undefined_2])));
+function withConstructorDefault(ast, defaultValue) {
+  const context = ast.context ? new Context(ast.context.isOptional, ast.context.isMutable, defaultValue, ast.context.annotations) : new Context(false, false, defaultValue);
+  return replaceContext(ast, context);
+}
+function decodeTo(from, to, transformation) {
+  return appendTransformation(from, transformation, to);
+}
+function parseParameter(ast) {
+  const literals = [];
+  const parameters = [];
+  function addLiteral(literal) {
+    if (!literals.includes(literal)) {
+      literals.push(literal);
+    }
+  }
+  function go(ast) {
+    switch (ast._tag) {
+      case "Literal":
+        if (isPropertyKey(ast.literal)) {
+          addLiteral(ast.literal);
+        }
+        return;
+      case "UniqueSymbol":
+        addLiteral(ast.symbol);
+        return;
+      case "Enum":
+        for (const [, value] of ast.enums) {
+          addLiteral(value);
+        }
+        return;
+      case "Never":
+        return;
+      case "Union":
+        for (let i = 0;i < ast.types.length; i++) {
+          go(ast.types[i]);
+        }
+        return;
+      default:
+        parameters.push(ast);
+    }
+  }
+  go(ast);
+  return {
+    literals,
+    parameters
+  };
+}
+function record(key, value) {
+  const {
+    literals,
+    parameters: indexSignatures
+  } = parseParameter(key);
+  return new Objects(literals.map((literal) => new PropertySignature(literal, value)), indexSignatures.map((parameter) => new IndexSignature(parameter, value)));
+}
+function isOptional(ast) {
+  return ast.context?.isOptional ?? false;
+}
+function isStructuralCheck(check) {
+  return check.annotations?.[STRUCTURAL_ANNOTATION_KEY] === true || check._tag === "FilterGroup" && check.checks.every(isStructuralCheck);
+}
+function extractStructuralChecks(checks) {
+  function extract(check) {
+    if (isStructuralCheck(check))
+      return [check];
+    return check._tag === "FilterGroup" ? check.checks.flatMap(extract) : [];
+  }
+  const out = checks.flatMap(extract);
+  return isArrayNonEmpty2(out) ? out : undefined;
+}
+function canPreserveEncodingChecks(ast) {
+  let preserve = true;
+  function visit(child) {
+    preserve = preserve && !child.encoding && !isSuspend(child);
+    if (preserve && "recur" in child)
+      child.recur(visit);
+    return child;
+  }
+  if ("recur" in ast)
+    ast.recur(visit);
+  return preserve;
+}
+var toType = /* @__PURE__ */ memoizeIdempotent((ast) => {
+  const owner = getContextOwner(ast);
+  if (owner !== ast) {
+    const type = toType(owner);
+    return type === owner && ast.encoding === undefined ? ast : replaceContext(type, ast.context);
+  }
+  const type = "recur" in ast ? ast.recur(toType) : ast;
+  if ("encodingChecks" in type && type.encodingChecks) {
+    const checks = canPreserveEncodingChecks(ast) ? type.encodingChecks : isArrays(type) || isObjects(type) || isDeclaration(type) && type.typeParameters.length > 0 ? extractStructuralChecks(type.encodingChecks) : undefined;
+    return copy(type, {
+      encodingChecks: undefined,
+      checks: combineChecks(type.checks, checks)
+    });
+  }
+  return type;
+});
+var toEncoded = /* @__PURE__ */ memoizeIdempotent((ast) => {
+  return toType(flip2(ast));
+});
+function flipEncoding(ast, encoding) {
+  const links = encoding;
+  const len = links.length;
+  const last = links[len - 1];
+  const ls = [new Link(flip2(replaceEncoding(ast, undefined)), links[0].transformation.flip())];
+  for (let i = 1;i < len; i++) {
+    ls.unshift(new Link(flip2(links[i - 1].to), links[i].transformation.flip()));
+  }
+  const to = flip2(last.to);
+  if (to.encoding) {
+    return replaceEncoding(to, [...to.encoding, ...ls]);
+  } else {
+    return replaceEncoding(to, ls);
+  }
+}
+var flip2 = /* @__PURE__ */ memoize((ast) => {
+  if (ast.encoding) {
+    return flipEncoding(ast, ast.encoding);
+  }
+  const owner = getContextOwner(ast);
+  if (owner !== ast) {
+    const flipped = flip2(owner);
+    return flipped === owner ? ast : replaceContext(flipped, ast.context);
+  }
+  return "flip" in ast ? ast.flip(flip2) : ("recur" in ast) ? ast.recur(flip2) : ast;
+});
+function fromConst(ast, value) {
+  const succeed = value === 0 ? sameExit : succeed6(value);
+  return (input, options) => {
+    if (input === missing)
+      return missingExit;
+    if (input === value)
+      return succeed;
+    return fail5(new InvalidType(ast, input, options));
+  };
+}
+function fromRefinement(ast, refinement) {
+  return (input, options) => {
+    if (input === missing)
+      return missingExit;
+    if (refinement(input))
+      return sameExit;
+    return fail5(new InvalidType(ast, input, options));
+  };
+}
+function segmentTemplateLiteralParts(ast, input, options) {
+  const parts = ast.encodedParts;
+  const literals = ast.literals;
+  const inputLength = input.length;
+  for (let i = 0;i < literals.length; i++) {
+    const literal = literals[i];
+    if (literal && !input.includes(literal))
+      return;
+  }
+  if (ast.suffixLengths[0] > inputLength)
+    return;
+  const out = new Array(parts.length);
+  let failures;
+  function go(i, pos) {
+    if (i === parts.length)
+      return pos === inputLength;
+    if (failures?.has(i * (inputLength + 1) + pos))
+      return false;
+    const part = parts[i];
+    if (i === parts.length - 1) {
+      const s = input.slice(pos);
+      if (part.matchPart(s, options) !== undefined) {
+        out[i] = s;
+        return true;
+      }
+    } else if (part._tag === "Literal") {
+      const s = literals[i];
+      if (input.startsWith(s, pos) && go(i + 1, pos + s.length)) {
+        out[i] = s;
+        return true;
+      }
+    } else {
+      const maximumEnd = inputLength - ast.suffixLengths[i + 1];
+      const anchor = literals[i + 1];
+      let end = anchor === undefined ? maximumEnd : input.lastIndexOf(anchor, maximumEnd);
+      while (end >= pos) {
+        const s = input.slice(pos, end);
+        if (part.matchPart(s, options) !== undefined && go(i + 1, end)) {
+          out[i] = s;
+          return true;
+        }
+        if (end === 0)
+          break;
+        end = anchor === undefined ? end - 1 : input.lastIndexOf(anchor, end - 1);
+      }
+    }
+    failures ??= new Set;
+    failures.add(i * (inputLength + 1) + pos);
+    return false;
+  }
+  return go(0, 0) ? out : undefined;
+}
+var parameterFromPropertyKey = /* @__PURE__ */ applyToSelfOrLastLinkEncodingIdempotent((ast) => {
+  switch (ast._tag) {
+    default:
+      return ast;
+    case "Number":
+      return ast.toCodecStringTree();
+    case "Union":
+      return ast.recur(parameterFromPropertyKey);
+  }
+});
+var partFromString = /* @__PURE__ */ applyToSelfOrLastLinkEncodingIdempotent((ast) => {
+  switch (ast._tag) {
+    default:
+      return ast;
+    case "Number":
+    case "Literal":
+    case "BigInt":
+      return ast.toCodecStringTree();
+    case "Union":
+      return ast.recur(partFromString);
+  }
+});
+var isStringFiniteRegExp = /* @__PURE__ */ new globalThis.RegExp(`^${FINITE_PATTERN}$`);
+var isStringNumberRegExp = /* @__PURE__ */ new globalThis.RegExp(`^(?:${FINITE_PATTERN}|Infinity|-Infinity|NaN)$`);
+function isStringFinite(annotations) {
+  return isPattern(isStringFiniteRegExp, {
+    expected: "a string representing a finite number",
+    representation: {
+      id: "effect/schema/isStringFinite",
+      payload: null
+    },
+    toJsonSchema: () => ({
+      pattern: isStringFiniteRegExp.source
+    }),
+    ...annotations
+  });
+}
+var finiteString = /* @__PURE__ */ appendChecks(string2, [/* @__PURE__ */ isStringFinite()]);
+var finiteToString = /* @__PURE__ */ new Link(finiteString, numberFromString);
+var numberToString = /* @__PURE__ */ new Link(/* @__PURE__ */ new Union([finiteString, nonFiniteLiterals]), numberFromString);
+var BIGINT_PATTERN = "-?\\d+";
+var isStringBigIntRegExp = /* @__PURE__ */ new globalThis.RegExp(`^${BIGINT_PATTERN}$`);
+var REGEXP_PATTERN = "Symbol\\(([\\s\\S]*)\\)";
+var isStringSymbolRegExp = /* @__PURE__ */ new globalThis.RegExp(`^${REGEXP_PATTERN}$`);
+function collectIssues(checks, value, issues, ast, options) {
+  for (let i = 0;i < checks.length; i++) {
+    const check = checks[i];
+    if (check._tag === "FilterGroup") {
+      issues = collectIssues(check.checks, value, issues, ast, options);
+      if (issues && (options.errors !== "all" || issues[issues.length - 1].filter.aborted)) {
+        return issues;
+      }
+    } else {
+      const issue = check.run(value, ast, options);
+      if (issue) {
+        const filter = new Filter(check, issue, value, options);
+        if (issues)
+          issues.push(filter);
+        else
+          issues = [filter];
+        if (options.errors !== "all" || check.aborted) {
+          return issues;
+        }
+      }
+    }
+  }
+  return issues;
+}
+function getConstructorDescriptor(ast) {
+  if (!isDeclaration(ast))
+    return;
+  const getDescriptor = ast.annotations?.[CONSTRUCTOR_ANNOTATION_KEY];
+  return isFunction(getDescriptor) ? getDescriptor(ast.typeParameters) : undefined;
+}
+function isJsonLeaf(u) {
+  return u === null || typeof u === "string" || typeof u === "boolean" || typeof u === "number" && globalThis.Number.isFinite(u);
+}
+function isStringTreeLeaf(u) {
+  return u === undefined || typeof u === "string";
+}
+function isTree(u, isLeaf) {
+  const cache = new WeakMap;
+  const stack = [];
+  outer:
+    while (true) {
+      if (typeof u !== "object" || u === null) {
+        if (!isLeaf(u)) {
+          return false;
+        }
+      } else {
+        const value = u;
+        const cached = cache.get(value);
+        if (cached === false) {
+          return false;
+        }
+        if (cached === undefined) {
+          const isArray = Array.isArray(value);
+          if (!isArray) {
+            const prototype = Object.getPrototypeOf(value);
+            if (prototype !== null && prototype !== Object.prototype && Object.getPrototypeOf(prototype) !== null) {
+              return false;
+            }
+          }
+          cache.set(value, false);
+          stack.push({
+            value,
+            keys: isArray ? value.length : Object.keys(value),
+            index: 0
+          });
+        }
+      }
+      while (stack.length > 0) {
+        const frame = stack[stack.length - 1];
+        const keys = frame.keys;
+        if (typeof keys === "number") {
+          if (frame.index < keys) {
+            u = frame.value[frame.index++];
+            continue outer;
+          }
+        } else if (frame.index < keys.length) {
+          u = frame.value[keys[frame.index++]];
+          continue outer;
+        }
+        cache.set(frame.value, true);
+        stack.pop();
+      }
+      return true;
+    }
+}
+function isJson(u) {
+  return isTree(u, isJsonLeaf);
+}
+var Json = /* @__PURE__ */ new Declaration([], () => (input, ast, options) => isJson(input) ? sameExit : fail5(new InvalidType(ast, input, options)), {
+  representation: {
+    id: "effect/schema/Json",
+    payload: null
+  },
+  expected: "JSON value",
+  toCodecJson: () => {
+    return;
+  },
+  toCodecStringTree: () => unknownToStringTree
+});
+function isStringTree(u) {
+  return isTree(u, isStringTreeLeaf);
+}
+var StringTree = /* @__PURE__ */ new Declaration([], () => (input, ast, options) => isStringTree(input) ? sameExit : fail5(new InvalidType(ast, input, options)), {
+  expected: "StringTree",
+  toCodecStringTree: () => {
+    return;
+  }
+});
+var unknownToStringTree = /* @__PURE__ */ new Link(StringTree, /* @__PURE__ */ passthrough2());
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/schema/interpreter.js
+var flatMapTransformation = (result, current, f) => result === sameExit ? f(current) : flatMapEager2(result, f);
+function compileTransformation(transformation) {
+  const apply = compileTransformationUnsafe(transformation);
+  return (result, current, options) => {
+    try {
+      return apply(result, current, options);
+    } catch (error) {
+      return die3(error);
+    }
+  };
+}
+function compileTransformationUnsafe(transformation) {
+  if (transformation._tag === "Middleware") {
+    return (result, current, options) => {
+      const transformed = result === sameExit ? transformation.decode(succeed6(toOption(current)), options) : transformation.decode(mapEager2(result, toOption), options);
+      return fromOptionalEffect(transformed);
+    };
+  }
+  const getter = transformation.decode;
+  switch (getter._tag) {
+    case "Passthrough":
+      return (result, current) => result === sameExit ? succeed6(current) : result;
+    case "Transform": {
+      const transform = (value) => value === missing ? missingExit : succeed6(getter.transform(value));
+      return (result, current) => flatMapTransformation(result, current, transform);
+    }
+    case "TransformOptional": {
+      const transform = (value) => fromOptionExit(getter.transform(toOption(value)));
+      return (result, current) => flatMapTransformation(result, current, transform);
+    }
+    case "TransformEffect":
+      return (result, current, options) => flatMapTransformation(result, current, (value) => value === missing ? missingExit : getter.transform(value, options));
+    case "TransformOptionalEffect":
+      return (result, current, options) => flatMapTransformation(result, current, (value) => fromOptionalEffect(getter.transform(toOption(value), options)));
+  }
+}
+var fromOptionalEffect = (effect) => flatMapEager2(effect, fromOptionExit);
+var wrapEncoding = (ast, input, options, effect) => catchCause2(effect, (cause) => failCauseSync2(() => map4(cause, (issue) => new Encoding(ast, issue, input, options))));
+function makeConstructorParser(descriptor, compile) {
+  const transform = compileTransformation(descriptor.link.transformation);
+  let sourceParser;
+  return (input, options) => {
+    if (input === missing)
+      return missingExit;
+    if (descriptor.isConstructed(input))
+      return sameExit;
+    const result = (sourceParser ??= compile(descriptor.link.to))(input, options);
+    return transform(result, input, options);
+  };
+}
+function withDefault(ast, parser) {
+  const defaultValue = ast.context.constructorDefault;
+  return (input, options) => {
+    if (input !== missing && input !== undefined)
+      return parser(input, options);
+    const result = defaultValue;
+    if (effectIsExit(result) && result._tag === "Success") {
+      const local = parser(result[args], options);
+      return local === sameExit ? result : local;
+    }
+    return flatMapEager2(wrapEncoding(ast, input, options, result), (value) => {
+      const local = parser(value, options);
+      return local === sameExit ? succeed6(value) : local;
+    });
+  };
+}
+function compileField(ast, compile) {
+  const parser = compile(ast);
+  return ast.context?.constructorDefault === undefined ? parser : withDefault(ast, parser);
+}
+function compile(ast, compile, compileField, base, specialize) {
+  if (ast._tag === "Declaration") {
+    for (const parameter of ast.typeParameters)
+      compile(parameter);
+  }
+  const descriptor = compileField ? getConstructorDescriptor(ast) : undefined;
+  const parser = descriptor ? makeConstructorParser(descriptor, compile) : base ?? ast.getParser(compile, compileField);
+  const checks = ast.checks;
+  const links = ast.encoding;
+  const transformations = links?.map((link) => compileTransformation(link.transformation));
+  const encodingChecks = ast.encodingChecks;
+  if (!links && !checks && !encodingChecks) {
+    return parser;
+  }
+  let encodingParsers;
+  const parseChecks = (input, options) => {
+    let result = parser(input, options);
+    try {
+      if (encodingChecks && !options.disableChecks) {
+        if (effectIsExit(result)) {
+          if (result._tag === "Success") {
+            const output = result === sameExit ? input : result[args];
+            if (input !== missing && output !== missing) {
+              const issues = collectIssues(encodingChecks, input, undefined, ast, options);
+              if (issues) {
+                result = fail5(new Composite(ast, issues, input, options));
+              }
+            }
+          }
+        } else {
+          result = flatMap2(result, (value) => {
+            if (input !== missing && value !== missing) {
+              const issues = collectIssues(encodingChecks, input, undefined, ast, options);
+              if (issues) {
+                return fail5(new Composite(ast, issues, input, options));
+              }
+            }
+            return succeed5(value);
+          });
+        }
+      }
+      if (checks && !options.disableChecks) {
+        if (effectIsExit(result)) {
+          if (result._tag === "Success") {
+            const value = result === sameExit ? input : result[args];
+            if (value === missing)
+              return result;
+            const issues = collectIssues(checks, value, undefined, ast, options);
+            if (issues) {
+              result = fail5(new Composite(ast, issues, value, options));
+            }
+          }
+        } else {
+          result = flatMap2(result, (value) => {
+            if (value !== missing) {
+              const issues = collectIssues(checks, value, undefined, ast, options);
+              if (issues) {
+                return fail5(new Composite(ast, issues, value, options));
+              }
+            }
+            return succeed5(value);
+          });
+        }
+      }
+      return result;
+    } catch (error) {
+      return die3(error);
+    }
+  };
+  const parseLocal = specialize === undefined ? parseChecks : specialize(parseChecks);
+  if (!links) {
+    return parseLocal;
+  }
+  return (input, options) => {
+    const parsers = encodingParsers ??= links.map((link) => compile(link.to));
+    let current = input;
+    let result = parsers[parsers.length - 1](input, options);
+    for (let i = links.length - 1;i >= 0; i--) {
+      result = transformations[i](result, current, options);
+      if (i !== 0) {
+        const next = parsers[i - 1];
+        if (result._tag === "Success") {
+          current = result[args];
+          result = next(current, options);
+        } else {
+          result = flatMapEager2(result, (value) => {
+            const nextResult = next(value, options);
+            return nextResult === sameExit ? succeed6(value) : nextResult;
+          });
+        }
+      }
+    }
+    if (result._tag === "Success") {
+      const value = result[args];
+      const local = parseLocal(value, options);
+      return local === sameExit ? result : local;
+    }
+    result = wrapEncoding(ast, input, options, result);
+    return flatMapEager2(result, (value) => {
+      const local = parseLocal(value, options);
+      return local === sameExit ? succeed6(value) : local;
+    });
+  };
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/schema/compilerRegistry.js
+var invalid = /* @__PURE__ */ Symbol();
+var cache = /* @__PURE__ */ new WeakMap;
+var compiler;
+var compilerAdaptersEnabled = false;
+var decodeChild = (ast) => compilerAdaptersEnabled ? lazyParser(resolve2, ast, "parser") : resolve2(ast).parser;
+var makeChild = (ast) => compilerAdaptersEnabled ? lazyParser(resolve2, ast, "makeEffect") : resolve2(ast).makeEffect;
+var makeField = (ast) => compileField(ast, makeChild);
+
+class InterpretedEntry {
+  ast;
+  constructor(ast) {
+    this.ast = ast;
+  }
+  get decodeEffect() {
+    return this.cachedDecodeEffect ??= compile(this.ast, decodeChild);
+  }
+  get parser() {
+    return this.decodeEffect;
+  }
+  get makeEffect() {
+    return this.cachedMakeEffect ??= compile(this.ast, makeChild, makeField);
+  }
+}
+
+class CompilerEntry extends InterpretedEntry {
+  compiled;
+  resolve;
+  constructor(ast, compiled, resolve) {
+    super(ast);
+    this.compiled = compiled;
+    this.resolve = resolve;
+  }
+  save(key, value) {
+    Object.defineProperty(this, key, {
+      value
+    });
+    return value;
+  }
+  operation(key) {
+    const compiled = this.compiled;
+    return typeof compiled === "function" ? compiled(this.ast, this.resolve, key) : compiled?.[key];
+  }
+  get is() {
+    return this.save("is", this.operation("is"));
+  }
+  get decode() {
+    return this.save("decode", this.operation("decode"));
+  }
+  get make() {
+    return this.save("make", this.operation("make"));
+  }
+  get compiledMakeEffect() {
+    return this.save("compiledMakeEffect", this.operation("makeEffect"));
+  }
+  get decodeEffect() {
+    return this.save("decodeEffect", this.operation("decodeEffect") ?? compile(this.ast, (ast) => lazyParser(this.resolve, ast, "parser")));
+  }
+  get parser() {
+    const decode = this.decode;
+    return decode === undefined ? this.decodeEffect : this.save("parser", withDecode(decode, () => this.decodeEffect));
+  }
+  get makeEffect() {
+    const makeEffect = this.compiledMakeEffect;
+    if (makeEffect !== undefined)
+      return this.save("makeEffect", makeEffect);
+    const child = (ast) => lazyParser(this.resolve, ast, "makeEffect");
+    return this.save("makeEffect", compile(this.ast, child, (ast) => compileField(ast, child)));
+  }
+}
+function withDecode(fastDecode, decodeEffect) {
+  let detailed;
+  return (input, options) => {
+    if (input !== missing) {
+      try {
+        const value = fastDecode(input, options);
+        if (value !== invalid)
+          return value === input ? sameExit : succeed6(value);
+      } catch (error) {
+        return die3(error);
+      }
+    }
+    return (detailed ??= decodeEffect())(input, options);
+  };
+}
+function lazyParser(resolve, ast, operation) {
+  const entry = resolve(ast);
+  if (entry.compiled === undefined || Object.hasOwn(entry, operation)) {
+    return entry[operation];
+  }
+  let parser;
+  return (input, options) => (parser ??= entry[operation])(input, options);
+}
+function resolve2(ast) {
+  const cached = cache.get(ast);
+  if (cached !== undefined)
+    return cached;
+  const entry = compiler === undefined ? new InterpretedEntry(ast) : new CompilerEntry(ast, compiler(ast, resolve2), resolve2);
+  cache.set(ast, entry);
+  return entry;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/SchemaParser.js
+function makeEffect(schema) {
+  const ast = schema.ast;
+  let parser;
+  return (input, options) => {
+    return (parser ??= runWithCompiler(constructorCompiler, toType(ast)))(input, options?.disableChecks ? options?.parseOptions ? {
+      ...options.parseOptions,
+      disableChecks: true
+    } : {
+      disableChecks: true
+    } : options?.parseOptions);
+  };
+}
+function makeOption(schema) {
+  const parser = makeEffect(schema);
+  return (input, options) => {
+    const exit = runSyncExit2(parser(input, options));
+    if (isSuccess3(exit)) {
+      return some2(exit.value);
+    }
+    getSchemaIssueOrThrow(exit.cause, "Option adapter can only return none for schema issues");
+    return none2();
+  };
+}
+function make6(schema) {
+  return makeConstructorSync(toType(schema.ast));
+}
+function is(schema) {
+  return _is(schema.ast);
+}
+function makeIs(ast) {
+  if (!compilerAdaptersEnabled) {
+    const parser = asExit(run(ast));
+    return (input) => {
+      const exit = parser(input, defaultParseOptions);
+      if (isSuccess3(exit))
+        return true;
+      getSchemaIssueOrThrow(exit.cause, "Type guard adapter can only return false for schema issues");
+      return false;
+    };
+  }
+  const entry = resolve2(ast);
+  const guard = entry.is;
+  if (guard !== undefined) {
+    return (input) => {
+      try {
+        return guard(input, defaultParseOptions);
+      } catch (error) {
+        getSchemaIssueOrThrow(die2(error), "Type guard adapter can only return false for schema issues");
+        return false;
+      }
+    };
+  }
+  const parser = entry.parser;
+  return (input) => {
+    const exit = runSyncExit2(parserResult(parser(input, defaultParseOptions), input));
+    if (isSuccess3(exit))
+      return true;
+    getSchemaIssueOrThrow(exit.cause, "Type guard adapter can only return false for schema issues");
+    return false;
+  };
+}
+function _is(ast) {
+  const typeAST = toType(ast);
+  let guard = (input) => {
+    guard = makeIs(typeAST);
+    return guard(input);
+  };
+  return (input) => {
+    return guard(input);
+  };
+}
+function decodeUnknownEffect(schema, options) {
+  const parser = run(schema.ast);
+  return options === undefined ? parser : (input, overrideOptions) => parser(input, mergeParseOptions(options, overrideOptions));
+}
+function encodeUnknownEffect(schema, options) {
+  const parser = run(flip2(schema.ast));
+  return options === undefined ? parser : (input, overrideOptions) => parser(input, mergeParseOptions(options, overrideOptions));
+}
+var mergeParseOptions = (options, overrideOptions) => overrideOptions ? {
+  ...options,
+  ...overrideOptions
+} : options;
+var getValue = (value) => {
+  if (value === missing) {
+    return fail5(new InvalidValue);
+  }
+  return succeed5(value);
+};
+function run(ast) {
+  return runWithCompiler(normalCompiler, ast);
+}
+function parserResult(result, input) {
+  if (result === sameExit) {
+    return succeed5(input);
+  }
+  if (!effectIsExit(result)) {
+    return flatMapEager2(result, getValue);
+  }
+  return result[args] === missing ? getValue(missing) : result;
+}
+function runWithCompiler(compiler, ast) {
+  let parser;
+  return (input, options) => {
+    const result = (parser ??= compiler(ast))(input, options ?? defaultParseOptions);
+    if (result === sameExit) {
+      return succeed5(input);
+    }
+    if (!effectIsExit(result)) {
+      return flatMapEager2(result, getValue);
+    }
+    return result[args] === missing ? getValue(missing) : result;
+  };
+}
+function asExit(parser) {
+  return (input, options) => runSyncExit2(parser(input, options));
+}
+function runSync2(effect, message) {
+  const exit = runSyncExit2(effect);
+  if (isSuccess3(exit)) {
+    return exit.value;
+  }
+  const issue = getSchemaIssueOrThrow(exit.cause, message);
+  throw new Error("Schema validation failed", {
+    cause: issue
+  });
+}
+var constructorDefectMessage = "Constructor adapter can only throw schema issues";
+function throwConstructorDefect(error) {
+  throw new Error(constructorDefectMessage, {
+    cause: die2(error)
+  });
+}
+function makeConstructorSync(ast) {
+  let entry;
+  return (input, options) => constructSync(entry ??= resolve2(ast), input, options);
+}
+function constructSync(entry, input, options) {
+  const parseOptions = options?.disableChecks ? options.parseOptions ? {
+    ...options.parseOptions,
+    disableChecks: true
+  } : {
+    disableChecks: true
+  } : options?.parseOptions ?? defaultParseOptions;
+  const make = entry.make;
+  if (make !== undefined && input !== missing) {
+    let output;
+    try {
+      output = make(input, parseOptions);
+    } catch (error) {
+      throwConstructorDefect(error);
+    }
+    if (output !== invalid && output !== missing)
+      return output;
+  }
+  return runSync2(parserResult(entry.makeEffect(input, parseOptions), input), constructorDefectMessage);
+}
+function makeClassSync(ast, input, options, construct) {
+  const entry = resolve2(ast);
+  const descriptor = getConstructorDescriptor(ast);
+  if (descriptor === undefined || entry.make !== undefined || entry.compiledMakeEffect !== undefined) {
+    return constructSync(entry, input, options);
+  }
+  if (descriptor.isConstructed(input))
+    return input;
+  const fields = constructSync((entry.resolve ?? resolve2)(descriptor.link.to), input, options);
+  try {
+    return construct(fields);
+  } catch (error) {
+    throwConstructorDefect(error);
+  }
+}
+var normalCompiler = (ast) => resolve2(ast).parser;
+var constructorCompiler = (ast) => resolve2(ast).makeEffect;
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/schema/make.js
+var TypeId8 = "~effect/Schema/Schema";
+var RebuildOptions = /* @__PURE__ */ Symbol();
+var SchemaProto = {
+  [TypeId8]: TypeId8,
+  get make() {
+    const value = make6(this);
+    Object.defineProperty(this, "make", {
+      value,
+      enumerable: true
+    });
+    return value;
+  },
+  get makeEffect() {
+    const value = makeEffect(this);
+    Object.defineProperty(this, "makeEffect", {
+      value,
+      enumerable: true
+    });
+    return value;
+  },
+  get makeOption() {
+    const value = makeOption(this);
+    Object.defineProperty(this, "makeOption", {
+      value,
+      enumerable: true
+    });
+    return value;
+  },
+  pipe() {
+    return pipeArguments(this, arguments);
+  },
+  annotate(annotations) {
+    return this.rebuild(annotate(this.ast, annotations));
+  },
+  annotateKey(annotations) {
+    return this.rebuild(annotateKey(this.ast, annotations));
+  },
+  check(...checks) {
+    return this.rebuild(appendChecks(this.ast, checks));
+  },
+  rebuild(ast) {
+    return make7(ast, this[RebuildOptions]);
+  }
+};
+function make7(ast, options) {
+  function Schema() {}
+  const self = Object.setPrototypeOf(Schema, SchemaProto);
+  if (options && (Object.hasOwn(options, "name") || Object.hasOwn(options, "length") || Object.hasOwn(options, "__proto__"))) {
+    Object.defineProperties(self, Object.getOwnPropertyDescriptors({
+      ...options
+    }));
+  } else {
+    Object.assign(self, options);
+  }
+  self[RebuildOptions] = options;
+  self.ast = ast;
+  return self;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/RegExp.js
+var RegExp2 = globalThis.RegExp;
+var escape = (string) => string.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&");
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/schema/toEquivalence.js
+var toEquivalence = /* @__PURE__ */ memoize((ast) => {
+  return recur(ast);
+});
+function recur(ast) {
+  const annotation = resolve(ast)?.["toEquivalence"];
+  if (annotation) {
+    return annotation(isDeclaration(ast) ? ast.typeParameters.map(recur) : []);
+  }
+  switch (ast._tag) {
+    case "Never":
+      return strictEqual();
+    case "Declaration":
+      return declarationEquivalence(ast);
+    case "Null":
+    case "Undefined":
+    case "Void":
+    case "Unknown":
+    case "Any":
+    case "String":
+    case "Number":
+    case "Boolean":
+    case "BigInt":
+    case "Symbol":
+    case "Literal":
+    case "UniqueSymbol":
+    case "ObjectKeyword":
+    case "Enum":
+    case "TemplateLiteral":
+      return equals;
+    case "Arrays": {
+      const elements = ast.elements.map(recur);
+      const rest = ast.rest.map(recur);
+      const [head, ...tail] = rest;
+      const tailLength = tail.length;
+      return make((a, b) => {
+        if (!Array.isArray(a) || !Array.isArray(b)) {
+          return false;
+        }
+        const len = a.length;
+        if (len !== b.length) {
+          return false;
+        }
+        let i = 0;
+        for (;i < Math.min(len, ast.elements.length); i++) {
+          if (!elements[i](a[i], b[i])) {
+            return false;
+          }
+        }
+        if (rest.length > 0) {
+          for (;i < len - tailLength; i++) {
+            if (!head(a[i], b[i])) {
+              return false;
+            }
+          }
+          for (let j = 0;j < tailLength; j++) {
+            if (!tail[j](a[i + j], b[i + j])) {
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+    }
+    case "Objects": {
+      if (ast.propertySignatures.length === 0 && ast.indexSignatures.length === 0) {
+        return equals;
+      }
+      const propertySignatures = ast.propertySignatures.map((ps) => recur(ps.type));
+      const indexSignatures = ast.indexSignatures.map((is) => recur(is.type));
+      return make((a, b) => {
+        if (!isObject(a) || !isObject(b)) {
+          return false;
+        }
+        for (let i = 0;i < propertySignatures.length; i++) {
+          const ps = ast.propertySignatures[i];
+          const name = ps.name;
+          const aHas = Object.hasOwn(a, name);
+          const bHas = Object.hasOwn(b, name);
+          if (isOptional(ps.type)) {
+            if (aHas !== bHas) {
+              return false;
+            }
+          }
+          if (aHas && bHas && !propertySignatures[i](a[name], b[name])) {
+            return false;
+          }
+        }
+        for (let i = 0;i < indexSignatures.length; i++) {
+          const is = ast.indexSignatures[i];
+          const aKeys = getIndexSignatureKeys(a, is.parameter);
+          const bKeys = getIndexSignatureKeys(b, is.parameter);
+          if (aKeys.length !== bKeys.length)
+            return false;
+          for (let j = 0;j < aKeys.length; j++) {
+            const key = aKeys[j];
+            if (!Object.hasOwn(b, key) || !indexSignatures[i](a[key], b[key])) {
+              return false;
+            }
+          }
+        }
+        return true;
+      });
+    }
+    case "Union": {
+      const types = toType(ast).types;
+      const index = getCandidateIndex(types);
+      const compiled = types.map((candidate, i) => [_is(candidate), recur(ast.types[i])]);
+      return make((a, b) => {
+        const candidates = index(a, false);
+        for (let i = 0;i < candidates.length; i++) {
+          const [is, equivalence] = compiled[candidates[i]];
+          if (is(a) && is(b)) {
+            return equivalence(a, b);
+          }
+        }
+        return false;
+      });
+    }
+    case "Suspend": {
+      let equivalence;
+      return make((a, b) => (equivalence ??= toEquivalence(ast.thunk()))(a, b));
+    }
+  }
+}
+function declarationEquivalence(ast) {
+  const representation = ast.annotations?.representation;
+  if (representation === undefined)
+    return equals;
+  switch (representation.id) {
+    case "effect/schema/Option": {
+      const [value] = declarationTypeParameters(ast);
+      return (a, b) => a._tag === b._tag && (a._tag === "None" || value(a.value, b.value));
+    }
+    case "effect/schema/Result": {
+      const [success, failure] = declarationTypeParameters(ast);
+      return (a, b) => a._tag === b._tag && (a._tag === "Success" ? success(a.success, b.success) : failure(a.failure, b.failure));
+    }
+    case "effect/schema/CauseReason": {
+      const [error, defect] = declarationTypeParameters(ast);
+      return causeReasonEquivalence(error, defect);
+    }
+    case "effect/schema/Cause": {
+      const [error, defect] = declarationTypeParameters(ast);
+      return causeEquivalence(error, defect);
+    }
+    case "effect/schema/Exit": {
+      const [value, error, defect] = declarationTypeParameters(ast);
+      const cause = causeEquivalence(error, defect);
+      return (a, b) => a._tag === b._tag && (a._tag === "Success" ? value(a.value, b.value) : cause(a.cause, b.cause));
+    }
+    case "effect/schema/ReadonlyMap": {
+      const [key, value] = declarationTypeParameters(ast);
+      return makeCompareMap(key, value);
+    }
+    case "effect/schema/ReadonlySet":
+      return makeCompareSet(declarationTypeParameters(ast)[0]);
+    case "effect/schema/RegExp":
+      return (a, b) => a.source === b.source && a.flags === b.flags;
+    case "effect/schema/URL":
+      return (a, b) => a.toString() === b.toString();
+    default:
+      return equals;
+  }
+}
+function declarationTypeParameters(ast) {
+  return ast.typeParameters.map(recur);
+}
+function causeReasonEquivalence(error, defect) {
+  return (a, b) => {
+    if (a._tag !== b._tag)
+      return false;
+    switch (a._tag) {
+      case "Fail":
+        return error(a.error, b.error);
+      case "Die":
+        return defect(a.defect, b.defect);
+      case "Interrupt":
+        return a.fiberId === b.fiberId;
+    }
+  };
+}
+function causeEquivalence(error, defect) {
+  const reasons = Array_(causeReasonEquivalence(error, defect));
+  return (a, b) => reasons(a.reasons, b.reasons);
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Struct.js
+var pick = /* @__PURE__ */ dual(2, (self, keys) => {
+  return buildStruct(self, (k, v) => hasPropertyKey(keys, k) ? [k, v] : undefined);
+});
+var omit = /* @__PURE__ */ dual(2, (self, keys) => {
+  return buildStruct(self, (k, v) => !hasPropertyKey(keys, k) ? [k, v] : undefined);
+});
+var lambda = (f) => f;
+function hasPropertyKey(keys, key) {
+  return keys.some((candidate) => candidate === key || typeof candidate === "number" && String(candidate) === key);
+}
+function buildStruct(source, f) {
+  const out = {};
+  for (const k of Reflect.ownKeys(source)) {
+    if (!Object.prototype.propertyIsEnumerable.call(source, k))
+      continue;
+    const res = f(k, source[k]);
+    if (res) {
+      const [nk, nv] = res;
+      assignProperty(out, nk, nv);
+    }
+  }
+  return out;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/internal/schemaError.js
+var SchemaErrorTypeId = "~effect/Schema/SchemaError";
+function isSchemaError(u) {
+  return hasProperty(u, SchemaErrorTypeId) && u[SchemaErrorTypeId] === SchemaErrorTypeId;
+}
+
+// node_modules/@opencode/schema/node_modules/effect/dist/Schema.js
+var TypeId9 = TypeId8;
+function declareConstructor() {
+  return (typeParameters, run, annotations) => {
+    return make8(new Declaration(typeParameters.map(getAST), (typeParameters) => run(typeParameters.map((ast) => make8(ast))), annotations));
+  };
+}
+function declare(is, annotations) {
+  return declareConstructor()([], () => (input, ast, options) => is(input) ? succeed5(input) : fail5(new InvalidType(ast, input, options)), annotations);
+}
+function annotate2(annotations) {
+  return (self) => self.annotate(annotations);
+}
+class SchemaError extends (/* @__PURE__ */ TaggedError2("SchemaError")) {
+  [SchemaErrorTypeId] = SchemaErrorTypeId;
+  constructor(issue) {
+    const stackTraceLimit = getStackTraceLimit();
+    setStackTraceLimit(0);
+    try {
+      super({
+        issue
+      });
+    } finally {
+      setStackTraceLimit(stackTraceLimit);
+    }
+  }
+  get message() {
+    return defaultFormatter(this.issue);
+  }
+  toJSON() {
+    return {
+      _tag: this._tag,
+      message: this.message
+    };
+  }
+  [NodeInspectSymbol]() {
+    return this.toJSON();
+  }
+  toString() {
+    return `SchemaError(${this.message})`;
+  }
+}
+function isSchemaError2(u) {
+  return isSchemaError(u);
+}
+function fromIssueEffect(self) {
+  if (effectIsExit(self)) {
+    return fromIssueExit(self);
+  }
+  return catchCause2(self, (cause) => failCauseSync2(() => map4(cause, (issue) => new SchemaError(issue))));
+}
+function fromIssueExit(exit) {
+  return isSuccess3(exit) ? exit : failCause2(map4(exit.cause, (issue) => new SchemaError(issue)));
+}
+function getSchemaErrorOrThrow(cause, message) {
+  let schemaError;
+  for (const reason of cause.reasons) {
+    if (!isFailReason2(reason) || !isSchemaError2(reason.error)) {
+      throw new globalThis.Error(message, {
+        cause
+      });
+    }
+    schemaError ??= reason.error;
+  }
+  if (schemaError === undefined) {
+    throw new globalThis.Error(message, {
+      cause
+    });
+  }
+  return schemaError;
+}
+function runSchemaErrorSync(self) {
+  const exit = runSyncExit2(self);
+  if (isSuccess3(exit)) {
+    return exit.value;
+  }
+  throw getSchemaErrorOrThrow(exit.cause, "Sync adapter can only throw schema errors");
+}
+function decodeUnknownEffect2(schema, options) {
+  const parser = decodeUnknownEffect(schema, options);
+  return (input, options) => {
+    return fromIssueEffect(parser(input, options));
+  };
+}
+function encodeUnknownEffect2(schema, options) {
+  const parser = encodeUnknownEffect(schema, options);
+  return (input, options) => {
+    return fromIssueEffect(parser(input, options));
+  };
+}
+function encodeUnknownSync(schema, options) {
+  const parser = encodeUnknownEffect2(schema, options);
+  return (input, options) => {
+    return runSchemaErrorSync(parser(input, options));
+  };
+}
+var encodeSync = encodeUnknownSync;
+var make8 = make7;
+function isSchema(u) {
+  return hasProperty(u, TypeId9) && u[TypeId9] === TypeId9;
+}
+var optionalKey2 = /* @__PURE__ */ lambda((schema) => make8(optionalKey(schema.ast), {
+  schema
+}));
+var optional2 = /* @__PURE__ */ lambda((self) => {
+  const schema = UndefinedOr(self);
+  return make8(optional(self.ast), {
+    schema
+  });
+});
+var toType2 = /* @__PURE__ */ lambda((schema) => make8(toType(schema.ast), {
+  schema
+}));
+var toEncoded2 = /* @__PURE__ */ lambda((schema) => make8(toEncoded(schema.ast), {
+  schema
+}));
+function Literal2(literal) {
+  const out = make8(new Literal(literal), {
+    literal,
+    transform(to) {
+      return out.pipe(decodeTo2(Literal2(to), {
+        decode: transform(() => to),
+        encode: transform(() => literal)
+      }));
+    }
+  });
+  return out;
+}
+function templateLiteralParts(parts) {
+  return parts.map((part) => isSchema(part) ? part.ast : new Literal(part));
+}
+function TemplateLiteral2(parts) {
+  return make8(new TemplateLiteral(templateLiteralParts(parts)), {
+    parts
+  });
+}
+var Any2 = /* @__PURE__ */ make8(any);
+var Unknown2 = /* @__PURE__ */ make8(unknown);
+var Null2 = /* @__PURE__ */ make8(null_);
+var Undefined2 = /* @__PURE__ */ make8(undefined_2);
+var String5 = /* @__PURE__ */ make8(string2);
+var Number5 = /* @__PURE__ */ make8(number2);
+var Boolean3 = /* @__PURE__ */ make8(boolean);
+function makeStruct(ast, fields) {
+  return make8(ast, {
+    fields,
+    mapFields(f, options) {
+      const fields = f(this.fields);
+      return makeStruct(struct(fields, options?.unsafePreserveChecks ? this.ast.checks : undefined), fields);
+    }
+  });
+}
+function Struct(fields) {
+  return makeStruct(struct(fields, undefined), fields);
+}
+function Record(key, value) {
+  return make8(record(key.ast, value.ast), {
+    key,
+    value
+  });
+}
+function StructWithRest(schema, records) {
+  return make8(structWithRest(schema.ast, records.map(getAST)), {
+    schema,
+    records
+  });
+}
+var ArraySchema = /* @__PURE__ */ lambda((schema) => make8(new Arrays(false, [], [schema.ast]), {
+  value: schema
+}));
+var NonEmptyArray = /* @__PURE__ */ lambda((schema) => make8(new Arrays(false, [schema.ast], [schema.ast]), {
+  value: schema
+}));
+function makeUnion(ast, members) {
+  return make8(ast, {
+    members,
+    mapMembers(f, options) {
+      const members = f(this.members);
+      return makeUnion(union(members, this.ast.options, options?.unsafePreserveChecks ? this.ast.checks : undefined), members);
+    }
+  });
+}
+function Union2(members, options) {
+  return makeUnion(union(members, options, undefined), members);
+}
+function Literals(literals) {
+  const members = literals.map(Literal2);
+  return make8(union(members, undefined, undefined), {
+    literals,
+    members,
+    mapMembers(f) {
+      return Union2(f(this.members));
+    },
+    pick(literals) {
+      return Literals(literals);
+    },
+    transform(to) {
+      return Union2(members.map((member, index) => member.transform(to[index])));
+    }
+  });
+}
+var NullOr = /* @__PURE__ */ lambda((self) => Union2([self, Null2]));
+var UndefinedOr = /* @__PURE__ */ lambda((self) => Union2([self, Undefined2]));
+function suspend3(f) {
+  return make8(new Suspend(() => f().ast));
+}
+function check(...checks) {
+  return (self) => self.check(...checks);
+}
+function brand(identifier) {
+  return (schema) => make8(schema.ast, {
+    schema,
+    identifier
+  });
+}
+function decodeTo2(to, transformation) {
+  return (from) => {
+    return make8(decodeTo(from.ast, to.ast, transformation ? makeTransformation(transformation) : passthrough2()), {
+      from,
+      to
+    });
+  };
+}
+function linkDecoding() {
+  return (to, decode) => link()(to, {
+    decode,
+    encode: forbiddenEncoding
+  });
+}
+function encodeTo(to, transformation) {
+  return (from) => {
+    return transformation ? decodeTo2(from, transformation)(to) : decodeTo2(from)(to);
+  };
+}
+function withConstructorDefault2(defaultValue) {
+  return (schema) => make8(withConstructorDefault(schema.ast, defaultValue), {
+    schema
+  });
+}
+function tag(literal) {
+  return Literal2(literal).pipe(withConstructorDefault2(succeed5(literal)));
+}
+function TaggedStruct(value, fields) {
+  return Struct({
+    _tag: tag(value),
+    ...fields
+  });
+}
+function toTaggedUnion(tag) {
+  return (self) => {
+    const cases = {};
+    const discriminants = [];
+    const discriminantKeys = new Set;
+    const guards = {};
+    const isAnyOf = (keys) => (value) => keys.includes(value[tag]);
+    walk(self);
+    return Object.assign(self, {
+      tag,
+      cases,
+      discriminants,
+      isAnyOf,
+      guards,
+      match,
+      matchOrElse
+    });
+    function walk(schema) {
+      const ast = schema.ast;
+      if (isUnion(ast) && "members" in schema && globalThis.Array.isArray(schema.members) && schema.members.every(isSchema)) {
+        return schema.members.forEach(walk);
+      }
+      const sentinels = collectSentinels(ast);
+      if (sentinels.length > 0) {
+        const literal = sentinels.find((s) => s.key === tag)?.literal;
+        if (isPropertyKey(literal)) {
+          const key = typeof literal === "number" ? globalThis.String(literal) : literal;
+          if (discriminantKeys.has(key)) {
+            throw new globalThis.Error(`Duplicate discriminant: ${globalThis.String(literal)}`);
+          }
+          discriminantKeys.add(key);
+          discriminants.push(literal);
+          assignProperty(cases, literal, schema);
+          assignProperty(guards, literal, is(toType2(schema)));
+          return;
+        }
+      }
+      throw new globalThis.Error("No literal or unique symbol found");
+    }
+    function match() {
+      if (arguments.length === 1) {
+        const cases = arguments[0];
+        return function(value) {
+          const key = value[tag];
+          const handler = Object.hasOwn(cases, key) ? cases[key] : undefined;
+          return handler(value);
+        };
+      }
+      const value = arguments[0];
+      const cases = arguments[1];
+      const key = value[tag];
+      const handler = Object.hasOwn(cases, key) ? cases[key] : undefined;
+      return handler(value);
+    }
+    function matchOrElse() {
+      if (arguments.length === 2) {
+        const cases = arguments[0];
+        const orElse = arguments[1];
+        return function(value) {
+          const key = value[tag];
+          const handler = Object.hasOwn(cases, key) ? cases[key] ?? orElse : orElse;
+          return handler(value);
+        };
+      }
+      const value = arguments[0];
+      const cases = arguments[1];
+      const orElse = arguments[2];
+      const key = value[tag];
+      const handler = Object.hasOwn(cases, key) ? cases[key] ?? orElse : orElse;
+      return handler(value);
+    }
+  };
+}
+function instanceOf(constructor, annotations) {
+  return declare((u) => u instanceof constructor, annotations);
+}
+function link() {
+  return (encodeTo, transformation) => {
+    return new Link(encodeTo.ast, makeTransformation(transformation));
+  };
+}
+var makeFilter2 = makeFilter;
+var TRIMMED_PATTERN = "^\\S[\\s\\S]*\\S$|^\\S$|^$";
+function isTrimmed(annotations) {
+  const regExp = new globalThis.RegExp(TRIMMED_PATTERN);
+  return makeFilter2((s) => s.trim() === s, {
+    expected: "a string with no leading or trailing whitespace",
+    representation: {
+      id: "effect/schema/isTrimmed",
+      payload: null
+    },
+    toJsonSchema: () => ({
+      pattern: regExp.source
+    }),
+    toCode: () => ({
+      runtime: "Schema.isTrimmed()"
+    }),
+    arbitraryConstraint: {
+      patterns: [{
+        source: TRIMMED_PATTERN,
+        flags: ""
+      }]
+    },
+    ...annotations
+  });
+}
+function isPattern2(regExp, annotations) {
+  const source = regExp.source;
+  const flags = regExp.flags;
+  const canExport = /^[dg]*uy?$/.test(flags);
+  const runtimeRegExp = flags === "" ? `new globalThis.RegExp(${format(source)})` : `new globalThis.RegExp(${format(source)}, ${format(flags)})`;
+  return isPattern(regExp, {
+    toJsonSchema: () => canExport ? {
+      pattern: flags.endsWith("y") ? `^(?:${source})` : source
+    } : [{}, true],
+    toCode: () => ({
+      runtime: `Schema.isPattern(${runtimeRegExp})`
+    }),
+    ...annotations
+  });
+}
+function isBase64(annotations) {
+  const pattern = "^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$";
+  const regExp = /^[0-9a-zA-Z+/]*={0,2}$/;
+  return makeFilter2((s) => s.length % 4 === 0 && regExp.test(s), {
+    expected: "a base64 encoded string",
+    representation: {
+      id: "effect/schema/isBase64",
+      payload: null
+    },
+    toJsonSchema: () => ({
+      pattern
+    }),
+    arbitraryConstraint: {
+      patterns: [{
+        source: pattern,
+        flags: ""
+      }]
+    },
+    toCode: () => ({
+      runtime: "Schema.isBase64()"
+    }),
+    ...annotations
+  });
+}
+function literalToJsonSchema(literal, original, pattern) {
+  if (literal.length === 0)
+    return original.length === 0 ? {} : [{}, true];
+  const constraint = {
+    pattern: new globalThis.RegExp(pattern).source
+  };
+  return literal === original ? constraint : [constraint, true];
+}
+function isStartingWith(startsWith, annotations) {
+  const formatted = JSON.stringify(startsWith);
+  const regExp = new globalThis.RegExp(`^${escape(startsWith)}`);
+  const jsonSchemaLiteral = startsWith.replace(/[\uD800-\uDBFF]$/, "");
+  return makeFilter2((s) => s.startsWith(startsWith), {
+    expected: `a string starting with ${formatted}`,
+    representation: {
+      id: "effect/schema/isStartingWith",
+      payload: {
+        startsWith
+      }
+    },
+    toJsonSchema: () => literalToJsonSchema(jsonSchemaLiteral, startsWith, `^${escape(jsonSchemaLiteral)}`),
+    toCode: () => ({
+      runtime: `Schema.isStartingWith(${format(startsWith)})`
+    }),
+    arbitraryConstraint: {
+      patterns: [{
+        source: regExp.source,
+        flags: regExp.flags
+      }]
+    },
+    ...annotations
+  });
+}
+var Finite = /* @__PURE__ */ make8(finite);
+function makeIsGreaterThan(options) {
+  const gt = isGreaterThan(options.order);
+  const formatter = options.formatter ?? format;
+  return (exclusiveMinimum, annotations) => {
+    return makeFilter2((input) => gt(input, exclusiveMinimum), {
+      expected: `a value greater than ${formatter(exclusiveMinimum)}`,
+      arbitraryConstraint: {
+        order: options.order,
+        minimum: exclusiveMinimum,
+        exclusiveMinimum: true
+      },
+      ...options.annotate?.(exclusiveMinimum),
+      ...annotations
+    });
+  };
+}
+function makeIsGreaterThanOrEqualTo(options) {
+  const gte = isGreaterThanOrEqualTo(options.order);
+  const formatter = options.formatter ?? format;
+  return (minimum, annotations) => {
+    return makeFilter2((input) => gte(input, minimum), {
+      expected: `a value greater than or equal to ${formatter(minimum)}`,
+      arbitraryConstraint: {
+        order: options.order,
+        minimum
+      },
+      ...options.annotate?.(minimum),
+      ...annotations
+    });
+  };
+}
+function makeIsLessThanOrEqualTo(options) {
+  const lte = isLessThanOrEqualTo(options.order);
+  const formatter = options.formatter ?? format;
+  return (maximum, annotations) => {
+    return makeFilter2((input) => lte(input, maximum), {
+      expected: `a value less than or equal to ${formatter(maximum)}`,
+      arbitraryConstraint: {
+        order: options.order,
+        maximum
+      },
+      ...options.annotate?.(maximum),
+      ...annotations
+    });
+  };
+}
+function makeIsBetween(deriveOptions) {
+  const greaterThanOrEqualTo = isGreaterThanOrEqualTo(deriveOptions.order);
+  const greaterThan = isGreaterThan(deriveOptions.order);
+  const lessThanOrEqualTo = isLessThanOrEqualTo(deriveOptions.order);
+  const lessThan = isLessThan(deriveOptions.order);
+  const formatter = deriveOptions.formatter ?? format;
+  return (options, annotations) => {
+    const gte = options.exclusiveMinimum ? greaterThan : greaterThanOrEqualTo;
+    const lte = options.exclusiveMaximum ? lessThan : lessThanOrEqualTo;
+    return makeFilter2((input) => gte(input, options.minimum) && lte(input, options.maximum), {
+      expected: `a value between ${formatter(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${formatter(options.maximum)}${options.exclusiveMaximum ? " (excluded)" : ""}`,
+      arbitraryConstraint: {
+        order: deriveOptions.order,
+        minimum: options.minimum,
+        maximum: options.maximum,
+        ...options.exclusiveMinimum && {
+          exclusiveMinimum: true
+        },
+        ...options.exclusiveMaximum && {
+          exclusiveMaximum: true
+        }
+      },
+      ...deriveOptions.annotate?.(options),
+      ...annotations
+    });
+  };
+}
+function encodeNumberPayload(number) {
+  if (!globalThis.Number.isFinite(number)) {
+    throw new globalThis.RangeError(`Expected a finite number, got ${format(number)}`);
+  }
+  return number;
+}
+var isGreaterThan3 = /* @__PURE__ */ makeIsGreaterThan({
+  order: Number2,
+  annotate: (exclusiveMinimum) => ({
+    representation: {
+      id: "effect/schema/isGreaterThan",
+      payload: {
+        exclusiveMinimum: encodeNumberPayload(exclusiveMinimum)
+      }
+    },
+    toJsonSchema: () => ({
+      exclusiveMinimum
+    }),
+    toCode: () => ({
+      runtime: `Schema.isGreaterThan(${format(exclusiveMinimum)})`
+    })
+  })
+});
+var isGreaterThanOrEqualTo3 = /* @__PURE__ */ makeIsGreaterThanOrEqualTo({
+  order: Number2,
+  annotate: (minimum) => ({
+    representation: {
+      id: "effect/schema/isGreaterThanOrEqualTo",
+      payload: {
+        minimum: encodeNumberPayload(minimum)
+      }
+    },
+    toJsonSchema: () => ({
+      minimum
+    }),
+    toCode: () => ({
+      runtime: `Schema.isGreaterThanOrEqualTo(${format(minimum)})`
+    })
+  })
+});
+var isLessThanOrEqualTo3 = /* @__PURE__ */ makeIsLessThanOrEqualTo({
+  order: Number2,
+  annotate: (maximum) => ({
+    representation: {
+      id: "effect/schema/isLessThanOrEqualTo",
+      payload: {
+        maximum: encodeNumberPayload(maximum)
+      }
+    },
+    toJsonSchema: () => ({
+      maximum
+    }),
+    toCode: () => ({
+      runtime: `Schema.isLessThanOrEqualTo(${format(maximum)})`
+    })
+  })
+});
+var isBetween = /* @__PURE__ */ makeIsBetween({
+  order: Number2,
+  annotate: (options) => {
+    const exclusiveMinimum = options.exclusiveMinimum ? true : undefined;
+    const exclusiveMaximum = options.exclusiveMaximum ? true : undefined;
+    const payload = {
+      minimum: encodeNumberPayload(options.minimum),
+      maximum: encodeNumberPayload(options.maximum),
+      ...exclusiveMinimum && {
+        exclusiveMinimum
+      },
+      ...exclusiveMaximum && {
+        exclusiveMaximum
+      }
+    };
+    return {
+      representation: {
+        id: "effect/schema/isBetween",
+        payload
+      },
+      toJsonSchema: () => ({
+        [exclusiveMinimum ? "exclusiveMinimum" : "minimum"]: options.minimum,
+        [exclusiveMaximum ? "exclusiveMaximum" : "maximum"]: options.maximum
+      }),
+      toCode: () => ({
+        runtime: `Schema.isBetween({ minimum: ${format(options.minimum)}, maximum: ${format(options.maximum)}, exclusiveMinimum: ${format(exclusiveMinimum)}, exclusiveMaximum: ${format(exclusiveMaximum)} })`
+      })
+    };
+  }
+});
+function isInt(annotations) {
+  return makeFilter2((n) => globalThis.Number.isSafeInteger(n), {
+    expected: "an integer",
+    representation: {
+      id: "effect/schema/isInt",
+      payload: null
+    },
+    toJsonSchema: () => ({
+      type: "integer",
+      minimum: globalThis.Number.MIN_SAFE_INTEGER,
+      maximum: globalThis.Number.MAX_SAFE_INTEGER
+    }),
+    toCode: () => ({
+      runtime: "Schema.isInt()"
+    }),
+    arbitraryConstraint: {
+      number: "integer"
+    },
+    ...annotations
+  });
+}
+var Int = /* @__PURE__ */ Number5.check(/* @__PURE__ */ isInt());
+function makeIsMinLength(minLength, minCodePoints, annotations) {
+  return makeFilter2((input) => input.length >= minLength, {
+    expected: `a value with a length of at least ${minLength}`,
+    representation: {
+      id: "effect/schema/isMinLength",
+      payload: {
+        minLength
+      }
+    },
+    toJsonSchema: ({
+      type
+    }) => type === "string" ? minLength <= 1 ? {
+      minLength: minCodePoints
+    } : [{
+      minLength: minCodePoints
+    }, true] : type === "array" ? {
+      minItems: minLength
+    } : type === undefined ? [{
+      minLength: minCodePoints,
+      minItems: minLength
+    }, true] : [{}, true],
+    toCode: () => ({
+      runtime: `Schema.isMinLength(${minLength})`
+    }),
+    [STRUCTURAL_ANNOTATION_KEY]: true,
+    arbitraryConstraint: {
+      minLength
+    },
+    ...annotations
+  });
+}
+function isNonEmpty(annotations) {
+  return makeIsMinLength(1, 1, annotations);
+}
+var getErrorOptionsKey = (options) => (options?.includeStack === true ? 1 : 0) | (options?.excludeCause === true ? 2 : 0);
+var getErrorOptions = (key) => {
+  switch (key) {
+    case 0:
+      return;
+    case 1:
+      return {
+        includeStack: true
+      };
+    case 2:
+      return {
+        excludeCause: true
+      };
+    case 3:
+      return {
+        includeStack: true,
+        excludeCause: true
+      };
+  }
+};
+var defectSchemaCache = [];
+function Defect(options) {
+  const key = getErrorOptionsKey(options);
+  const cached = defectSchemaCache[key];
+  if (cached !== undefined) {
+    return cached;
+  }
+  const schema = Json2.pipe(decodeTo2(Unknown2, defectFromJson(getErrorOptions(key))));
+  defectSchemaCache[key] = schema;
+  return schema;
+}
+var RegExp3 = /* @__PURE__ */ instanceOf(globalThis.RegExp, {
+  representation: {
+    id: "effect/schema/RegExp",
+    payload: null
+  },
+  toCode: () => ({
+    runtime: `Schema.RegExp`,
+    Type: `globalThis.RegExp`
+  }),
+  expected: "RegExp",
+  toCodecJson: () => link()(Struct({
+    source: String5,
+    flags: String5
+  }), transformEffect2({
+    decode: (e, options) => try_2({
+      try: () => new globalThis.RegExp(e.source, e.flags),
+      catch: () => new InvalidValue({
+        expected: "valid RegExp source and flags"
+      }, e, options)
+    }),
+    encode: (regExp) => succeed5({
+      source: regExp.source,
+      flags: regExp.flags
+    })
+  }))
+});
+var URLString = /* @__PURE__ */ String5.annotate({
+  expected: "a string that will be decoded as a URL"
+});
+var URL2 = /* @__PURE__ */ instanceOf(globalThis.URL, {
+  representation: {
+    id: "effect/schema/URL",
+    payload: null
+  },
+  toCode: () => ({
+    runtime: `Schema.URL`,
+    Type: `globalThis.URL`
+  }),
+  expected: "URL",
+  toCodecJson: () => link()(URLString, urlFromString)
+});
+var JsonString = /* @__PURE__ */ String5.annotate({
+  expected: "a string that will be decoded as JSON"
+});
+function fromJsonString2(schema, options) {
+  return JsonString.pipe(decodeTo2(schema, fromJsonString(options)));
+}
+var File2 = /* @__PURE__ */ instanceOf(globalThis.File, {
+  representation: {
+    id: "effect/schema/File",
+    payload: null
+  },
+  toCode: () => ({
+    runtime: `Schema.File`,
+    Type: `globalThis.File`
+  }),
+  expected: "File",
+  toCodecJson: () => link()(Struct({
+    data: String5.check(isBase64()),
+    type: String5,
+    name: String5,
+    lastModified: Int
+  }), transformEffect2({
+    decode: (e, options) => match2(decode(e.data), {
+      onFailure: () => fail5(new InvalidValue({
+        expected: "a valid Base64 string"
+      }, e.data, options)),
+      onSuccess: (bytes) => {
+        const buffer = new globalThis.Uint8Array(bytes);
+        return succeed5(new globalThis.File([buffer], e.name, {
+          type: e.type,
+          lastModified: e.lastModified
+        }));
+      }
+    }),
+    encode: (file, options) => tryPromise2({
+      try: async () => {
+        const bytes = new globalThis.Uint8Array(await file.arrayBuffer());
+        return {
+          data: encode(bytes),
+          type: file.type,
+          name: file.name,
+          lastModified: file.lastModified
+        };
+      },
+      catch: () => new InvalidValue({
+        expected: "a readable File"
+      }, file, options)
+    })
+  }))
+});
+var URLSearchParams2 = /* @__PURE__ */ instanceOf(globalThis.URLSearchParams, {
+  representation: {
+    id: "effect/schema/URLSearchParams",
+    payload: null
+  },
+  toCode: () => ({
+    runtime: `Schema.URLSearchParams`,
+    Type: `globalThis.URLSearchParams`
+  }),
+  expected: "URLSearchParams",
+  toCodecJson: () => link()(String5.annotate({
+    expected: "a query string that will be decoded as URLSearchParams"
+  }), transform2({
+    decode: (e) => new globalThis.URLSearchParams(e),
+    encode: (params) => params.toString()
+  }))
+});
+var Trimmed = /* @__PURE__ */ String5.check(/* @__PURE__ */ isTrimmed());
+var Trim = /* @__PURE__ */ String5.annotate({
+  expected: "a string that will be decoded as a trimmed string"
+}).pipe(/* @__PURE__ */ decodeTo2(Trimmed, /* @__PURE__ */ trim3()));
+var Base64String = /* @__PURE__ */ String5.annotate({
+  expected: "a base64 encoded string that will be decoded as Uint8Array",
+  format: "byte",
+  contentEncoding: "base64"
+});
+var Uint8Array2 = /* @__PURE__ */ instanceOf(globalThis.Uint8Array, {
+  representation: {
+    id: "effect/schema/Uint8Array",
+    payload: null
+  },
+  toCode: () => ({
+    runtime: `Schema.Uint8Array`,
+    Type: `globalThis.Uint8Array`
+  }),
+  expected: "Uint8Array",
+  toCodecJson: () => link()(Base64String, uint8ArrayFromBase64String)
+});
+var dateTimeUtcFromString = /* @__PURE__ */ transformEffect2({
+  decode: (s, options) => {
+    return match(make5(s), {
+      onNone: () => fail5(new InvalidValue({
+        expected: "a valid UTC DateTime string"
+      }, s, options)),
+      onSome: (result) => succeed5(toUtc2(result))
+    });
+  },
+  encode: (utc) => succeed5(formatIso2(utc))
+});
+var arbitraryMinimumDateTimestamp = -8640000000000000;
+var arbitraryMaximumDateTimestamp = 8640000000000000;
+var arbitraryMinimumZonedDateTimeTimestamp = arbitraryMinimumDateTimestamp + 14 * 60 * 60 * 1000;
+var arbitraryMaximumZonedDateTimeTimestamp = arbitraryMaximumDateTimestamp - 14 * 60 * 60 * 1000;
+var arbitraryMinimumTimeZoneOffset = -12 * 60 * 60 * 1000;
+var arbitraryMaximumTimeZoneOffset = 14 * 60 * 60 * 1000;
+function dateTimeArbitraryBounds(constraint, domainMinimum, domainMaximum) {
+  const minimum = Math.max(domainMinimum, constraint?.minimum === undefined ? domainMinimum : constraint.minimum.epochMilliseconds + (constraint.exclusiveMinimum === true ? 1 : 0));
+  const maximum = Math.min(domainMaximum, constraint?.maximum === undefined ? domainMaximum : constraint.maximum.epochMilliseconds - (constraint.exclusiveMaximum === true ? 1 : 0));
+  return minimum <= maximum ? [minimum, maximum] : [domainMinimum, domainMaximum];
+}
+function dateTimeArbitraryInteger(minimum, maximum) {
+  return Int.check(isBetween({
+    minimum,
+    maximum
+  }));
+}
+var DateTimeUtc = /* @__PURE__ */ declare((u) => isDateTime2(u) && isUtc2(u), {
+  representation: {
+    id: "effect/schema/DateTimeUtc",
+    payload: null
+  },
+  toCode: () => ({
+    runtime: `Schema.DateTimeUtc`,
+    Type: `DateTime.Utc`,
+    importDeclarations: [`import * as DateTime from "effect/DateTime"`]
+  }),
+  expected: "DateTime.Utc",
+  toCodecArbitrary: ({
+    constraint
+  }) => {
+    const [minimum, maximum] = dateTimeArbitraryBounds(constraint, arbitraryMinimumDateTimestamp, arbitraryMaximumDateTimestamp);
+    return linkDecoding()(dateTimeArbitraryInteger(minimum, maximum), transform(makeUnsafe3));
+  },
+  toCodecJson: () => link()(String5, dateTimeUtcFromString),
+  toFormatter: () => (utc) => utc.toString()
+});
+var immerable = /* @__PURE__ */ globalThis.Symbol.for("immer-draftable");
+var payloadToken = {};
+function makeClass(Inherited, identifier, struct2, annotations, proto) {
+  const getClassSchema = getClassSchemaFactory(struct2, identifier, annotations);
+  const ClassTypeId = getClassTypeId(identifier);
+  const out = class extends Inherited {
+    constructor(...[input, options]) {
+      const internalOptions = options;
+      const payload = internalOptions?.["~payload"];
+      const value = payload?.token === payloadToken ? payload.value : struct2.make(input ?? {}, options);
+      super(value, {
+        ...options,
+        disableChecks: true,
+        "~payload": {
+          token: payloadToken,
+          value
+        }
+      });
+    }
+    static [TypeId9] = TypeId9;
+    get [ClassTypeId]() {
+      return ClassTypeId;
+    }
+    static [immerable] = true;
+    static identifier = identifier;
+    static fields = struct2.fields;
+    static get ast() {
+      return getClassSchema(this).ast;
+    }
+    static pipe() {
+      return pipeArguments(this, arguments);
+    }
+    static rebuild(ast) {
+      return getClassSchema(this).rebuild(ast);
+    }
+    static make(input, options) {
+      return makeClassSync(toType(getClassSchema(this).ast), input ?? {}, options, (fields) => makeClassTrusted(this, fields));
+    }
+    static makeOption(input, options) {
+      return makeOption(getClassSchema(this))(input ?? {}, options);
+    }
+    static makeEffect(input, options) {
+      return getClassSchema(this).makeEffect(input ?? {}, options);
+    }
+    static annotate(annotations) {
+      return this.rebuild(annotate(this.ast, annotations));
+    }
+    static annotateKey(annotations) {
+      return this.rebuild(annotateKey(this.ast, annotations));
+    }
+    static check(...checks) {
+      return this.rebuild(appendChecks(this.ast, checks));
+    }
+    static extend(identifier2) {
+      return (schema, annotations) => {
+        const extension = isStruct(schema) ? schema : Struct(schema);
+        const fields = {
+          ...struct2.fields,
+          ...extension.fields
+        };
+        const ast = struct(fields, struct2.ast.checks, {
+          identifier: identifier2
+        });
+        return makeClass(this, identifier2, makeStruct(appendChecks(ast, extension.ast.checks), fields), annotations, proto);
+      };
+    }
+    static mapFields(f, options) {
+      return struct2.mapFields(f, options);
+    }
+  };
+  if (proto !== undefined) {
+    Object.assign(out.prototype, proto(identifier));
+  }
+  return out;
+}
+function makeClassTrusted(self, fields) {
+  return new self(fields, {
+    "~payload": {
+      token: payloadToken,
+      value: fields
+    }
+  });
+}
+function getClassTransformation(self) {
+  return new Transformation(transform((input) => makeClassTrusted(self, input)), passthrough());
+}
+function getClassTypeId(identifier) {
+  return `~effect/Schema/Class/${identifier}`;
+}
+function getClassSchemaFactory(from, identifier, annotations) {
+  let memo;
+  return (self) => {
+    if (memo !== undefined) {
+      return memo;
+    }
+    const ClassTypeId = getClassTypeId(identifier);
+    const isClassValue = (input) => input instanceof self || hasProperty(input, ClassTypeId);
+    const transformation = getClassTransformation(self);
+    const to = make8(new Declaration([from.ast], () => (input, ast, options) => {
+      return isClassValue(input) ? succeed5(input) : fail5(new InvalidType(ast, input, options));
+    }, {
+      identifier,
+      [CONSTRUCTOR_ANNOTATION_KEY]: ([from]) => ({
+        isConstructed: isClassValue,
+        link: new Link(from, transformation)
+      }),
+      toCodec: ([from]) => new Link(from.ast, transformation),
+      toEquivalence: ([from]) => from,
+      toFormatter: ([from]) => (t) => `${self.identifier}(${from(t)})`,
+      [SENTINELS_ANNOTATION_KEY]: collectSentinels(from.ast),
+      ...annotations
+    }));
+    return memo = decodeTo2(to, transformation)(from);
+  };
+}
+function isStruct(schema) {
+  return isSchema(schema);
+}
+var Class3 = (identifier) => (schema, annotations) => {
+  const struct = isStruct(schema) ? schema : Struct(schema);
+  return makeClass(Class2, identifier, struct, annotations, (identifier) => ({
+    toString() {
+      return `${identifier}(${format({
+        ...this
+      })})`;
+    }
+  }));
+};
+var Error3 = (identifier) => (schema, annotations) => {
+  const struct = isStruct(schema) ? schema : Struct(schema);
+  const self = makeClass(Error2, identifier, struct, annotations, (identifier) => ({
+    name: identifier
+  }));
+  return self;
+};
+var TaggedError3 = (identifier) => {
+  return (tagValue, schema, annotations) => {
+    const struct = isStruct(schema) ? schema.mapFields((fields) => ({
+      _tag: tag(tagValue),
+      ...fields
+    }), {
+      unsafePreserveChecks: true
+    }) : TaggedStruct(tagValue, schema);
+    return Error3(identifier ?? tagValue)(struct, annotations);
+  };
+};
+function toEquivalence2(schema) {
+  return toEquivalence(schema.ast);
+}
+var Json2 = /* @__PURE__ */ make8(/* @__PURE__ */ annotate(Json, {
+  toCode: () => ({
+    runtime: "Schema.Json",
+    Type: "Schema.Json"
+  })
+}));
+// node_modules/@opencode/schema/dist/schema.js
+var PositiveInt = Int.check(isGreaterThan3(0));
+var NonNegativeInt = Int.check(isGreaterThanOrEqualTo3(0));
+var RelativePath = String5.pipe(brand("RelativePath"), annotate2({ identifier: "RelativePath" }));
+var AbsolutePath = String5.pipe(brand("AbsolutePath"), annotate2({ identifier: "AbsolutePath" }));
+var optional3 = (schema) => optionalKey2(schema).pipe(decodeTo2(optional2(toType2(schema)), {
+  decode: passthrough({ strict: false }),
+  encode: transformOptional(filter((value) => value !== undefined))
+}));
+var withStatics = (schema, methods) => Object.defineProperties(schema, Object.getOwnPropertyDescriptors(methods));
+var statics = (methods) => (schema) => withStatics(schema, methods(schema));
+var DateTimeUtcFromMillis = Finite.pipe(decodeTo2(DateTimeUtc, {
+  decode: transform((value) => makeUnsafe3(value)),
+  encode: transform((value) => toEpochMillis2(value))
+}));
+
+// node_modules/@opencode/schema/dist/identifier.js
+var length = 26;
+var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+var lastTimestamp = 0;
+var counter = 0;
+function ascending() {
+  return create(false);
+}
+function descending() {
+  return create(true);
+}
+function create(descending, timestamp = Date.now()) {
+  if (timestamp !== lastTimestamp) {
+    lastTimestamp = timestamp;
+    counter = 0;
+  }
+  counter++;
+  const current = BigInt(timestamp) * 0x1000n + BigInt(counter);
+  const value = descending ? ~current : current;
+  const time = Array.from({ length: 6 }, (_, index) => Number(value >> BigInt(40 - 8 * index) & 0xffn).toString(16).padStart(2, "0")).join("");
+  const bytes = crypto.getRandomValues(new Uint8Array(length - 12));
+  return time + Array.from(bytes, (byte) => chars[byte % 62]).join("");
+}
+// node_modules/@opencode/schema/dist/project-id.js
+var ProjectID = String5.pipe(brand("Project.ID"), annotate2({ identifier: "Project.ID" }), statics((schema) => ({ global: schema.make("global") })));
+
+// node_modules/@opencode/schema/dist/workspace-id.js
+var WorkspaceID = String5.check(isStartingWith("wrk")).pipe(brand("Workspace.ID"), annotate2({ identifier: "Workspace.ID" }), statics((schema) => {
+  const create = () => schema.make("wrk_" + ascending());
+  return {
+    ascending: (id) => {
+      if (!id)
+        return create();
+      return schema.make(id);
+    },
+    create
+  };
+}));
+
+// node_modules/@opencode/schema/dist/location.js
+var Ref = Struct({
+  directory: AbsolutePath,
+  workspaceID: optional3(WorkspaceID)
+}).annotate({ identifier: "Location.Ref" });
+var PublicRef = Struct(omit(Ref.fields, ["workspaceID"])).annotate({
+  identifier: "Location.PublicRef"
+});
+
+class Info extends Class3("Location.Info")({
+  directory: AbsolutePath,
+  workspaceID: optional3(WorkspaceID),
+  project: Struct({
+    id: ProjectID,
+    directory: AbsolutePath,
+    canonical: AbsolutePath
+  })
+}) {
+}
+var PublicInfo = Struct(omit(Info.fields, ["workspaceID"])).annotate({
+  identifier: "Location.PublicInfo"
+});
+
+// node_modules/@opencode/schema/dist/event.js
+var ID = String5.check(isStartingWith("evt_")).pipe(brand("Event.ID"), annotate2({ identifier: "Event.ID" }), statics((schema) => ({ create: () => schema.make("evt_" + ascending()) })));
+var Seq = Int.check(isGreaterThanOrEqualTo3(0)).pipe(brand("Event.Seq"), annotate2({ identifier: "Event.Seq" }));
+var Version = Int.check(isGreaterThanOrEqualTo3(1)).pipe(brand("Event.Version"), annotate2({ identifier: "Event.Version" }));
+var DurableEnvelope = Struct({ aggregateID: String5, seq: Seq, version: Version });
+function durable(input) {
+  const data = Struct(input.schema);
+  const durable = Struct({
+    aggregateID: DurableEnvelope.fields.aggregateID,
+    seq: DurableEnvelope.fields.seq,
+    version: Literal2(input.durable.version).pipe(decodeTo2(toType2(Version), transform2({
+      decode: () => Version.make(input.durable.version),
+      encode: () => input.durable.version
+    })))
+  });
+  return Struct({
+    id: ID,
+    created: Finite,
+    metadata: optional3(Record(String5, Unknown2)),
+    type: Literal2(input.type),
+    durable,
+    location: optional3(Ref),
+    data
+  }).annotate({ identifier: input.identifier ?? input.type }).pipe(statics(() => ({
+    type: input.type,
+    durability: "durable",
+    durable: input.durable,
+    data
+  })));
+}
+function ephemeral(input) {
+  const data = Struct(input.schema);
+  return Struct({
+    id: ID,
+    created: Finite,
+    metadata: optional3(Record(String5, Unknown2)),
+    type: Literal2(input.type),
+    location: optional3(Ref),
+    data
+  }).annotate({ identifier: input.identifier ?? input.type }).pipe(statics(() => ({
+    type: input.type,
+    durability: "ephemeral",
+    durable: undefined,
+    data
+  })));
+}
+function inventory(...definitions) {
+  return Object.freeze(definitions);
+}
+// node_modules/@opencode/schema/dist/integration-id.js
+var IntegrationID = String5.pipe(brand("Integration.ID"), annotate2({ identifier: "Integration.ID" }));
+var IntegrationMethodID = String5.pipe(brand("Integration.MethodID"), annotate2({ identifier: "Integration.MethodID" }));
+
+// node_modules/@opencode/schema/dist/credential.js
+var ID2 = String5.pipe(brand("Credential.ID"), annotate2({ identifier: "Credential.ID" }), statics((schema) => ({ create: () => schema.make("cred_" + ascending()) })));
+var Updated = ephemeral({
+  type: "credential.updated",
+  schema: { integrationID: IntegrationID, credentialID: ID2 }
+});
+var Switched = ephemeral({
+  type: "credential.switched",
+  schema: { integrationID: IntegrationID, credentialID: NullOr(ID2) }
+});
+var Event = {
+  Updated,
+  Switched,
+  Definitions: inventory(Updated, Switched)
+};
+var OAuth = Struct({
+  type: Literal2("oauth"),
+  methodID: IntegrationMethodID,
+  refresh: String5,
+  access: String5,
+  expires: NonNegativeInt,
+  metadata: optional3(Record(String5, Unknown2))
+}).annotate({ identifier: "Credential.OAuth" });
+var Key = Struct({
+  type: Literal2("key"),
+  key: String5,
+  metadata: optional3(Record(String5, Unknown2))
+}).annotate({ identifier: "Credential.Key" });
+var External = Struct({
+  type: Literal2("external"),
+  methodID: IntegrationMethodID,
+  metadata: optional3(Record(String5, Unknown2))
+}).annotate({ identifier: "Credential.External" });
+var Value = Union2([OAuth, Key, External]).pipe(toTaggedUnion("type")).annotate({ identifier: "Credential.Value" });
+var Entry = Struct({
+  id: ID2,
+  integrationID: IntegrationID,
+  label: String5,
+  active: Boolean3,
+  value: Value
+}).annotate({ identifier: "Credential.Entry" });
+var CreateInput = Struct({
+  id: optional3(ID2),
+  integrationID: IntegrationID,
+  label: optional3(String5),
+  value: Value,
+  activate: optional3(Boolean3)
+}).annotate({ identifier: "Credential.CreateInput" });
+
+// node_modules/@opencode/schema/dist/connection.js
+var Status = Struct({
+  status: Literals(["needs_auth"]),
+  message: String5,
+  url: optional3(String5)
+}).annotate({ identifier: "Connection.Status" });
+var CredentialInfo = Struct({
+  type: Literal2("credential"),
+  id: ID2,
+  label: String5,
+  method: Literals(["key", "oauth", "external"]),
+  status: optional3(Status)
+}).annotate({ identifier: "Connection.CredentialInfo" });
+var EnvInfo = Struct({
+  type: Literal2("env"),
+  name: String5,
+  status: optional3(Status)
+}).annotate({ identifier: "Connection.EnvInfo" });
+var Info2 = Union2([CredentialInfo, EnvInfo]).pipe(toTaggedUnion("type")).annotate({ identifier: "Connection.Info" });
+// node_modules/@opencode/schema/dist/form.js
+var IDSchema = String5.check(isStartingWith("frm_")).pipe(brand("Form.ID"), annotate2({ identifier: "Form.ID" }));
+var ID3 = IDSchema.pipe(statics((schema) => ({ create: (id) => schema.make(id ?? "frm_" + ascending()) })));
+var Metadata = Record(String5, Unknown2).annotate({ identifier: "Form.Metadata" });
+var Option = Struct({
+  value: String5,
+  label: String5,
+  description: String5.pipe(optional3)
+}).annotate({ identifier: "Form.Option" });
+var When = Struct({
+  key: String5,
+  op: Literals(["eq", "neq"]),
+  value: Union2([String5, Number5, Boolean3])
+}).annotate({ identifier: "Form.When" });
+var FieldBase = {
+  key: String5,
+  title: String5.pipe(optional3),
+  description: String5.pipe(optional3),
+  required: Boolean3.pipe(optional3),
+  hidden: Boolean3.pipe(optional3).annotate({
+    description: "Skip the interactive authentication prompt and use the default unless an answer is supplied"
+  }),
+  when: ArraySchema(When).pipe(optional3)
+};
+var StringField = Struct({
+  ...FieldBase,
+  type: Literal2("string"),
+  format: Literals(["email", "uri", "date", "date-time"]).pipe(optional3),
+  minLength: NonNegativeInt.pipe(optional3),
+  maxLength: NonNegativeInt.pipe(optional3),
+  pattern: String5.pipe(optional3),
+  placeholder: String5.pipe(optional3),
+  default: String5.pipe(optional3),
+  options: ArraySchema(Option).pipe(optional3),
+  custom: Boolean3.pipe(optional3)
+}).annotate({ identifier: "Form.StringField" });
+var NumberField = Struct({
+  ...FieldBase,
+  type: Literal2("number"),
+  minimum: Number5.pipe(optional3),
+  maximum: Number5.pipe(optional3),
+  default: Number5.pipe(optional3)
+}).annotate({ identifier: "Form.NumberField" });
+var IntegerField = Struct({
+  ...FieldBase,
+  type: Literal2("integer"),
+  minimum: Number5.pipe(optional3),
+  maximum: Number5.pipe(optional3),
+  default: Number5.pipe(optional3)
+}).annotate({ identifier: "Form.IntegerField" });
+var BooleanField = Struct({
+  ...FieldBase,
+  type: Literal2("boolean"),
+  default: Boolean3.pipe(optional3)
+}).annotate({ identifier: "Form.BooleanField" });
+var MultiselectField = Struct({
+  ...FieldBase,
+  type: Literal2("multiselect"),
+  options: ArraySchema(Option),
+  minItems: NonNegativeInt.pipe(optional3),
+  maxItems: NonNegativeInt.pipe(optional3),
+  custom: Boolean3.pipe(optional3),
+  default: ArraySchema(String5).pipe(optional3)
+}).annotate({ identifier: "Form.MultiselectField" });
+var ExternalField = Struct({
+  key: String5,
+  type: Literal2("external"),
+  url: String5,
+  title: String5.pipe(optional3),
+  description: String5.pipe(optional3)
+}).annotate({ identifier: "Form.ExternalField" });
+var Field = Union2([
+  StringField,
+  NumberField,
+  IntegerField,
+  BooleanField,
+  MultiselectField,
+  ExternalField
+]).pipe(toTaggedUnion("type"), annotate2({ identifier: "Form.Field" }));
+var Fields = NonEmptyArray(Field).annotate({ identifier: "Form.Fields" });
+var InfoBase = {
+  id: ID3,
+  sessionID: String5,
+  title: String5,
+  metadata: Metadata.pipe(optional3)
+};
+var Info3 = Struct({
+  ...InfoBase,
+  fields: Fields
+}).annotate({ identifier: "Form.Info" });
+var Value2 = Union2([String5, Number5, Boolean3, ArraySchema(String5)]).annotate({
+  identifier: "Form.Value"
+});
+var Answer = Record(String5, Value2).annotate({ identifier: "Form.Answer" });
+var State = Union2([
+  Struct({ status: Literal2("pending") }),
+  Struct({ status: Literal2("answered"), answer: Answer }),
+  Struct({ status: Literal2("cancelled"), message: String5.pipe(optional3) })
+]).pipe(toTaggedUnion("status")).annotate({ identifier: "Form.State" });
+var Detail = Struct({
+  ...Info3.fields,
+  state: State
+}).annotate({ identifier: "Form.Detail" });
+var Reply = Struct({
+  answer: Answer
+}).annotate({ identifier: "Form.Reply" });
+var Created = ephemeral({ type: "form.created", schema: { form: Info3 } });
+var Replied = ephemeral({ type: "form.replied", schema: { id: ID3, sessionID: String5, answer: Answer } });
+var Cancelled = ephemeral({ type: "form.cancelled", schema: { id: ID3, sessionID: String5 } });
+var Event2 = { Created, Replied, Cancelled, Definitions: inventory(Created, Replied, Cancelled) };
+
+// node_modules/@opencode/schema/dist/integration.js
+var ID4 = IntegrationID;
+var MethodID = IntegrationMethodID;
+var OAuthMethod = Struct({
+  id: MethodID,
+  type: Literal2("oauth"),
+  label: String5,
+  form: optional3(Fields)
+}).annotate({ identifier: "Integration.OAuthMethod" });
+var CommandMethod = Struct({
+  id: MethodID,
+  type: Literal2("command"),
+  label: String5,
+  command: ArraySchema(String5)
+}).annotate({ identifier: "Integration.CommandMethod" });
+var KeyMethod = Struct({
+  type: Literal2("key"),
+  label: optional3(String5),
+  form: optional3(Fields)
+}).annotate({ identifier: "Integration.KeyMethod" });
+var ExternalMethod = Struct({
+  id: MethodID,
+  type: Literal2("external"),
+  label: String5,
+  form: optional3(Fields)
+}).annotate({ identifier: "Integration.ExternalMethod" });
+var EnvMethod = Struct({
+  type: Literal2("env"),
+  names: ArraySchema(String5)
+}).annotate({ identifier: "Integration.EnvMethod" });
+var Method = Union2([OAuthMethod, CommandMethod, KeyMethod, ExternalMethod, EnvMethod]).pipe(toTaggedUnion("type")).annotate({ identifier: "Integration.Method" });
+var Updated2 = ephemeral({
+  type: "integration.updated",
+  schema: {}
+});
+var Event3 = { Updated: Updated2, Definitions: inventory(Updated2) };
+var Ref2 = Struct({
+  id: ID4,
+  name: String5,
+  metadata: optional3(Record(String5, Any2))
+}).annotate({ identifier: "Integration.Ref" });
+var Info4 = Struct({
+  id: ID4,
+  name: String5,
+  metadata: optional3(Record(String5, Any2)),
+  methods: ArraySchema(Method),
+  connections: ArraySchema(Info2)
+}).annotate({ identifier: "Integration.Info" });
+var AttemptID = String5.pipe(brand("Integration.AttemptID"), annotate2({ identifier: "Integration.AttemptID" }), statics((schema) => ({ create: () => schema.make("con_" + ascending()) })));
+var AttemptTime = Struct({
+  created: Number5,
+  expires: Number5
+});
+
+class Attempt extends Class3("Integration.Attempt")({
+  attemptID: AttemptID,
+  url: String5,
+  instructions: String5,
+  mode: Literals(["auto", "code"]),
+  paste: optionalKey2(Literal2(true)),
+  time: AttemptTime
+}) {
+}
+var AttemptStatus = Union2([
+  Struct({ status: Literal2("pending"), time: AttemptTime }),
+  Struct({ status: Literal2("complete"), time: AttemptTime }),
+  Struct({ status: Literal2("failed"), message: String5, time: AttemptTime }),
+  Struct({ status: Literal2("expired"), time: AttemptTime })
+]).pipe(toTaggedUnion("status")).annotate({ identifier: "Integration.AttemptStatus" });
+var CommandAttempt = Struct({
+  attemptID: AttemptID,
+  time: AttemptTime
+}).annotate({ identifier: "Integration.CommandAttempt" });
+var CommandAttemptStatus = Union2([
+  Struct({ status: Literal2("pending"), message: optional3(String5), time: AttemptTime }),
+  Struct({ status: Literal2("complete"), time: AttemptTime }),
+  Struct({ status: Literal2("failed"), message: String5, time: AttemptTime }),
+  Struct({ status: Literal2("expired"), time: AttemptTime })
+]).pipe(toTaggedUnion("status")).annotate({ identifier: "Integration.CommandAttemptStatus" });
+
+// node_modules/@opencode/schema/dist/model-compatibility.js
+var ReasoningField = Union2([
+  Literals(["reasoning", "reasoning_content", "reasoning_text"]),
+  String5
+]).annotate({ identifier: "Model.ReasoningField" });
+var MaxTokensField = Literals(["max_completion_tokens", "max_tokens"]).annotate({
+  identifier: "Model.MaxTokensField"
+});
+var MediaInput = Literals(["assets", "state", "root"]).annotate({
+  identifier: "Model.MediaInput"
+});
+var CacheFormat = Literals(["anthropic", "alibaba"]).annotate({ identifier: "Model.CacheFormat" });
+var Compatibility = Struct({
+  reasoningField: ReasoningField.pipe(optional3),
+  requireReasoning: Boolean3.pipe(optional3),
+  maxTokensField: MaxTokensField.pipe(optional3),
+  requireFinishReason: Boolean3.pipe(optional3),
+  requireAssistantAfterTool: Boolean3.pipe(optional3),
+  supportsPromptCacheKey: Boolean3.pipe(optional3),
+  streamUsage: Boolean3.pipe(optional3),
+  cacheFormat: CacheFormat.pipe(optional3),
+  supportsThinkingBlockBinding: Boolean3.pipe(optional3),
+  supportsEffortUpdates: Boolean3.pipe(optional3),
+  mediaInput: MediaInput.pipe(optional3)
+}).annotate({ identifier: "Model.Compatibility" });
+var ProviderCompatibility = Struct(omit(Compatibility.fields, ["supportsThinkingBlockBinding", "supportsEffortUpdates"])).annotate({ identifier: "Provider.Compatibility" });
+
+// node_modules/@opencode/schema/dist/provider.js
+var ID5 = String5.pipe(brand("Provider.ID"), annotate2({ identifier: "Provider.ID" }), statics((schema) => ({
+  opencode: schema.make("opencode"),
+  anthropic: schema.make("anthropic"),
+  openai: schema.make("openai"),
+  google: schema.make("google"),
+  googleVertex: schema.make("google-vertex"),
+  githubCopilot: schema.make("github-copilot"),
+  claudeAgent: schema.make("claude-agent"),
+  amazonBedrock: schema.make("amazon-bedrock"),
+  azure: schema.make("azure"),
+  openrouter: schema.make("openrouter"),
+  mistral: schema.make("mistral"),
+  gitlab: schema.make("gitlab")
+})));
+var Updated3 = ephemeral({ type: "provider.updated", schema: {} });
+var Event4 = { Updated: Updated3, Definitions: inventory(Updated3) };
+var Package = String5;
+var Activation = Literals(["auto", "enabled", "disabled"]);
+var Compaction = Union2([
+  Struct({ type: Literal2("summary") }),
+  Struct({ type: Literal2("native") })
+]).pipe(toTaggedUnion("type")).annotate({ identifier: "Provider.Compaction" });
+var Transport = Literals(["http", "websocket"]).annotate({ identifier: "Provider.Transport" });
+var CacheTTL = TemplateLiteral2([Number5, Literals(["ms", "s", "m", "h", "d"])]).check(isPattern2(/^\d+(ms|s|m|h|d)$/)).annotate({ identifier: "Provider.CacheTTL" });
+var CacheWarming = Union2([
+  Boolean3,
+  Struct({
+    interval: Union2([Literal2("auto"), String5]).pipe(optional3).annotate({ description: `Duration such as "4 minutes", or "auto" (default) for 90% of the model's cache.ttl` }),
+    duration: String5.pipe(optional3).annotate({ description: 'Duration such as "30 minutes"' })
+  })
+]).annotate({ identifier: "Provider.CacheWarming" });
+var Cache = Struct({
+  ttl: CacheTTL.pipe(optional3),
+  warming: CacheWarming.pipe(optional3)
+}).annotate({ identifier: "Provider.Cache" });
+var Encoding2 = Literals(["zstd", "gzip", "none"]).annotate({ identifier: "Provider.Encoding" });
+var Timeout = Union2([Finite, Literal2(false)]).pipe(optional3);
+var Settings = StructWithRest(Struct({
+  timeout: Timeout,
+  headerTimeout: Timeout,
+  chunkTimeout: Timeout,
+  compaction: Compaction.pipe(optional3),
+  cache: Cache.pipe(optional3),
+  transport: Transport.pipe(optional3),
+  encoding: Encoding2.pipe(optional3)
+}), [Record(String5, Any2)]).annotate({ identifier: "Provider.Settings" });
+var Overlays = {
+  settings: Settings.pipe(optional3),
+  headers: Record(String5, String5).pipe(optional3),
+  body: Record(String5, Any2).pipe(optional3)
+};
+var Request = Struct({
+  settings: Settings.pipe(withConstructorDefault2(succeed5({}))),
+  headers: Record(String5, String5),
+  body: Record(String5, Any2)
+}).annotate({ identifier: "Provider.Request" });
+var Info5 = Struct({
+  id: ID5,
+  canonical: ID5.pipe(optional3),
+  integrationID: ID4.pipe(optional3),
+  name: String5,
+  activation: Activation,
+  package: Package,
+  compatibility: ProviderCompatibility.pipe(optional3),
+  ...Overlays
+}).annotate({ identifier: "Provider.Info" }).pipe(statics(() => ({
+  empty: (id) => ({ id, name: id, activation: "auto", package: "" })
+})));
+// node_modules/@opencode/schema/dist/money.js
+var USD = Finite.pipe(brand("Money.USD"), annotate2({ identifier: "Money.USD" }), statics((schema) => ({ zero: schema.make(0) })));
+var USDPerMillionTokens = Finite.pipe(brand("Money.USDPerMillionTokens"), annotate2({ identifier: "Money.USDPerMillionTokens" }), statics((schema) => ({ zero: schema.make(0) })));
+
+// node_modules/@opencode/schema/dist/model.js
+var ID6 = String5.pipe(brand("Model.ID"));
+var Updated4 = ephemeral({ type: "model.updated", schema: {} });
+var Event5 = { Updated: Updated4, Definitions: inventory(Updated4) };
+var VariantID = String5.pipe(brand("Model.VariantID"));
+var Ref3 = Struct({
+  id: ID6,
+  providerID: ID5,
+  variant: VariantID.pipe(optional3)
+}).annotate({ identifier: "Model.Ref" }).pipe(statics((schema) => ({
+  parse: (input) => {
+    const providerEnd = input.indexOf("/");
+    if (providerEnd <= 0)
+      throw new Error(`Invalid model reference: ${input}`);
+    const providerID = input.slice(0, providerEnd);
+    const variantStart = input.indexOf("#", providerEnd + 1);
+    const id = input.slice(providerEnd + 1, variantStart === -1 ? undefined : variantStart);
+    const variant = variantStart === -1 ? undefined : input.slice(variantStart + 1);
+    if (!id || providerID.includes("#") || variant !== undefined && (!variant || variant.includes("#")))
+      throw new Error(`Invalid model reference: ${input}`);
+    return schema.make({
+      providerID: ID5.make(providerID),
+      id: ID6.make(id),
+      ...variant ? { variant: VariantID.make(variant) } : {}
+    });
+  }
+})));
+var Family = String5.pipe(brand("Model.Family"));
+var Type = Union2([
+  Literals(["chat", "decision", "image"]),
+  String5
+]).annotate({ identifier: "Model.Type" });
+var Settings2 = StructWithRest(Struct(pick(Settings.schema.fields, ["compaction", "cache", "encoding"])), [Record(String5, Any2)]).annotate({ identifier: "Model.Settings" });
+var VariantSettings = StructWithRest(Struct(omit(Settings2.schema.fields, ["cache"])), Settings2.records).annotate({ identifier: "Model.VariantSettings" });
+var Overlays2 = {
+  settings: Settings2.pipe(optional3),
+  headers: Record(String5, String5).pipe(optional3),
+  body: Record(String5, Any2).pipe(optional3)
+};
+var Capabilities = Struct({
+  tools: Boolean3,
+  input: ArraySchema(String5),
+  output: ArraySchema(String5),
+  temperature: Boolean3.pipe(optional3)
+}).annotate({ identifier: "Model.Capabilities" }).pipe(statics(() => ({
+  default: () => ({ tools: true, input: ["text", "image"], output: ["text"] })
+})));
+var Cost = Struct({
+  tier: Struct({
+    type: tag("context"),
+    size: Int
+  }).pipe(optional3),
+  input: USDPerMillionTokens,
+  output: USDPerMillionTokens,
+  cache: Struct({
+    read: USDPerMillionTokens,
+    write: USDPerMillionTokens
+  })
+}).annotate({ identifier: "Model.Cost" });
+var Variant = Struct({
+  id: VariantID,
+  ...Overlays2,
+  settings: VariantSettings.pipe(optional3)
+}).annotate({ identifier: "Model.Variant" });
+var Info6 = Struct({
+  id: ID6,
+  modelID: ID6,
+  providerID: ID5,
+  canonical: ID5.pipe(optional3),
+  type: Type.pipe(optional3),
+  family: Family.pipe(optional3),
+  name: String5,
+  compatibility: Compatibility.pipe(optional3),
+  package: Package.pipe(optional3),
+  ...Overlays2,
+  capabilities: Capabilities,
+  variants: ArraySchema(Variant),
+  time: Struct({
+    released: Finite
+  }),
+  cost: ArraySchema(Cost),
+  status: Literals(["alpha", "beta", "deprecated", "active"]),
+  enabled: Boolean3,
+  limit: Struct({
+    context: Int,
+    input: Int.pipe(optional3),
+    output: Int
+  })
+}).annotate({ identifier: "Model.Info" }).pipe(statics(() => ({
+  default: (providerID, id) => ({
+    id,
+    modelID: id,
+    providerID,
+    name: id,
+    capabilities: Capabilities.default(),
+    variants: [],
+    time: { released: 0 },
+    cost: [],
+    status: "active",
+    enabled: true,
+    limit: { context: 200000, output: 32000 }
+  })
+})));
+// node_modules/@opencode/schema/dist/session-id.js
+var SessionID = String5.check(isStartingWith("ses")).pipe(brand("SessionID"), annotate2({ identifier: "Session.ID" }), statics((schema) => ({
+  create: () => schema.make("ses_" + descending())
+})));
+
+// node_modules/@opencode/schema/dist/permission.js
+var ID7 = String5.check(isStartingWith("per")).pipe(brand("Permission.ID"), annotate2({ identifier: "Permission.ID" }), statics((schema) => ({ create: (id) => schema.make(id ?? "per_" + ascending()) })));
+var Source = Union2([
+  Struct({
+    type: Literal2("tool"),
+    messageID: String5,
+    id: String5
+  })
+]).annotate({ identifier: "Permission.Source" });
+var RequestFields = {
+  sessionID: SessionID,
+  action: String5,
+  resources: ArraySchema(String5),
+  save: ArraySchema(String5).pipe(optional3),
+  metadata: Record(String5, Unknown2).pipe(optional3),
+  source: Source.pipe(optional3),
+  message: String5.pipe(optional3)
+};
+var Request2 = Struct({
+  id: ID7,
+  ...RequestFields
+}).annotate({ identifier: "Permission.Request" });
+var Reply2 = Literals(["once", "always", "reject"]).annotate({ identifier: "Permission.Reply" });
+var Asked = ephemeral({ type: "permission.asked", schema: Request2.fields });
+var Replied2 = ephemeral({
+  type: "permission.replied",
+  schema: {
+    sessionID: SessionID,
+    requestID: ID7,
+    reply: Reply2
+  }
+});
+var Event6 = { Asked, Replied: Replied2, Definitions: inventory(Asked, Replied2) };
+var Effect = Literals(["allow", "deny", "ask"]).annotate({ identifier: "Permission.Effect" });
+var Rule = Struct({
+  action: String5,
+  resource: String5,
+  effect: Effect
+}).annotate({ identifier: "Permission.Rule" });
+var Ruleset = ArraySchema(Rule).annotate({ identifier: "Permission.Ruleset" });
+
+// node_modules/@opencode/schema/dist/agent.js
+var Updated5 = ephemeral({ type: "agent.updated", schema: {} });
+var ID8 = String5.pipe(brand("Agent.ID"), annotate2({ identifier: "Agent.ID" }));
+var Name = String5.pipe(brand("Agent.Name"));
+var Color = String5.annotate({ identifier: "Agent.Color" });
+var Info7 = Struct({
+  id: ID8,
+  name: Name,
+  model: Ref3.pipe(optional3),
+  request: Request,
+  system: String5.pipe(optional3),
+  description: String5.pipe(optional3),
+  mode: Literals(["subagent", "primary", "all"]),
+  hidden: Boolean3,
+  color: Color.pipe(optional3),
+  steps: PositiveInt.pipe(optional3),
+  permissions: Ruleset
+}).annotate({ identifier: "Agent.Info" }).pipe(statics(() => ({
+  default: (id) => ({
+    id,
+    name: Name.make(id),
+    request: { settings: {}, headers: {}, body: {} },
+    mode: "primary",
+    hidden: false,
+    permissions: [
+      { action: "*", resource: "*", effect: "allow" },
+      { action: "read", resource: "*.env", effect: "ask" },
+      { action: "read", resource: "*.env.*", effect: "ask" },
+      { action: "read", resource: "*.env.example", effect: "allow" }
+    ]
+  })
+})));
+var Event7 = {
+  Updated: Updated5,
+  Definitions: inventory(Updated5)
+};
+// node_modules/@opencode/schema/dist/artifact.js
+var ID9 = String5.check(isStartingWith("art_")).pipe(brand("Artifact.ID"), annotate2({ identifier: "Artifact.ID" }), statics((schema) => ({
+  create: () => schema.make("art_" + ascending())
+})));
+var ProviderID = Trim.check(isNonEmpty()).pipe(brand("Artifact.ProviderID"), annotate2({ identifier: "Artifact.ProviderID" }));
+var Capability = Literals(["static", "server-code", "sqlite", "durable-objects"]).annotate({
+  identifier: "Artifact.Capability"
+});
+var Provider = Struct({
+  id: ProviderID,
+  name: String5,
+  capabilities: ArraySchema(Capability),
+  default: Boolean3
+}).annotate({ identifier: "Artifact.Provider" });
+var Time = Struct({
+  created: Finite,
+  updated: Finite
+}).annotate({ identifier: "Artifact.Time" });
+var Info8 = Struct({
+  id: ID9,
+  provider: ProviderID,
+  sessionID: SessionID.pipe(optional3),
+  title: String5,
+  entry: String5,
+  url: String5,
+  time: Time
+}).annotate({ identifier: "Artifact.Info" });
+var Content = Struct({
+  info: Info8,
+  files: Record(String5, String5)
+}).annotate({ identifier: "Artifact.Content" });
+var CreateInput2 = Struct({
+  title: String5,
+  files: Record(String5, String5),
+  entry: String5.pipe(optional3),
+  provider: ProviderID.pipe(optional3),
+  sessionID: SessionID.pipe(optional3)
+}).annotate({ identifier: "Artifact.CreateInput" });
+var UpdateInput = Struct({
+  title: String5.pipe(optional3),
+  files: Record(String5, String5),
+  entry: String5.pipe(optional3),
+  sessionID: SessionID.pipe(optional3)
+}).annotate({ identifier: "Artifact.UpdateInput" });
+var Updated6 = ephemeral({
+  type: "artifact.updated",
+  schema: {}
+});
+var Event8 = { Updated: Updated6, Definitions: inventory(Updated6) };
+// node_modules/@opencode/schema/dist/command.js
+var Updated7 = ephemeral({ type: "command.updated", schema: {} });
+var Info9 = Struct({
+  name: String5,
+  description: String5.pipe(optional3)
+}).annotate({ identifier: "Command.Info" });
+var Event9 = {
+  Updated: Updated7,
+  Definitions: inventory(Updated7)
+};
+// node_modules/@opencode/schema/dist/mcp.js
+class TimeoutConfig extends Class3("Mcp.TimeoutConfig")({
+  startup: PositiveInt.pipe(optional3).annotate({
+    description: "Maximum time in milliseconds to establish and initialize the MCP server."
+  }),
+  catalog: PositiveInt.pipe(optional3).annotate({
+    description: "Maximum time in milliseconds to wait for MCP discovery requests such as tools/list and prompts/list."
+  }),
+  execution: PositiveInt.pipe(optional3).annotate({
+    description: "Maximum time in milliseconds to wait for MCP tool and prompt execution."
+  })
+}) {
+}
+var Protocol = Literals(["legacy", "auto", "2026-07-28"]).annotate({
+  identifier: "Mcp.Protocol",
+  description: 'MCP protocol negotiation. "legacy" (default) opens with the initialize handshake and speaks protocol revisions up to 2025-11-25. "auto" probes for the 2026-07-28 revision and falls back to legacy when the server does not support it. "2026-07-28" requires that revision and fails otherwise.'
+});
+
+class LocalConfig extends Class3("Mcp.LocalConfig")({
+  type: Literal2("local"),
+  command: String5.pipe(ArraySchema),
+  cwd: String5.pipe(optional3).annotate({
+    description: "Working directory for the MCP server process. Relative paths resolve from the workspace directory."
+  }),
+  environment: Record(String5, String5).pipe(optional3),
+  disabled: Boolean3.pipe(optional3),
+  codemode: Boolean3.pipe(optional3).annotate({
+    description: "Expose this server's tools through Code Mode. Defaults to true."
+  }),
+  timeout: TimeoutConfig.pipe(optional3),
+  protocol: Protocol.pipe(optional3),
+  pool: Boolean3.pipe(optional3).annotate({
+    description: 'Share one connection to this server across every directory that configures it identically, instead of one per directory. Only connections that negotiate the 2026-07-28 revision are shared; an unset "protocol" becomes "auto", and "legacy" never shares. Defaults to false.'
+  })
+}) {
+}
+
+class OAuthConfig extends Class3("Mcp.OAuthConfig")({
+  client_id: String5.pipe(optional3),
+  client_secret: String5.pipe(optional3),
+  scope: String5.pipe(optional3),
+  callback_port: Int.check(isBetween({ minimum: 1, maximum: 65535 })).pipe(optional3),
+  redirect_uri: String5.pipe(optional3),
+  auth_server_metadata_url: String5.pipe(optional3).annotate({
+    description: "URL of the OAuth or OpenID Connect authorization server metadata document. Set when the MCP server does not publish protected resource metadata that names its authorization server."
+  })
+}) {
+}
+
+class RemoteConfig extends Class3("Mcp.RemoteConfig")({
+  type: Literal2("remote"),
+  url: String5,
+  headers: Record(String5, String5).pipe(optional3),
+  oauth: Union2([OAuthConfig, Literal2(false)]).pipe(optional3),
+  disabled: Boolean3.pipe(optional3),
+  codemode: Boolean3.pipe(optional3).annotate({
+    description: "Expose this server's tools through Code Mode. Defaults to true."
+  }),
+  timeout: TimeoutConfig.pipe(optional3),
+  protocol: Protocol.pipe(optional3),
+  pool: Boolean3.pipe(optional3).annotate({
+    description: 'Share one connection to this server across every directory that configures it identically, instead of one per directory. Only connections that negotiate the 2026-07-28 revision are shared; an unset "protocol" becomes "auto", and "legacy" never shares. Defaults to false.'
+  })
+}) {
+}
+var ServerConfig = Union2([LocalConfig, RemoteConfig]).pipe(toTaggedUnion("type"));
+var Connected = Struct({ status: Literal2("connected") }).annotate({
+  identifier: "Mcp.Status.Connected"
+});
+var Pending = Struct({ status: Literal2("pending") }).annotate({
+  identifier: "Mcp.Status.Pending"
+});
+var Disabled = Struct({ status: Literal2("disabled") }).annotate({
+  identifier: "Mcp.Status.Disabled"
+});
+var Failed = Struct({ status: Literal2("failed"), error: String5 }).annotate({
+  identifier: "Mcp.Status.Failed"
+});
+var NeedsAuth = Struct({ status: Literal2("needs_auth"), error: String5 }).annotate({
+  identifier: "Mcp.Status.NeedsAuth"
+});
+var Status2 = Union2([Connected, Pending, Disabled, Failed, NeedsAuth]).pipe(toTaggedUnion("status"));
+var Server = Struct({
+  name: String5,
+  status: Status2,
+  title: optional3(String5),
+  integrationID: optional3(IntegrationID)
+}).annotate({ identifier: "Mcp.Server" });
+var Resource = Struct({
+  server: String5,
+  name: String5,
+  uri: String5,
+  description: optional3(String5),
+  mimeType: optional3(String5)
+}).annotate({ identifier: "Mcp.Resource" });
+var ResourceTemplate = Struct({
+  server: String5,
+  name: String5,
+  uriTemplate: String5,
+  description: optional3(String5),
+  mimeType: optional3(String5)
+}).annotate({ identifier: "Mcp.ResourceTemplate" });
+var ResourceCatalog = Struct({
+  resources: ArraySchema(Resource),
+  templates: ArraySchema(ResourceTemplate)
+}).annotate({ identifier: "Mcp.ResourceCatalog" });
+var ResourceContentPart = Union2([
+  Struct({
+    type: Literal2("text"),
+    uri: String5,
+    text: String5,
+    mimeType: optional3(String5)
+  }),
+  Struct({
+    type: Literal2("blob"),
+    uri: String5,
+    blob: String5,
+    mimeType: optional3(String5)
+  })
+]).pipe(toTaggedUnion("type"), annotate2({ identifier: "Mcp.ResourceContentPart" }));
+var ResourceContent = Struct({
+  server: String5,
+  uri: String5,
+  contents: ArraySchema(ResourceContentPart)
+}).annotate({ identifier: "Mcp.ResourceContent" });
+// node_modules/@opencode/schema/dist/pty.js
+var IDSchema2 = String5.check(isStartingWith("pty")).pipe(brand("PtyID"), annotate2({ identifier: "Pty.ID" }));
+var ID10 = IDSchema2.pipe(statics((schema) => {
+  const create = () => schema.make("pty_" + ascending());
+  return {
+    create,
+    ascending: (id) => id === undefined ? create() : schema.make(id)
+  };
+}));
+var Info10 = Struct({
+  id: ID10,
+  title: String5,
+  command: String5,
+  args: ArraySchema(String5),
+  cwd: String5,
+  status: Literals(["running", "exited"]),
+  pid: NonNegativeInt,
+  exitCode: optional3(NonNegativeInt)
+}).annotate({ identifier: "Pty" });
+var Created2 = ephemeral({ type: "pty.created", schema: { info: Info10 } });
+var Updated8 = ephemeral({ type: "pty.updated", schema: { info: Info10 } });
+var Exited = ephemeral({ type: "pty.exited", schema: { id: ID10, exitCode: NonNegativeInt } });
+var Deleted = ephemeral({ type: "pty.deleted", schema: { id: ID10 } });
+var Event10 = { Created: Created2, Updated: Updated8, Exited, Deleted, Definitions: inventory(Created2, Updated8, Exited, Deleted) };
+var CreateInput3 = Struct({
+  command: optional3(String5),
+  args: optional3(ArraySchema(String5)),
+  cwd: optional3(String5),
+  title: optional3(String5),
+  env: optional3(Record(String5, String5))
+});
+var UpdateInput2 = Struct({
+  title: optional3(String5),
+  size: optional3(Struct({
+    rows: PositiveInt,
+    cols: PositiveInt
+  }))
+});
+// node_modules/@opencode/schema/dist/project.js
+var ID11 = ProjectID;
+var Vcs = String5.check(isPattern2(/^[a-z][a-z0-9._-]*$/u)).annotate({
+  identifier: "Project.Vcs"
+});
+var Current = Struct({
+  id: ID11,
+  directory: AbsolutePath,
+  canonical: AbsolutePath
+}).annotate({ identifier: "Project.Current" });
+var Icon = Struct({
+  url: optional3(String5),
+  override: optional3(String5),
+  color: optional3(String5)
+}).annotate({ identifier: "Project.Icon" });
+var Commands = Struct({
+  start: optional3(String5.annotate({ description: "Startup script to run when creating a new workspace (worktree)" }))
+}).annotate({ identifier: "Project.Commands" });
+var Time2 = Struct({
+  created: NonNegativeInt,
+  updated: NonNegativeInt,
+  active: NonNegativeInt,
+  archived: optional3(NonNegativeInt)
+}).annotate({ identifier: "Project.Time" });
+var Info11 = Struct({
+  id: ID11,
+  canonical: AbsolutePath,
+  vcs: optional3(Vcs),
+  name: optional3(String5),
+  icon: optional3(Icon),
+  commands: optional3(Commands),
+  time: Time2,
+  sandboxes: ArraySchema(String5)
+}).annotate({ identifier: "Project" });
+var UpdateInput3 = Struct({
+  projectID: ID11,
+  canonical: optional3(AbsolutePath),
+  name: optional3(String5),
+  icon: optional3(Icon),
+  commands: optional3(Commands)
+}).annotate({ identifier: "Project.UpdateInput" });
+var Updated9 = ephemeral({ type: "project.updated", schema: Info11.fields });
+var Event11 = { Updated: Updated9, Definitions: inventory(Updated9) };
+// node_modules/@opencode/schema/dist/llm.js
+var FinishReason = Literals(["stop", "length", "tool-calls", "content-filter", "error", "unknown"]);
+// node_modules/@opencode/schema/dist/tool.js
+var CallID = String5.pipe(brand("Tool.CallID"));
+
+class Error4 extends TaggedError3()("Tool.Error", {
+  message: String5,
+  error: optional2(Defect()),
+  metadata: optional2(Record(String5, Unknown2))
+}) {
+}
+var TextContent = Struct({
+  type: Literal2("text"),
+  text: String5
+}).annotate({ identifier: "Tool.TextContent" });
+var FileContent = Struct({
+  type: Literal2("file"),
+  uri: String5,
+  mime: String5,
+  name: optional2(String5)
+}).annotate({ identifier: "Tool.FileContent" });
+var Content2 = Union2([TextContent, FileContent]).pipe(toTaggedUnion("type")).annotate({ identifier: "Tool.Content" });
+
+// node_modules/@opencode/schema/dist/session-metadata.js
+var SessionMetadata = Record(String5, Json2).annotate({
+  identifier: "Session.Metadata"
+});
+// node_modules/@opencode/schema/dist/skill.js
+var ID12 = String5.pipe(brand("Skill.ID"), annotate2({ identifier: "Skill.ID" }));
+var Name2 = String5.pipe(brand("Skill.Name"), annotate2({ identifier: "Skill.Name" }));
+var DirectorySource = Struct({
+  type: tag("directory"),
+  path: AbsolutePath
+}).annotate({ identifier: "Skill.DirectorySource" });
+var UrlSource = Struct({
+  type: tag("url"),
+  url: String5
+}).annotate({ identifier: "Skill.UrlSource" });
+var Info12 = Struct({
+  id: ID12,
+  name: Name2,
+  description: String5.pipe(optional3),
+  autoinvoke: Boolean3.pipe(optional3),
+  path: AbsolutePath,
+  content: String5
+}).annotate({ identifier: "Skill.Info" });
+var Updated10 = ephemeral({ type: "skill.updated", schema: {} });
+var Event12 = { Updated: Updated10, Definitions: inventory(Updated10) };
+var EmbeddedSource = Struct({
+  type: tag("embedded"),
+  skill: suspend3(() => Info12)
+}).annotate({ identifier: "Skill.EmbeddedSource" });
+var Source2 = Object.assign(Union2([DirectorySource, UrlSource, EmbeddedSource]).pipe(toTaggedUnion("type"), annotate2({ identifier: "Skill.Source" })), {
+  equals: (a, b) => {
+    if (a.type !== b.type)
+      return false;
+    if (a.type === "directory" && b.type === "directory")
+      return a.path === b.path;
+    if (a.type === "url" && b.type === "url")
+      return a.url === b.url;
+    if (a.type === "embedded" && b.type === "embedded")
+      return a.skill.id === b.skill.id;
+    return false;
+  },
+  key: (source) => source.type === "directory" ? `directory:${source.path}` : source.type === "url" ? `url:${source.url}` : `embedded:${source.skill.id}`
+});
+
+// node_modules/@opencode/schema/dist/prompt.js
+var PromptMention = Struct({
+  start: Finite,
+  end: Finite,
+  text: String5
+}).annotate({ identifier: "Prompt.Mention" });
+var FileSource = Union2([
+  Struct({ type: Literal2("inline") }),
+  Struct({ type: Literal2("uri"), uri: String5 })
+]).pipe(toTaggedUnion("type")).annotate({ identifier: "Prompt.FileSource" });
+var Base64 = String5.check(makeFilter2((value) => value.length % 4 === 0 && /^[A-Za-z0-9+/]*={0,2}$/u.test(value), isPattern2(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u).annotations)).annotate({ identifier: "Prompt.Base64" });
+var FileAttachment = Struct({
+  data: Base64,
+  mime: String5,
+  source: FileSource,
+  name: String5.pipe(optional3),
+  description: String5.pipe(optional3),
+  mention: PromptMention.pipe(optional3)
+}).annotate({ identifier: "Prompt.FileAttachment" }).pipe(statics((schema) => ({
+  create: (input) => schema.make({
+    data: input.data,
+    mime: input.mime,
+    source: input.source,
+    name: input.name,
+    description: input.description,
+    mention: input.mention
+  })
+})));
+var MediaRef = String5.check(isPattern2(/^media:[0-9a-f]{64}$/)).annotate({
+  identifier: "Prompt.MediaRef"
+});
+var { data: _, ...fileAttachmentFields } = FileAttachment.fields;
+var MediaFileAttachment = Struct({
+  ...fileAttachmentFields,
+  uri: MediaRef,
+  bytes: Int.pipe(optional3),
+  width: Int.pipe(optional3),
+  height: Int.pipe(optional3)
+}).annotate({ identifier: "Prompt.MediaFileAttachment" });
+var Attachment = Union2([FileAttachment, MediaFileAttachment]).annotate({
+  identifier: "Prompt.Attachment"
+});
+var AgentAttachment = Struct({
+  name: String5,
+  mention: PromptMention.pipe(optional3)
+}).annotate({ identifier: "Prompt.AgentAttachment" });
+var SkillAttachment = Struct({
+  id: ID12,
+  name: Name2,
+  text: String5.pipe(optional3),
+  mention: PromptMention.pipe(optional3)
+}).annotate({ identifier: "Prompt.SkillAttachment" });
+var Prompt = Struct({
+  text: String5,
+  files: ArraySchema(FileAttachment).pipe(optional3),
+  agents: ArraySchema(AgentAttachment).pipe(optional3),
+  skills: ArraySchema(SkillAttachment).pipe(optional3)
+}).annotate({ identifier: "Prompt" }).pipe(statics((schema) => ({
+  equivalence: toEquivalence2(schema),
+  fromUserMessage: (input) => schema.make({
+    text: input.text,
+    ...input.files === undefined ? {} : { files: input.files },
+    ...input.agents === undefined ? {} : { agents: input.agents },
+    ...input.skills === undefined ? {} : { skills: input.skills }
+  })
+})));
+// node_modules/@opencode/schema/dist/shell.js
+var IDSchema3 = String5.check(isStartingWith("sh_")).pipe(brand("Shell.ID"), annotate2({ identifier: "Shell.ID" }));
+var ID13 = IDSchema3.pipe(statics((schema) => {
+  const create = () => schema.make("sh_" + ascending());
+  return {
+    create,
+    ascending: (id) => id === undefined ? create() : schema.make(id)
+  };
+}));
+var Status3 = Literals(["running", "exited", "timeout", "killed"]);
+var Time3 = Struct({
+  started: Finite.annotate({ description: "Start time in milliseconds since the Unix epoch" }),
+  completed: optional3(Finite).annotate({
+    description: "Completion time in milliseconds since the Unix epoch"
+  })
+});
+var Metadata2 = Record(String5, Unknown2);
+var Info13 = Struct({
+  id: ID13,
+  status: Status3,
+  command: String5,
+  cwd: String5,
+  shell: String5,
+  file: String5,
+  pid: optional3(NonNegativeInt),
+  exit: optional3(Finite),
+  signal: optional3(String5),
+  metadata: Metadata2,
+  time: Time3
+}).annotate({ identifier: "Shell.Info" });
+var Created3 = ephemeral({ type: "shell.created", schema: { info: Info13 } });
+var Exited2 = ephemeral({ type: "shell.exited", schema: { id: ID13, exit: optional3(Finite), status: Status3 } });
+var Deleted2 = ephemeral({ type: "shell.deleted", schema: { id: ID13 } });
+var Event13 = { Created: Created3, Exited: Exited2, Deleted: Deleted2, Definitions: inventory(Created3, Exited2, Deleted2) };
+var CreateInput4 = Struct({
+  command: String5,
+  cwd: optional3(String5),
+  timeout: optional3(NonNegativeInt),
+  metadata: optional3(Metadata2)
+});
+var OutputInput = Struct({
+  cursor: optional3(NonNegativeInt),
+  limit: optional3(NonNegativeInt)
+});
+var Output = Struct({
+  output: String5,
+  cursor: NonNegativeInt,
+  size: NonNegativeInt,
+  truncated: Boolean3
+});
+// node_modules/@opencode/schema/dist/session-error.js
+var Error5 = Struct({
+  type: String5,
+  message: String5,
+  status: Int.check(isBetween({ minimum: 100, maximum: 599 })).pipe(optional3),
+  response: Struct({ body: String5 }).pipe(optional3),
+  retryAfterMs: NonNegativeInt.pipe(optional3)
+}).annotate({ identifier: "Session.StructuredError" });
+// node_modules/@opencode/schema/dist/snapshot.js
+var ID14 = String5.pipe(brand("Snapshot.ID"), annotate2({ identifier: "Snapshot.ID" }));
+// node_modules/@opencode/schema/dist/token-usage.js
+var Info14 = Struct({
+  input: Finite,
+  output: Finite,
+  reasoning: Finite,
+  cache: Struct({
+    read: Finite,
+    write: Finite
+  })
+}).annotate({ identifier: "TokenUsage.Info" });
+
+// node_modules/@opencode/schema/dist/session-message.js
+var ID15 = String5.check(isStartingWith("msg_")).pipe(brand("Session.Message.ID"), annotate2({ identifier: "Session.Message.ID" }), statics((schema) => ({
+  create: () => schema.make("msg_" + ascending()),
+  fromEvent: (eventID) => schema.make(eventID.replace(/^evt_/, "msg_"))
+})));
+var Base = {
+  id: ID15,
+  metadata: Record(String5, Unknown2).pipe(optional3),
+  time: Struct({ created: DateTimeUtcFromMillis })
+};
+var Native = Record(String5, Unknown2).annotate({
+  identifier: "Session.Message.Native"
+});
+var AgentSelected = Struct({
+  ...Base,
+  type: tag("agent-switched"),
+  agent: ID8,
+  previous: ID8.pipe(optional3)
+}).annotate({ identifier: "Session.Message.AgentSelected" });
+var ModelSelected = Struct({
+  ...Base,
+  type: tag("model-switched"),
+  model: Ref3,
+  previous: Ref3.pipe(optional3)
+}).annotate({ identifier: "Session.Message.ModelSelected" });
+var LocationSwitched = Struct({
+  ...Base,
+  type: tag("location-switched"),
+  location: Ref,
+  projectID: ID11.pipe(optional3),
+  subpath: RelativePath.pipe(optional3),
+  previous: Struct({
+    location: Ref,
+    projectID: ID11.pipe(optional3),
+    subpath: RelativePath.pipe(optional3)
+  }).pipe(optional3)
+}).annotate({ identifier: "Session.Message.LocationSwitched" });
+var User = Struct({
+  ...Base,
+  text: Prompt.fields.text,
+  files: Prompt.fields.files,
+  agents: Prompt.fields.agents,
+  skills: Prompt.fields.skills,
+  type: tag("user")
+}).annotate({ identifier: "Session.Message.User" });
+var MediaUser = Struct({
+  ...User.fields,
+  files: ArraySchema(Attachment).pipe(optional3)
+}).annotate({ identifier: "Session.Message.MediaUser" });
+var Synthetic = Struct({
+  ...Base,
+  text: String5,
+  description: String5.pipe(optional3),
+  type: tag("synthetic")
+}).annotate({ identifier: "Session.Message.Synthetic" });
+var System = Struct({
+  ...Base,
+  type: tag("system"),
+  text: String5,
+  description: String5.pipe(optional3)
+}).annotate({ identifier: "Session.Message.System" });
+var Skill = Struct({
+  ...Base,
+  type: tag("skill"),
+  skill: ID12,
+  name: Name2,
+  text: String5
+}).annotate({ identifier: "Session.Message.Skill" });
+var Shell = Struct({
+  ...Base,
+  type: tag("shell"),
+  shellID: ID13,
+  command: String5,
+  status: Status3,
+  exit: Number5.pipe(optional3),
+  output: Output.pipe(optional3),
+  time: Struct({
+    created: DateTimeUtcFromMillis,
+    completed: DateTimeUtcFromMillis.pipe(optional3)
+  })
+}).annotate({ identifier: "Session.Message.Shell" });
+var ToolStateStreaming = Struct({
+  status: tag("streaming"),
+  input: String5
+}).annotate({ identifier: "Session.Message.ToolState.Streaming" });
+var ToolStateRunning = Struct({
+  status: tag("running"),
+  input: Record(String5, Unknown2),
+  metadata: Record(String5, Json2)
+}).annotate({ identifier: "Session.Message.ToolState.Running" });
+var ToolStateCompleted = Struct({
+  status: tag("completed"),
+  input: Record(String5, Unknown2),
+  content: NonEmptyArray(Content2),
+  metadata: Record(String5, Json2).pipe(optional3)
+}).annotate({ identifier: "Session.Message.ToolState.Completed" });
+var ToolStateError = Struct({
+  status: tag("error"),
+  input: Record(String5, Unknown2),
+  error: Error5,
+  content: NonEmptyArray(Content2).pipe(optional3),
+  metadata: Record(String5, Json2).pipe(optional3)
+}).annotate({ identifier: "Session.Message.ToolState.Error" });
+var ToolState = Union2([ToolStateStreaming, ToolStateRunning, ToolStateCompleted, ToolStateError]).pipe(toTaggedUnion("status"));
+var AssistantTool = Struct({
+  type: tag("tool"),
+  id: String5,
+  name: String5,
+  executed: Boolean3.pipe(optional3),
+  native: Native.pipe(optional3),
+  state: ToolState,
+  time: Struct({
+    created: DateTimeUtcFromMillis,
+    ran: DateTimeUtcFromMillis.pipe(optional3),
+    completed: DateTimeUtcFromMillis.pipe(optional3)
+  })
+}).annotate({ identifier: "Session.Message.Assistant.Tool" });
+var AssistantText = Struct({
+  type: tag("text"),
+  text: String5,
+  native: Native.pipe(optional3)
+}).annotate({ identifier: "Session.Message.Assistant.Text" });
+var AssistantReasoning = Struct({
+  type: tag("reasoning"),
+  text: String5,
+  native: Native.pipe(optional3),
+  time: Struct({
+    created: DateTimeUtcFromMillis,
+    completed: DateTimeUtcFromMillis.pipe(optional3)
+  }).pipe(optional3)
+}).annotate({ identifier: "Session.Message.Assistant.Reasoning" });
+var AssistantContent = Union2([AssistantText, AssistantReasoning, AssistantTool]).pipe(toTaggedUnion("type"));
+var AssistantContentEncoded = toEncoded2(AssistantContent).annotate({
+  identifier: "Session.Message.AssistantContent.Encoded"
+});
+var AssistantRetry = Struct({
+  attempt: PositiveInt,
+  at: DateTimeUtcFromMillis,
+  error: Error5
+}).annotate({ identifier: "Session.Message.Assistant.Retry" });
+var Assistant = Struct({
+  ...Base,
+  type: tag("assistant"),
+  agent: ID8,
+  model: Ref3,
+  content: AssistantContent.pipe(ArraySchema),
+  snapshot: Struct({
+    start: ID14.pipe(optional3),
+    end: ID14.pipe(optional3),
+    files: ArraySchema(RelativePath).pipe(optional3)
+  }).pipe(optional3),
+  finish: FinishReason.pipe(optional3),
+  rawFinish: String5.pipe(optional3),
+  native: Native.pipe(optional3),
+  cost: USD.pipe(optional3),
+  tokens: Info14.pipe(optional3),
+  error: Error5.pipe(optional3),
+  retry: AssistantRetry.pipe(optional3),
+  time: Struct({
+    created: DateTimeUtcFromMillis,
+    streamed: DateTimeUtcFromMillis.pipe(optional3),
+    completed: DateTimeUtcFromMillis.pipe(optional3)
+  })
+}).annotate({ identifier: "Session.Message.Assistant" });
+var CompactionBase = { type: tag("compaction"), ...Base };
+var CompactionUsage = {
+  cost: USD.pipe(optional3),
+  tokens: Info14.pipe(optional3)
+};
+var CompactionRunning = Struct({
+  ...CompactionBase,
+  status: tag("running"),
+  reason: Literals(["auto", "manual"]),
+  summary: String5
+}).annotate({ identifier: "Session.Message.Compaction.Running" });
+var CompactionCompleted = Struct({
+  ...CompactionBase,
+  status: tag("completed"),
+  reason: Literals(["auto", "manual"]),
+  model: Ref3.pipe(optional3),
+  native: Native.pipe(optional3),
+  summary: String5,
+  ...CompactionUsage
+}).annotate({ identifier: "Session.Message.Compaction.Completed" });
+var CompactionFailed = Struct({
+  ...CompactionBase,
+  status: tag("failed"),
+  reason: Literals(["auto", "manual"]),
+  error: Error5,
+  ...CompactionUsage
+}).annotate({ identifier: "Session.Message.Compaction.Failed" });
+var Compaction2 = Union2([CompactionRunning, CompactionCompleted, CompactionFailed]).pipe(toTaggedUnion("status"), annotate2({ identifier: "Session.Message.Compaction" }));
+var Idle = Struct({
+  ...Base,
+  type: tag("idle"),
+  outcome: Literals(["succeeded", "failed", "interrupted"]),
+  error: Error5.pipe(optional3)
+}).annotate({ identifier: "Session.Message.Idle" });
+var Info15 = Union2([
+  AgentSelected,
+  ModelSelected,
+  LocationSwitched,
+  User,
+  Synthetic,
+  System,
+  Skill,
+  Shell,
+  Assistant,
+  Compaction2,
+  Idle
+]).annotate({ identifier: "Session.Message.Info" });
+var MediaInfo = Union2([
+  AgentSelected,
+  ModelSelected,
+  LocationSwitched,
+  MediaUser,
+  Synthetic,
+  System,
+  Skill,
+  Shell,
+  Assistant,
+  Compaction2,
+  Idle
+]).annotate({ identifier: "Session.Message.MediaInfo" });
+// node_modules/@opencode/schema/dist/file-diff.js
+var Info16 = Struct({
+  file: String5,
+  patch: String5,
+  additions: NonNegativeInt,
+  deletions: NonNegativeInt,
+  status: Literals(["added", "deleted", "modified"]),
+  more: Literal2(true).pipe(optional3)
+}).annotate({ identifier: "FileDiff.Info" });
+var LegacyInfo = Struct({
+  file: String5.pipe(optional3),
+  patch: String5.pipe(optional3),
+  additions: Finite,
+  deletions: Finite,
+  status: Literals(["added", "deleted", "modified"]).pipe(optional3)
+}).annotate({ identifier: "FileDiff.LegacyInfo" });
+
+// node_modules/@opencode/schema/dist/session-revert.js
+var Revert = Struct({
+  messageID: ID15,
+  partID: String5.pipe(optional3),
+  snapshot: ID14.pipe(optional3),
+  files: ArraySchema(Info16).pipe(optional3)
+}).annotate({ identifier: "Session.Revert" });
+var FileDiffV1 = Struct({
+  path: String5,
+  status: Literals(["added", "modified", "deleted"]),
+  additions: Finite,
+  deletions: Finite,
+  patch: String5
+});
+var RevertV1 = Struct({
+  messageID: ID15,
+  partID: String5.pipe(optional3),
+  snapshot: String5.pipe(optional3),
+  diff: String5.pipe(optional3),
+  files: ArraySchema(FileDiffV1).pipe(optional3)
+}).annotate({ identifier: "Session.RevertV1" });
+var PersistedCurrent = Revert.pipe(decodeTo2(Struct({ source: tag("current"), revert: toType2(Revert) }), transform2({
+  decode: (revert) => ({
+    source: "current",
+    revert
+  }),
+  encode: (value) => value.revert
+})));
+var PersistedLegacy = RevertV1.pipe(decodeTo2(Struct({ source: tag("legacy"), revert: toType2(RevertV1) }), transform2({
+  decode: (revert) => ({
+    source: "legacy",
+    revert
+  }),
+  encode: (value) => value.revert
+})));
+var PersistedRevert = Union2([PersistedCurrent, PersistedLegacy]).pipe(toTaggedUnion("source"), decodeTo2(toType2(Revert), transform2({
+  decode: (persisted) => {
+    if (persisted.source === "current")
+      return persisted.revert;
+    return Revert.make({
+      messageID: persisted.revert.messageID,
+      partID: persisted.revert.partID,
+      snapshot: persisted.revert.snapshot ? ID14.make(persisted.revert.snapshot) : undefined,
+      files: persisted.revert.files?.map((file) => ({
+        file: file.path,
+        status: file.status,
+        additions: file.additions,
+        deletions: file.deletions,
+        patch: file.patch
+      }))
+    });
+  },
+  encode: (revert) => ({
+    source: "current",
+    revert
+  })
+})), annotate2({ identifier: "Session.Revert.Persisted" }));
+// node_modules/@opencode/schema/dist/instruction.js
+var Key2 = String5.check(isPattern2(/^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._/-]*$/u)).pipe(brand("Instruction.Key"), annotate2({ identifier: "Instruction.Key" }));
+var Hash = String5.check(isPattern2(/^[a-f0-9]{64}$/u)).pipe(brand("Instruction.Hash"), annotate2({ identifier: "Instruction.Hash" }));
+var Values = Record(Key2, Hash);
+var Removed = Literal2("removed");
+var removed = Removed.make("removed");
+var Delta = Record(String5, Union2([Hash, Removed]));
+// node_modules/@opencode/schema/dist/instruction-entry.js
+var Key3 = String5.check(isPattern2(/^[a-z0-9][a-z0-9._-]*$/u)).annotate({
+  identifier: "InstructionEntry.Key",
+  description: "Instruction entry key (lowercase alphanumerics plus . _ -)"
+});
+var Info17 = Struct({
+  key: Key3,
+  value: Json2.annotate({ description: "JSON value attached to the session's instructions" })
+}).annotate({ identifier: "InstructionEntry.Info" });
+var Snapshot = ArraySchema(Struct({
+  ...Info17.fields,
+  removed: Boolean3
+})).annotate({ identifier: "InstructionEntry.Snapshot" });
+var MaxValueBytes = 256 * 1024;
+
+class ValueTooLargeError extends TaggedError3()("InstructionEntryValueTooLargeError", {
+  actualBytes: Int,
+  maxBytes: Int,
+  message: String5
+}, { httpApiStatus: 413 }) {
+}
+// node_modules/@opencode/schema/dist/session-inbox.js
+var Delivery = Literals(["steer", "queue"]).annotate({ identifier: "Session.Inbox.Delivery" });
+var UserPayload = Struct({
+  ...Prompt.fields,
+  metadata: Record(String5, Unknown2).pipe(optional3)
+}).annotate({ identifier: "Session.Inbox.UserPayload" });
+var MediaUserPayload = Struct({
+  ...UserPayload.fields,
+  files: ArraySchema(Attachment).pipe(optional3)
+}).annotate({ identifier: "Session.Inbox.MediaUserPayload" });
+var SyntheticPayload = Struct({
+  text: String5,
+  description: String5.pipe(optional3),
+  metadata: Record(String5, Unknown2).pipe(optional3)
+}).annotate({ identifier: "Session.Inbox.SyntheticPayload" });
+var CompactionPayload = Struct({}).annotate({ identifier: "Session.Inbox.CompactionPayload" });
+var MovePayload = Struct({
+  location: Ref,
+  projectID: ID11,
+  subpath: RelativePath.pipe(optional3)
+}).annotate({ identifier: "Session.Inbox.MovePayload" });
+var UserItem = Struct({ type: tag("user"), payload: UserPayload, delivery: Delivery });
+var SyntheticItem = Struct({ type: tag("synthetic"), payload: SyntheticPayload, delivery: Delivery });
+var CompactionItem = Struct({
+  type: tag("compaction"),
+  payload: CompactionPayload,
+  delivery: Delivery
+});
+var MoveItem = Struct({ type: tag("move"), payload: MovePayload, delivery: Delivery });
+var Item = Union2([UserItem, SyntheticItem, CompactionItem, MoveItem]).pipe(toTaggedUnion("type"), annotate2({ identifier: "Session.Inbox.Item" }));
+var Enqueued = {
+  id: ID15,
+  sessionID: SessionID,
+  time: Struct({ created: DateTimeUtcFromMillis })
+};
+var User2 = Struct({ ...Enqueued, ...UserItem.fields }).annotate({ identifier: "Session.Inbox.User" });
+var MediaUser2 = Struct({ ...User2.fields, payload: MediaUserPayload }).annotate({
+  identifier: "Session.Inbox.MediaUser"
+});
+var Synthetic2 = Struct({ ...Enqueued, ...SyntheticItem.fields }).annotate({
+  identifier: "Session.Inbox.Synthetic"
+});
+var Compaction3 = Struct({ ...Enqueued, ...CompactionItem.fields }).annotate({
+  identifier: "Session.Inbox.Compaction"
+});
+var Move = Struct({ ...Enqueued, ...MoveItem.fields }).annotate({ identifier: "Session.Inbox.Move" });
+var Info18 = Union2([User2, Synthetic2, Compaction3, Move]).pipe(toTaggedUnion("type"), annotate2({ identifier: "Session.Inbox.Info" }));
+var MediaInfo2 = Union2([MediaUser2, Synthetic2, Compaction3, Move]).pipe(toTaggedUnion("type"), annotate2({ identifier: "Session.Inbox.MediaInfo" }));
+// node_modules/@opencode/schema/dist/session-fork.js
+var Boundary = Union2([
+  Struct({ type: Literal2("before"), messageID: ID15 }),
+  Struct({ type: Literal2("through"), messageID: ID15 })
+]).annotate({ identifier: "Session.ForkBoundary" });
+
+// node_modules/@opencode/schema/dist/session-event.js
+var Base2 = {
+  sessionID: SessionID
+};
+var options = {
+  durable: {
+    aggregate: "sessionID",
+    version: 1
+  }
+};
+var Created4 = durable({
+  type: "session.created",
+  ...options,
+  schema: {
+    ...Base2,
+    projectID: ID11,
+    location: Ref,
+    subpath: RelativePath.pipe(optional3),
+    parentID: SessionID.pipe(optional3),
+    slug: String5,
+    title: String5.pipe(optional3),
+    agent: ID8.pipe(optional3),
+    model: Ref3.pipe(optional3),
+    metadata: SessionMetadata.pipe(optional3),
+    permissions: Ruleset.pipe(optional3),
+    version: String5
+  }
+});
+var AgentSelected2 = durable({
+  type: "session.agent.selected",
+  ...options,
+  schema: {
+    ...Base2,
+    agent: ID8,
+    previous: ID8.pipe(optional3)
+  }
+});
+var ModelSelected2 = durable({
+  type: "session.model.selected",
+  ...options,
+  schema: {
+    ...Base2,
+    model: Ref3,
+    previous: Ref3.pipe(optional3)
+  }
+});
+var Moved = durable({
+  type: "session.moved",
+  ...options,
+  schema: {
+    ...Base2,
+    ...MovePayload.fields
+  }
+});
+var Renamed = durable({
+  type: "session.renamed",
+  ...options,
+  schema: {
+    ...Base2,
+    title: String5
+  }
+});
+var MetadataUpdated = durable({
+  type: "session.metadata.updated",
+  ...options,
+  schema: {
+    ...Base2,
+    metadata: SessionMetadata
+  }
+});
+var Permissions = durable({
+  type: "session.permissions",
+  ...options,
+  schema: {
+    ...Base2,
+    permissions: Ruleset
+  }
+});
+var Viewed = durable({
+  type: "session.viewed",
+  ...options,
+  schema: {
+    ...Base2,
+    idle: Finite
+  }
+});
+var Archived = durable({
+  type: "session.archived",
+  ...options,
+  schema: Base2
+});
+var Unarchived = durable({
+  type: "session.unarchived",
+  ...options,
+  schema: Base2
+});
+var MessageContentUpdated = durable({
+  type: "session.message.content.updated",
+  ...options,
+  schema: {
+    ...Base2,
+    messageID: ID15,
+    content: ArraySchema(AssistantContentEncoded)
+  }
+});
+var UsageRecorded = durable({
+  type: "session.usage.recorded",
+  ...options,
+  schema: {
+    ...Base2,
+    source: Literals(["title", "compaction", "generate"]),
+    cost: USD,
+    tokens: Info14
+  }
+});
+var UsageUpdated = ephemeral({
+  type: "session.usage.updated",
+  schema: {
+    ...Base2,
+    cost: USD,
+    tokens: Info14
+  }
+});
+var Deleted3 = durable({
+  type: "session.deleted",
+  durable: {
+    aggregate: "sessionID",
+    version: 2
+  },
+  schema: Base2
+});
+var Forked = durable({
+  type: "session.forked",
+  durable: {
+    aggregate: "sessionID",
+    version: 2
+  },
+  schema: {
+    ...Base2,
+    parentID: SessionID,
+    boundary: Boundary,
+    instructions: Values.pipe(optional3),
+    instructionEntries: Snapshot.pipe(optional3)
+  }
+});
+var InboxRef = {
+  ...Base2,
+  inboxID: ID15
+};
+var InboxDelivered = durable({
+  type: "session.inbox.delivered",
+  ...options,
+  schema: InboxRef
+});
+var InboxEnqueued = durable({
+  type: "session.inbox.enqueued",
+  ...options,
+  schema: {
+    ...InboxRef,
+    item: Item
+  }
+});
+var InboxCancelled = durable({
+  type: "session.inbox.cancelled",
+  ...options,
+  schema: InboxRef
+});
+var InboxDeliveryChanged = durable({
+  type: "session.inbox.delivery.changed",
+  ...options,
+  schema: { ...InboxRef, delivery: Delivery }
+});
+var Execution;
+(function(Execution) {
+  Execution.Started = durable({ type: "session.execution.started", ...options, schema: Base2 });
+  Execution.Succeeded = durable({ type: "session.execution.succeeded", ...options, schema: Base2 });
+  Execution.Failed = durable({
+    type: "session.execution.failed",
+    ...options,
+    schema: { ...Base2, error: Error5 }
+  });
+  Execution.Interrupted = durable({
+    type: "session.execution.interrupted",
+    ...options,
+    schema: { ...Base2, reason: Literals(["user", "shutdown", "superseded", "inactivity"]) }
+  });
+})(Execution || (Execution = {}));
+var InstructionsUpdated = durable({
+  type: "session.instructions.updated",
+  durable: {
+    aggregate: "sessionID",
+    version: 2
+  },
+  schema: {
+    ...Base2,
+    delta: Delta,
+    text: String5.pipe(optional3)
+  }
+});
+var Synthetic3 = durable({
+  type: "session.synthetic",
+  ...options,
+  schema: {
+    ...Base2,
+    text: String5,
+    description: String5.pipe(optional3),
+    metadata: Record(String5, Unknown2).pipe(optional3)
+  }
+});
+var Skill2;
+(function(Skill) {
+  Skill.Activated = durable({
+    type: "session.skill.activated",
+    ...options,
+    schema: {
+      ...Base2,
+      id: ID12,
+      name: Name2,
+      text: String5
+    }
+  });
+})(Skill2 || (Skill2 = {}));
+var Shell2;
+(function(Shell) {
+  Shell.Started = durable({
+    type: "session.shell.started",
+    ...options,
+    schema: {
+      ...Base2,
+      shell: Info13
+    }
+  });
+  Shell.Ended = durable({
+    type: "session.shell.ended",
+    ...options,
+    schema: {
+      ...Base2,
+      shell: Info13,
+      output: Output
+    }
+  });
+})(Shell2 || (Shell2 = {}));
+var Step;
+(function(Step) {
+  Step.Started = durable({
+    type: "session.step.started",
+    ...options,
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15,
+      agent: ID8,
+      model: Ref3,
+      snapshot: ID14.pipe(optional3),
+      started: NonNegativeInt
+    }
+  });
+  Step.Streamed = durable({
+    type: "session.step.streamed",
+    ...options,
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15
+    }
+  });
+  Step.Ended = durable({
+    type: "session.step.ended",
+    ...options,
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15,
+      finish: FinishReason,
+      rawFinish: String5.pipe(optional3),
+      native: Native.pipe(optional3),
+      cost: USD,
+      tokens: Info14,
+      snapshot: ID14.pipe(optional3),
+      files: ArraySchema(RelativePath).pipe(optional3)
+    }
+  });
+  Step.Failed = durable({
+    type: "session.step.failed",
+    ...options,
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15,
+      error: Error5,
+      finish: Literals(["content-filter"]).pipe(optional3),
+      rawFinish: String5.pipe(optional3),
+      native: Native.pipe(optional3),
+      cost: USD.pipe(optional3),
+      tokens: Info14.pipe(optional3),
+      snapshot: ID14.pipe(optional3),
+      files: ArraySchema(RelativePath).pipe(optional3)
+    }
+  });
+})(Step || (Step = {}));
+var Text;
+(function(Text) {
+  Text.Started = durable({
+    type: "session.text.started",
+    ...options,
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15,
+      ordinal: NonNegativeInt
+    }
+  });
+  Text.Delta = ephemeral({
+    type: "session.text.delta",
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15,
+      ordinal: NonNegativeInt,
+      delta: String5
+    }
+  });
+  Text.Ended = durable({
+    type: "session.text.ended",
+    ...options,
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15,
+      ordinal: NonNegativeInt,
+      text: String5,
+      native: Native.pipe(optional3)
+    }
+  });
+})(Text || (Text = {}));
+var Reasoning;
+(function(Reasoning) {
+  Reasoning.Started = durable({
+    type: "session.reasoning.started",
+    ...options,
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15,
+      ordinal: NonNegativeInt,
+      native: Native.pipe(optional3)
+    }
+  });
+  Reasoning.Delta = ephemeral({
+    type: "session.reasoning.delta",
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15,
+      ordinal: NonNegativeInt,
+      delta: String5
+    }
+  });
+  Reasoning.Ended = durable({
+    type: "session.reasoning.ended",
+    ...options,
+    schema: {
+      ...Base2,
+      assistantMessageID: ID15,
+      ordinal: NonNegativeInt,
+      text: String5,
+      native: Native.pipe(optional3)
+    }
+  });
+})(Reasoning || (Reasoning = {}));
+var Tool;
+(function(Tool) {
+  const ToolBase = {
+    ...Base2,
+    assistantMessageID: ID15,
+    id: String5
+  };
+  let Input;
+  (function(Input) {
+    Input.Started = durable({
+      type: "session.tool.input.started",
+      ...options,
+      schema: {
+        ...ToolBase,
+        name: String5
+      }
+    });
+    Input.Delta = ephemeral({
+      type: "session.tool.input.delta",
+      schema: {
+        ...ToolBase,
+        delta: String5
+      }
+    });
+    Input.Ended = durable({
+      type: "session.tool.input.ended",
+      ...options,
+      schema: {
+        ...ToolBase,
+        text: String5
+      }
+    });
+  })(Input = Tool.Input || (Tool.Input = {}));
+  Tool.Called = durable({
+    type: "session.tool.called",
+    ...options,
+    schema: {
+      ...ToolBase,
+      input: Record(String5, Unknown2),
+      executed: Boolean3,
+      native: Native.pipe(optional3)
+    }
+  });
+  Tool.Progress = ephemeral({
+    type: "session.tool.progress",
+    schema: {
+      ...ToolBase,
+      metadata: Record(String5, Json2)
+    }
+  });
+  Tool.Success = durable({
+    type: "session.tool.success",
+    durable: {
+      aggregate: "sessionID",
+      version: 2
+    },
+    schema: {
+      ...ToolBase,
+      content: NonEmptyArray(Content2),
+      metadata: Record(String5, Json2).pipe(optional3),
+      executed: Boolean3,
+      native: Native.pipe(optional3)
+    }
+  });
+  Tool.Failed = durable({
+    type: "session.tool.failed",
+    durable: {
+      aggregate: "sessionID",
+      version: 2
+    },
+    schema: {
+      ...ToolBase,
+      error: Error5,
+      content: NonEmptyArray(Content2).pipe(optional3),
+      metadata: Record(String5, Json2).pipe(optional3),
+      executed: Boolean3,
+      native: Native.pipe(optional3)
+    }
+  });
+})(Tool || (Tool = {}));
+var RetryScheduled = durable({
+  type: "session.retry.scheduled",
+  ...options,
+  schema: {
+    ...Base2,
+    assistantMessageID: ID15,
+    attempt: PositiveInt,
+    at: NonNegativeInt,
+    error: Error5
+  }
+});
+var Compaction4;
+(function(Compaction) {
+  Compaction.Started = durable({
+    type: "session.compaction.started",
+    ...options,
+    schema: {
+      ...Base2,
+      reason: Literals(["auto", "manual"]),
+      inputID: ID15.pipe(optional3)
+    }
+  });
+  Compaction.Delta = ephemeral({
+    type: "session.compaction.delta",
+    schema: {
+      ...Base2,
+      text: String5
+    }
+  });
+  Compaction.Ended = durable({
+    type: "session.compaction.ended",
+    ...options,
+    schema: {
+      ...Base2,
+      reason: Compaction.Started.data.fields.reason,
+      model: CompactionCompleted.fields.model,
+      native: CompactionCompleted.fields.native,
+      text: String5,
+      cost: CompactionCompleted.fields.cost,
+      tokens: CompactionCompleted.fields.tokens
+    }
+  });
+  Compaction.Failed = durable({
+    type: "session.compaction.failed",
+    ...options,
+    schema: {
+      ...Base2,
+      reason: Compaction.Started.data.fields.reason,
+      error: Error5,
+      inputID: ID15.pipe(optional3),
+      cost: CompactionFailed.fields.cost,
+      tokens: CompactionFailed.fields.tokens
+    }
+  });
+})(Compaction4 || (Compaction4 = {}));
+var RevertEvent;
+(function(RevertEvent) {
+  RevertEvent.Staged = durable({
+    type: "session.revert.staged",
+    ...options,
+    schema: { ...Base2, revert: Revert }
+  });
+  RevertEvent.Cleared = durable({ type: "session.revert.cleared", ...options, schema: Base2 });
+  RevertEvent.Committed = durable({
+    type: "session.revert.committed",
+    ...options,
+    schema: { ...Base2, to: ID15 }
+  });
+})(RevertEvent || (RevertEvent = {}));
+var Definitions = inventory(Created4, AgentSelected2, ModelSelected2, Moved, Renamed, MetadataUpdated, Permissions, Viewed, Archived, Unarchived, UsageUpdated, Deleted3, Forked, InboxDelivered, InboxEnqueued, InboxCancelled, InboxDeliveryChanged, Execution.Started, Execution.Succeeded, Execution.Failed, Execution.Interrupted, InstructionsUpdated, Synthetic3, Skill2.Activated, Shell2.Started, Shell2.Ended, Step.Started, Step.Streamed, Step.Ended, Step.Failed, Text.Started, Text.Delta, Text.Ended, Reasoning.Started, Reasoning.Delta, Reasoning.Ended, Tool.Input.Started, Tool.Input.Delta, Tool.Input.Ended, Tool.Called, Tool.Progress, Tool.Success, Tool.Failed, RetryScheduled, Compaction4.Started, Compaction4.Delta, Compaction4.Ended, Compaction4.Failed, RevertEvent.Staged, RevertEvent.Cleared, RevertEvent.Committed);
+var DurableDefinitions = inventory(...Definitions.filter((definition) => definition.durability === "durable"), UsageRecorded, MessageContentUpdated);
+var EphemeralDefinitions = inventory(...Definitions.filter((definition) => definition.durability === "ephemeral"));
+var Durable = Union2(DurableDefinitions, { mode: "oneOf" }).annotate({ identifier: "Session.Event.Durable" }).pipe(toTaggedUnion("type"));
+var All = Union2([Durable, ...EphemeralDefinitions], { mode: "oneOf" }).pipe(toTaggedUnion("type"));
+
+// node_modules/@opencode/schema/dist/session.js
+var ID16 = SessionID;
+var Metadata3 = SessionMetadata;
+var ForkBoundary = Boundary;
+var Info19 = Struct({
+  id: ID16,
+  parentID: ID16.pipe(optional3),
+  fork: Struct({
+    sessionID: ID16,
+    boundary: ForkBoundary
+  }).pipe(optional3),
+  projectID: ID11,
+  agent: ID8.pipe(optional3),
+  model: Ref3.pipe(optional3),
+  cost: USD,
+  tokens: Info14,
+  outcome: Literals(["succeeded", "failed", "interrupted"]).pipe(optional3),
+  time: Struct({
+    created: DateTimeUtcFromMillis,
+    updated: DateTimeUtcFromMillis,
+    busy: DateTimeUtcFromMillis.pipe(optional3),
+    idle: DateTimeUtcFromMillis.pipe(optional3),
+    viewed: DateTimeUtcFromMillis.pipe(optional3),
+    archived: DateTimeUtcFromMillis.pipe(optional3)
+  }),
+  title: String5.pipe(optional3),
+  location: Ref,
+  subpath: RelativePath.pipe(optional3),
+  metadata: Metadata3.pipe(optional3),
+  permissions: Ruleset.pipe(optional3),
+  revert: Revert.pipe(optional3)
+}).annotate({ identifier: "Session.Info" });
+var ListAnchor = Struct({
+  id: ID16,
+  time: Finite,
+  direction: Literals(["previous", "next"])
+}).annotate({ identifier: "Session.ListAnchor" });
+var ListFilterFields = {
+  order: Literals(["asc", "desc"]).pipe(optional2).annotate({
+    description: "Session order for the first page. Use desc for newest first or asc for oldest first."
+  }),
+  search: String5.pipe(optional2),
+  parentID: Union2([
+    ID16,
+    Null2.pipe(encodeTo(Literal2("null"), {
+      decode: transform(() => null),
+      encode: transform(() => "null")
+    }))
+  ]).annotate({ description: "Filter by parent session. Use null to return only root sessions." }).pipe(optional2),
+  archived: Literals(["true", "false"]).pipe(decodeTo2(Boolean3, {
+    decode: transform((value) => value === "true"),
+    encode: transform((value) => value ? "true" : "false")
+  })).annotate({
+    description: "Filter by archive state. Use true to return only archived sessions or false to exclude them. Omit to include both."
+  }).pipe(optional2)
+};
+var ListFilter = Struct({
+  ...ListFilterFields,
+  directory: AbsolutePath.pipe(optional2),
+  project: ID11.pipe(optional2),
+  subpath: RelativePath.pipe(optional2)
+}).annotate({ identifier: "Session.ListFilter" });
+var ListCursorInput = Union2([
+  Struct({ ...ListFilterFields, directory: AbsolutePath, anchor: ListAnchor }),
+  Struct({
+    ...ListFilterFields,
+    project: ID11,
+    subpath: RelativePath.pipe(optional2),
+    anchor: ListAnchor
+  }),
+  Struct({ ...ListFilterFields, anchor: ListAnchor })
+]);
+var ListCursorJson = fromJsonString2(ListCursorInput);
+var encodeListCursor = encodeSync(ListCursorJson);
+var decodeListCursor = decodeUnknownEffect2(ListCursorJson);
+var ListCursor = String5.pipe(brand("SessionsCursor"), annotate2({
+  identifier: "SessionsCursor",
+  description: "Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response."
+}), statics((schema) => {
+  const make = make6(schema);
+  return {
+    make: (input) => make(encode2(encodeListCursor(input))),
+    parse: (input) => suspend2(() => {
+      const result = decodeString(input);
+      return isFailure2(result) ? fail5("Invalid cursor") : decodeListCursor(result.success).pipe(mapError2(() => "Invalid cursor"));
+    })
+  };
+}));
+
+// node_modules/@opencode/schema/dist/persistent-pty.js
+var Info20 = Struct({
+  ...Info10.fields,
+  sessionID: ID16,
+  userTitle: NullOr(String5),
+  foregroundProcess: NullOr(String5),
+  size: Struct({ cols: PositiveInt, rows: PositiveInt }),
+  output: Struct({ head: NonNegativeInt, tail: NonNegativeInt })
+}).annotate({ identifier: "PersistentPty.Info" });
+var Handoff = Struct({
+  directory: String5,
+  instanceID: String5,
+  ticket: String5,
+  expiresAt: Number5
+}).annotate({ identifier: "PersistentPty.Handoff" });
+var CreateInput5 = Struct({
+  command: optional3(String5),
+  args: ArraySchema(String5),
+  cwd: optional3(String5),
+  title: String5,
+  env: Record(String5, String5),
+  size: optional3(Struct({ cols: PositiveInt, rows: PositiveInt }))
+}).annotate({ identifier: "PersistentPty.CreateInput" });
+var UpdateInput4 = Struct({
+  attachmentID: optional3(String5),
+  size: optional3(Struct({ cols: PositiveInt, rows: PositiveInt })),
+  title: optional3(NullOr(String5))
+}).annotate({ identifier: "PersistentPty.UpdateInput" });
+var Snapshot2 = Struct({
+  info: Info20,
+  text: String5,
+  checkpoint: Uint8Array2,
+  cursor: Struct({ x: NonNegativeInt, y: NonNegativeInt })
+}).annotate({ identifier: "PersistentPty.Snapshot" });
+var ReadLines = PositiveInt.check(isLessThanOrEqualTo3(65535)).annotate({
+  identifier: "PersistentPty.ReadLines"
+});
+var ReadResult = Struct({
+  ptyID: ID10,
+  title: String5,
+  cwd: String5,
+  foregroundProcess: NullOr(String5),
+  screen: Struct({
+    text: String5,
+    cols: PositiveInt,
+    rows: PositiveInt,
+    cursor: Snapshot2.fields.cursor
+  })
+}).annotate({ identifier: "PersistentPty.ReadResult" });
+var Added = ephemeral({ type: "persistent-pty.added", schema: { sessionID: ID16, terminal: Info20 } });
+var Removed2 = ephemeral({ type: "persistent-pty.removed", schema: { sessionID: ID16, ptyID: ID10 } });
+var Updated11 = ephemeral({ type: "persistent-pty.updated", schema: { sessionID: ID16, terminal: Info20 } });
+var Event14 = { Added, Removed: Removed2, Updated: Updated11, Definitions: inventory(Added, Removed2, Updated11) };
+// node_modules/@opencode/schema/dist/reference.js
+var Updated12 = ephemeral({ type: "reference.updated", schema: {} });
+var Event15 = { Updated: Updated12, Definitions: inventory(Updated12) };
+var LocalSource = Struct({
+  type: Literal2("local"),
+  path: AbsolutePath,
+  description: String5.pipe(optional3),
+  hidden: Boolean3.pipe(optional3)
+}).annotate({ identifier: "Reference.LocalSource" });
+var GitSource = Struct({
+  type: Literal2("git"),
+  repository: String5,
+  branch: String5.pipe(optional3),
+  description: String5.pipe(optional3),
+  hidden: Boolean3.pipe(optional3)
+}).annotate({ identifier: "Reference.GitSource" });
+var Source3 = Union2([LocalSource, GitSource]).pipe(toTaggedUnion("type")).annotate({ identifier: "Reference.Source" });
+var Info21 = Struct({
+  name: String5,
+  path: AbsolutePath,
+  description: String5.pipe(optional3),
+  hidden: Boolean3.pipe(optional3),
+  source: Source3
+}).annotate({ identifier: "Reference.Info" });
+// node_modules/@opencode/schema/dist/vcs.js
+var Branch = Struct({
+  current: optional3(String5),
+  default: optional3(String5)
+}).annotate({ identifier: "Vcs.Branch" });
+var Info22 = Struct({
+  provider: optional3(String5),
+  branch: Branch
+}).annotate({ identifier: "Vcs.Info" });
+var BranchList = ArraySchema(String5).annotate({ identifier: "Vcs.BranchList" });
+var Base3 = Struct({
+  name: String5,
+  ref: String5,
+  source: Literals(["reflog", "default"])
+}).annotate({ identifier: "Vcs.Base" });
+var Mode = Literals(["working", "branch", "committed"]).annotate({ identifier: "Vcs.Mode" });
+var Untracked = Literals(["files", "folders"]).annotate({ identifier: "Vcs.Untracked" });
+var FileStatus = Struct({
+  file: String5,
+  additions: NonNegativeInt,
+  deletions: NonNegativeInt,
+  status: Literals(["added", "deleted", "modified"])
+}).annotate({ identifier: "Vcs.FileStatus" });
+// node_modules/@opencode/schema/dist/websearch.js
+var ID17 = String5.pipe(brand("WebSearch.ID"), annotate2({ identifier: "WebSearch.ID" }));
+var Provider2 = Struct({
+  id: ID17,
+  name: String5
+}).annotate({ identifier: "WebSearch.Provider" });
+var Input = Struct({
+  query: String5,
+  providerID: ID17.pipe(optional3)
+}).annotate({ identifier: "WebSearch.Input" });
+var Result = Struct({
+  url: String5,
+  title: String5.pipe(optional3),
+  content: String5.pipe(optional3),
+  time: Struct({
+    published: Finite.pipe(optional3).annotate({
+      description: "Publication time in milliseconds since the Unix epoch"
+    })
+  })
+}).annotate({ identifier: "WebSearch.Result" });
+
+class Response extends Class3("WebSearch.Response")({
+  providerID: ID17,
+  results: ArraySchema(Result)
+}) {
+}
+var Updated13 = ephemeral({
+  type: "websearch.updated",
+  schema: {}
+});
+var Event16 = { Updated: Updated13, Definitions: inventory(Updated13) };
+// node_modules/@opencode/schema/dist/worktree.js
+var StrategyID = Trim.pipe(check(isNonEmpty()), brand("Worktree.StrategyID"));
+var CreateInput6 = Struct({
+  projectID: ID11,
+  from: optional3(AbsolutePath),
+  branch: optional3(Trim.pipe(check(isNonEmpty()))),
+  directory: optional3(AbsolutePath).annotate({
+    description: "Parent directory for the new worktree. Uses the project's canonical configuration, then defaults to the server's data directory under worktree/<first six project ID characters>."
+  }),
+  name: optional3(String5)
+}).annotate({ identifier: "Worktree.CreateInput" });
+var RemoveInput = Struct({
+  projectID: ID11,
+  directory: AbsolutePath,
+  force: Boolean3
+}).annotate({ identifier: "Worktree.RemoveInput" });
+var Info23 = Struct({
+  directory: AbsolutePath
+}).annotate({ identifier: "Worktree.Info" });
+var Directory = Struct({
+  directory: AbsolutePath,
+  strategy: optional3(String5)
+}).annotate({ identifier: "Worktree.Directory" });
+var ListEntry = Struct({
+  directory: AbsolutePath,
+  type: Literals(["root", "worktree"])
+}).annotate({ identifier: "Worktree.ListEntry" });
+
+class OperationError extends TaggedError3()("Worktree.OperationError", {
+  message: String5,
+  forceRequired: optional3(Boolean3)
+}) {
+}
+var List = ArraySchema(Directory).annotate({ identifier: "Worktree.List" });
+var Updated14 = ephemeral({
+  type: "worktree.updated",
+  schema: { projectID: ID11 }
+});
+var Resolved = durable({
+  type: "worktree.resolved",
+  durable: { aggregate: "projectID", version: 1 },
+  schema: {
+    projectID: ID11,
+    directory: AbsolutePath,
+    previous: ID11,
+    adopted: optional3(ArraySchema(ID11))
+  }
+});
+var Event17 = { Updated: Updated14, Resolved, Definitions: inventory(Updated14, Resolved) };
 // plugin.ts
 import { randomUUID } from "node:crypto";
-import { appendFileSync } from "node:fs";
-import { existsSync as existsSync2 } from "node:fs";
+import { appendFileSync, existsSync as existsSync2, readFileSync } from "node:fs";
 import { dirname, join as join2 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir as tmpdir2 } from "node:os";
@@ -215,7 +9733,25 @@ var ENV_WHITELIST = [
   "USERNAME",
   "NUMBER_OF_PROCESSORS",
   "PROCESSOR_ARCHITECTURE",
-  "OS"
+  "OS",
+  "XDG_RUNTIME_DIR",
+  "XDG_SESSION_TYPE",
+  "XDG_SESSION_DESKTOP",
+  "XDG_CURRENT_DESKTOP",
+  "WAYLAND_DISPLAY",
+  "DISPLAY",
+  "XAUTHORITY",
+  "DBUS_SESSION_BUS_ADDRESS",
+  "AT_SPI_BUS_ADDRESS",
+  "SWAYSOCK",
+  "I3SOCK",
+  "NIRI_SOCKET",
+  "HYPRLAND_INSTANCE_SIGNATURE",
+  "KDE_FULL_SESSION",
+  "CUA_DRIVER_RS_ENABLE_WAYLAND",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE"
 ];
 function buildChildEnv(extra) {
   const out = {};
@@ -277,6 +9813,7 @@ class McpClient {
   opts;
   crashed = false;
   serverTools = [];
+  serverToolSchemas = {};
   serverInfo = null;
   constructor(transport, opts) {
     this.transport = transport;
@@ -341,7 +9878,9 @@ class McpClient {
     this.serverInfo = result?.serverInfo ?? null;
     this.notify("notifications/initialized");
     const tools = await this.request("tools/list", {}, timeoutMs);
-    this.serverTools = Array.isArray(tools?.tools) ? tools.tools.map((t) => String(t?.name ?? "")).filter(Boolean) : [];
+    const listed = Array.isArray(tools?.tools) ? tools.tools : [];
+    this.serverTools = listed.map((t) => String(t?.name ?? "")).filter(Boolean);
+    this.serverToolSchemas = Object.fromEntries(listed.filter((t) => typeof t?.name === "string").map((t) => [String(t.name), t.inputSchema ?? {}]));
   }
   missingTools(required) {
     return required.filter((t) => !this.serverTools.includes(t));
@@ -450,7 +9989,14 @@ function mapVerdict(f) {
 }
 
 // src/session.ts
-var TELEMETRY_ENV = { CUA_DRIVER_RS_TELEMETRY_ENABLED: "0" };
+function driverEnv(env = process.env) {
+  const out = { CUA_DRIVER_RS_TELEMETRY_ENABLED: "0" };
+  if (env.WAYLAND_DISPLAY && env.CUA_DRIVER_RS_ENABLE_WAYLAND !== "0") {
+    out.CUA_DRIVER_RS_ENABLE_WAYLAND = "1";
+  }
+  return out;
+}
+var TELEMETRY_ENV = driverEnv();
 var REQUIRED_TOOLS = [
   "start_session",
   "end_session",
@@ -530,6 +10076,10 @@ class ComputerSession {
       });
     }
     await this.startPromise;
+  }
+  acceptsArg(tool, arg) {
+    const properties = this.client?.serverToolSchemas[tool]?.properties;
+    return properties ? properties[arg] !== undefined : undefined;
   }
   async call(tool, args, timeoutMs) {
     const run = this.queue.then(() => this.doCall(tool, args, timeoutMs), () => this.doCall(tool, args, timeoutMs));
@@ -620,500 +10170,6 @@ function targetRefusal(sticky, requestedApp) {
   return `input_target_mismatch: this action would go to the current target ${JSON.stringify(mismatch)}, not ${JSON.stringify(requestedApp)} — input always hits the sticky target from the last capture/focus_app. Call capture(app=...) or focus_app first, then retry.`;
 }
 
-// node_modules/zod/v4/classic/external.js
-var exports_external = {};
-__export(exports_external, {
-  xid: () => xid2,
-  void: () => _void2,
-  uuidv7: () => uuidv7,
-  uuidv6: () => uuidv6,
-  uuidv4: () => uuidv4,
-  uuid: () => uuid2,
-  util: () => exports_util,
-  url: () => url,
-  uppercase: () => _uppercase,
-  unknown: () => unknown,
-  union: () => union,
-  undefined: () => _undefined3,
-  ulid: () => ulid2,
-  uint64: () => uint64,
-  uint32: () => uint32,
-  tuple: () => tuple,
-  trim: () => _trim,
-  treeifyError: () => treeifyError,
-  transform: () => transform,
-  toUpperCase: () => _toUpperCase,
-  toLowerCase: () => _toLowerCase,
-  toJSONSchema: () => toJSONSchema,
-  templateLiteral: () => templateLiteral,
-  symbol: () => symbol,
-  superRefine: () => superRefine,
-  success: () => success,
-  stringbool: () => stringbool,
-  stringFormat: () => stringFormat,
-  string: () => string2,
-  strictObject: () => strictObject,
-  startsWith: () => _startsWith,
-  size: () => _size,
-  setErrorMap: () => setErrorMap,
-  set: () => set,
-  safeParseAsync: () => safeParseAsync2,
-  safeParse: () => safeParse2,
-  safeEncodeAsync: () => safeEncodeAsync2,
-  safeEncode: () => safeEncode2,
-  safeDecodeAsync: () => safeDecodeAsync2,
-  safeDecode: () => safeDecode2,
-  registry: () => registry,
-  regexes: () => exports_regexes,
-  regex: () => _regex,
-  refine: () => refine,
-  record: () => record,
-  readonly: () => readonly,
-  property: () => _property,
-  promise: () => promise,
-  prettifyError: () => prettifyError,
-  preprocess: () => preprocess,
-  prefault: () => prefault,
-  positive: () => _positive,
-  pipe: () => pipe,
-  partialRecord: () => partialRecord,
-  parseAsync: () => parseAsync2,
-  parse: () => parse3,
-  overwrite: () => _overwrite,
-  optional: () => optional,
-  object: () => object,
-  number: () => number2,
-  nullish: () => nullish2,
-  nullable: () => nullable,
-  null: () => _null3,
-  normalize: () => _normalize,
-  nonpositive: () => _nonpositive,
-  nonoptional: () => nonoptional,
-  nonnegative: () => _nonnegative,
-  never: () => never,
-  negative: () => _negative,
-  nativeEnum: () => nativeEnum,
-  nanoid: () => nanoid2,
-  nan: () => nan,
-  multipleOf: () => _multipleOf,
-  minSize: () => _minSize,
-  minLength: () => _minLength,
-  mime: () => _mime,
-  maxSize: () => _maxSize,
-  maxLength: () => _maxLength,
-  map: () => map,
-  lte: () => _lte,
-  lt: () => _lt,
-  lowercase: () => _lowercase,
-  looseObject: () => looseObject,
-  locales: () => exports_locales,
-  literal: () => literal,
-  length: () => _length,
-  lazy: () => lazy,
-  ksuid: () => ksuid2,
-  keyof: () => keyof,
-  jwt: () => jwt,
-  json: () => json,
-  iso: () => exports_iso,
-  ipv6: () => ipv62,
-  ipv4: () => ipv42,
-  intersection: () => intersection,
-  int64: () => int64,
-  int32: () => int32,
-  int: () => int,
-  instanceof: () => _instanceof,
-  includes: () => _includes,
-  httpUrl: () => httpUrl,
-  hostname: () => hostname2,
-  hex: () => hex2,
-  hash: () => hash,
-  guid: () => guid2,
-  gte: () => _gte,
-  gt: () => _gt,
-  globalRegistry: () => globalRegistry,
-  getErrorMap: () => getErrorMap,
-  function: () => _function,
-  formatError: () => formatError,
-  float64: () => float64,
-  float32: () => float32,
-  flattenError: () => flattenError,
-  file: () => file,
-  enum: () => _enum2,
-  endsWith: () => _endsWith,
-  encodeAsync: () => encodeAsync2,
-  encode: () => encode2,
-  emoji: () => emoji2,
-  email: () => email2,
-  e164: () => e1642,
-  discriminatedUnion: () => discriminatedUnion,
-  decodeAsync: () => decodeAsync2,
-  decode: () => decode2,
-  date: () => date3,
-  custom: () => custom,
-  cuid2: () => cuid22,
-  cuid: () => cuid3,
-  core: () => exports_core2,
-  config: () => config,
-  coerce: () => exports_coerce,
-  codec: () => codec,
-  clone: () => clone,
-  cidrv6: () => cidrv62,
-  cidrv4: () => cidrv42,
-  check: () => check,
-  catch: () => _catch2,
-  boolean: () => boolean2,
-  bigint: () => bigint2,
-  base64url: () => base64url2,
-  base64: () => base642,
-  array: () => array,
-  any: () => any,
-  _function: () => _function,
-  _default: () => _default2,
-  _ZodString: () => _ZodString,
-  ZodXID: () => ZodXID,
-  ZodVoid: () => ZodVoid,
-  ZodUnknown: () => ZodUnknown,
-  ZodUnion: () => ZodUnion,
-  ZodUndefined: () => ZodUndefined,
-  ZodUUID: () => ZodUUID,
-  ZodURL: () => ZodURL,
-  ZodULID: () => ZodULID,
-  ZodType: () => ZodType,
-  ZodTuple: () => ZodTuple,
-  ZodTransform: () => ZodTransform,
-  ZodTemplateLiteral: () => ZodTemplateLiteral,
-  ZodSymbol: () => ZodSymbol,
-  ZodSuccess: () => ZodSuccess,
-  ZodStringFormat: () => ZodStringFormat,
-  ZodString: () => ZodString,
-  ZodSet: () => ZodSet,
-  ZodRecord: () => ZodRecord,
-  ZodRealError: () => ZodRealError,
-  ZodReadonly: () => ZodReadonly,
-  ZodPromise: () => ZodPromise,
-  ZodPrefault: () => ZodPrefault,
-  ZodPipe: () => ZodPipe,
-  ZodOptional: () => ZodOptional,
-  ZodObject: () => ZodObject,
-  ZodNumberFormat: () => ZodNumberFormat,
-  ZodNumber: () => ZodNumber,
-  ZodNullable: () => ZodNullable,
-  ZodNull: () => ZodNull,
-  ZodNonOptional: () => ZodNonOptional,
-  ZodNever: () => ZodNever,
-  ZodNanoID: () => ZodNanoID,
-  ZodNaN: () => ZodNaN,
-  ZodMap: () => ZodMap,
-  ZodLiteral: () => ZodLiteral,
-  ZodLazy: () => ZodLazy,
-  ZodKSUID: () => ZodKSUID,
-  ZodJWT: () => ZodJWT,
-  ZodIssueCode: () => ZodIssueCode,
-  ZodIntersection: () => ZodIntersection,
-  ZodISOTime: () => ZodISOTime,
-  ZodISODuration: () => ZodISODuration,
-  ZodISODateTime: () => ZodISODateTime,
-  ZodISODate: () => ZodISODate,
-  ZodIPv6: () => ZodIPv6,
-  ZodIPv4: () => ZodIPv4,
-  ZodGUID: () => ZodGUID,
-  ZodFunction: () => ZodFunction,
-  ZodFirstPartyTypeKind: () => ZodFirstPartyTypeKind,
-  ZodFile: () => ZodFile,
-  ZodError: () => ZodError,
-  ZodEnum: () => ZodEnum,
-  ZodEmoji: () => ZodEmoji,
-  ZodEmail: () => ZodEmail,
-  ZodE164: () => ZodE164,
-  ZodDiscriminatedUnion: () => ZodDiscriminatedUnion,
-  ZodDefault: () => ZodDefault,
-  ZodDate: () => ZodDate,
-  ZodCustomStringFormat: () => ZodCustomStringFormat,
-  ZodCustom: () => ZodCustom,
-  ZodCodec: () => ZodCodec,
-  ZodCatch: () => ZodCatch,
-  ZodCUID2: () => ZodCUID2,
-  ZodCUID: () => ZodCUID,
-  ZodCIDRv6: () => ZodCIDRv6,
-  ZodCIDRv4: () => ZodCIDRv4,
-  ZodBoolean: () => ZodBoolean,
-  ZodBigIntFormat: () => ZodBigIntFormat,
-  ZodBigInt: () => ZodBigInt,
-  ZodBase64URL: () => ZodBase64URL,
-  ZodBase64: () => ZodBase64,
-  ZodArray: () => ZodArray,
-  ZodAny: () => ZodAny,
-  TimePrecision: () => TimePrecision,
-  NEVER: () => NEVER,
-  $output: () => $output,
-  $input: () => $input,
-  $brand: () => $brand
-});
-
-// node_modules/zod/v4/core/index.js
-var exports_core2 = {};
-__export(exports_core2, {
-  version: () => version,
-  util: () => exports_util,
-  treeifyError: () => treeifyError,
-  toJSONSchema: () => toJSONSchema,
-  toDotPath: () => toDotPath,
-  safeParseAsync: () => safeParseAsync,
-  safeParse: () => safeParse,
-  safeEncodeAsync: () => safeEncodeAsync,
-  safeEncode: () => safeEncode,
-  safeDecodeAsync: () => safeDecodeAsync,
-  safeDecode: () => safeDecode,
-  registry: () => registry,
-  regexes: () => exports_regexes,
-  prettifyError: () => prettifyError,
-  parseAsync: () => parseAsync,
-  parse: () => parse,
-  locales: () => exports_locales,
-  isValidJWT: () => isValidJWT,
-  isValidBase64URL: () => isValidBase64URL,
-  isValidBase64: () => isValidBase64,
-  globalRegistry: () => globalRegistry,
-  globalConfig: () => globalConfig,
-  formatError: () => formatError,
-  flattenError: () => flattenError,
-  encodeAsync: () => encodeAsync,
-  encode: () => encode,
-  decodeAsync: () => decodeAsync,
-  decode: () => decode,
-  config: () => config,
-  clone: () => clone,
-  _xid: () => _xid,
-  _void: () => _void,
-  _uuidv7: () => _uuidv7,
-  _uuidv6: () => _uuidv6,
-  _uuidv4: () => _uuidv4,
-  _uuid: () => _uuid,
-  _url: () => _url,
-  _uppercase: () => _uppercase,
-  _unknown: () => _unknown,
-  _union: () => _union,
-  _undefined: () => _undefined2,
-  _ulid: () => _ulid,
-  _uint64: () => _uint64,
-  _uint32: () => _uint32,
-  _tuple: () => _tuple,
-  _trim: () => _trim,
-  _transform: () => _transform,
-  _toUpperCase: () => _toUpperCase,
-  _toLowerCase: () => _toLowerCase,
-  _templateLiteral: () => _templateLiteral,
-  _symbol: () => _symbol,
-  _superRefine: () => _superRefine,
-  _success: () => _success,
-  _stringbool: () => _stringbool,
-  _stringFormat: () => _stringFormat,
-  _string: () => _string,
-  _startsWith: () => _startsWith,
-  _size: () => _size,
-  _set: () => _set,
-  _safeParseAsync: () => _safeParseAsync,
-  _safeParse: () => _safeParse,
-  _safeEncodeAsync: () => _safeEncodeAsync,
-  _safeEncode: () => _safeEncode,
-  _safeDecodeAsync: () => _safeDecodeAsync,
-  _safeDecode: () => _safeDecode,
-  _regex: () => _regex,
-  _refine: () => _refine,
-  _record: () => _record,
-  _readonly: () => _readonly,
-  _property: () => _property,
-  _promise: () => _promise,
-  _positive: () => _positive,
-  _pipe: () => _pipe,
-  _parseAsync: () => _parseAsync,
-  _parse: () => _parse,
-  _overwrite: () => _overwrite,
-  _optional: () => _optional,
-  _number: () => _number,
-  _nullable: () => _nullable,
-  _null: () => _null2,
-  _normalize: () => _normalize,
-  _nonpositive: () => _nonpositive,
-  _nonoptional: () => _nonoptional,
-  _nonnegative: () => _nonnegative,
-  _never: () => _never,
-  _negative: () => _negative,
-  _nativeEnum: () => _nativeEnum,
-  _nanoid: () => _nanoid,
-  _nan: () => _nan,
-  _multipleOf: () => _multipleOf,
-  _minSize: () => _minSize,
-  _minLength: () => _minLength,
-  _min: () => _gte,
-  _mime: () => _mime,
-  _maxSize: () => _maxSize,
-  _maxLength: () => _maxLength,
-  _max: () => _lte,
-  _map: () => _map,
-  _lte: () => _lte,
-  _lt: () => _lt,
-  _lowercase: () => _lowercase,
-  _literal: () => _literal,
-  _length: () => _length,
-  _lazy: () => _lazy,
-  _ksuid: () => _ksuid,
-  _jwt: () => _jwt,
-  _isoTime: () => _isoTime,
-  _isoDuration: () => _isoDuration,
-  _isoDateTime: () => _isoDateTime,
-  _isoDate: () => _isoDate,
-  _ipv6: () => _ipv6,
-  _ipv4: () => _ipv4,
-  _intersection: () => _intersection,
-  _int64: () => _int64,
-  _int32: () => _int32,
-  _int: () => _int,
-  _includes: () => _includes,
-  _guid: () => _guid,
-  _gte: () => _gte,
-  _gt: () => _gt,
-  _float64: () => _float64,
-  _float32: () => _float32,
-  _file: () => _file,
-  _enum: () => _enum,
-  _endsWith: () => _endsWith,
-  _encodeAsync: () => _encodeAsync,
-  _encode: () => _encode,
-  _emoji: () => _emoji2,
-  _email: () => _email,
-  _e164: () => _e164,
-  _discriminatedUnion: () => _discriminatedUnion,
-  _default: () => _default,
-  _decodeAsync: () => _decodeAsync,
-  _decode: () => _decode,
-  _date: () => _date,
-  _custom: () => _custom,
-  _cuid2: () => _cuid2,
-  _cuid: () => _cuid,
-  _coercedString: () => _coercedString,
-  _coercedNumber: () => _coercedNumber,
-  _coercedDate: () => _coercedDate,
-  _coercedBoolean: () => _coercedBoolean,
-  _coercedBigint: () => _coercedBigint,
-  _cidrv6: () => _cidrv6,
-  _cidrv4: () => _cidrv4,
-  _check: () => _check,
-  _catch: () => _catch,
-  _boolean: () => _boolean,
-  _bigint: () => _bigint,
-  _base64url: () => _base64url,
-  _base64: () => _base64,
-  _array: () => _array,
-  _any: () => _any,
-  TimePrecision: () => TimePrecision,
-  NEVER: () => NEVER,
-  JSONSchemaGenerator: () => JSONSchemaGenerator,
-  JSONSchema: () => exports_json_schema,
-  Doc: () => Doc,
-  $output: () => $output,
-  $input: () => $input,
-  $constructor: () => $constructor,
-  $brand: () => $brand,
-  $ZodXID: () => $ZodXID,
-  $ZodVoid: () => $ZodVoid,
-  $ZodUnknown: () => $ZodUnknown,
-  $ZodUnion: () => $ZodUnion,
-  $ZodUndefined: () => $ZodUndefined,
-  $ZodUUID: () => $ZodUUID,
-  $ZodURL: () => $ZodURL,
-  $ZodULID: () => $ZodULID,
-  $ZodType: () => $ZodType,
-  $ZodTuple: () => $ZodTuple,
-  $ZodTransform: () => $ZodTransform,
-  $ZodTemplateLiteral: () => $ZodTemplateLiteral,
-  $ZodSymbol: () => $ZodSymbol,
-  $ZodSuccess: () => $ZodSuccess,
-  $ZodStringFormat: () => $ZodStringFormat,
-  $ZodString: () => $ZodString,
-  $ZodSet: () => $ZodSet,
-  $ZodRegistry: () => $ZodRegistry,
-  $ZodRecord: () => $ZodRecord,
-  $ZodRealError: () => $ZodRealError,
-  $ZodReadonly: () => $ZodReadonly,
-  $ZodPromise: () => $ZodPromise,
-  $ZodPrefault: () => $ZodPrefault,
-  $ZodPipe: () => $ZodPipe,
-  $ZodOptional: () => $ZodOptional,
-  $ZodObjectJIT: () => $ZodObjectJIT,
-  $ZodObject: () => $ZodObject,
-  $ZodNumberFormat: () => $ZodNumberFormat,
-  $ZodNumber: () => $ZodNumber,
-  $ZodNullable: () => $ZodNullable,
-  $ZodNull: () => $ZodNull,
-  $ZodNonOptional: () => $ZodNonOptional,
-  $ZodNever: () => $ZodNever,
-  $ZodNanoID: () => $ZodNanoID,
-  $ZodNaN: () => $ZodNaN,
-  $ZodMap: () => $ZodMap,
-  $ZodLiteral: () => $ZodLiteral,
-  $ZodLazy: () => $ZodLazy,
-  $ZodKSUID: () => $ZodKSUID,
-  $ZodJWT: () => $ZodJWT,
-  $ZodIntersection: () => $ZodIntersection,
-  $ZodISOTime: () => $ZodISOTime,
-  $ZodISODuration: () => $ZodISODuration,
-  $ZodISODateTime: () => $ZodISODateTime,
-  $ZodISODate: () => $ZodISODate,
-  $ZodIPv6: () => $ZodIPv6,
-  $ZodIPv4: () => $ZodIPv4,
-  $ZodGUID: () => $ZodGUID,
-  $ZodFunction: () => $ZodFunction,
-  $ZodFile: () => $ZodFile,
-  $ZodError: () => $ZodError,
-  $ZodEnum: () => $ZodEnum,
-  $ZodEncodeError: () => $ZodEncodeError,
-  $ZodEmoji: () => $ZodEmoji,
-  $ZodEmail: () => $ZodEmail,
-  $ZodE164: () => $ZodE164,
-  $ZodDiscriminatedUnion: () => $ZodDiscriminatedUnion,
-  $ZodDefault: () => $ZodDefault,
-  $ZodDate: () => $ZodDate,
-  $ZodCustomStringFormat: () => $ZodCustomStringFormat,
-  $ZodCustom: () => $ZodCustom,
-  $ZodCodec: () => $ZodCodec,
-  $ZodCheckUpperCase: () => $ZodCheckUpperCase,
-  $ZodCheckStringFormat: () => $ZodCheckStringFormat,
-  $ZodCheckStartsWith: () => $ZodCheckStartsWith,
-  $ZodCheckSizeEquals: () => $ZodCheckSizeEquals,
-  $ZodCheckRegex: () => $ZodCheckRegex,
-  $ZodCheckProperty: () => $ZodCheckProperty,
-  $ZodCheckOverwrite: () => $ZodCheckOverwrite,
-  $ZodCheckNumberFormat: () => $ZodCheckNumberFormat,
-  $ZodCheckMultipleOf: () => $ZodCheckMultipleOf,
-  $ZodCheckMinSize: () => $ZodCheckMinSize,
-  $ZodCheckMinLength: () => $ZodCheckMinLength,
-  $ZodCheckMimeType: () => $ZodCheckMimeType,
-  $ZodCheckMaxSize: () => $ZodCheckMaxSize,
-  $ZodCheckMaxLength: () => $ZodCheckMaxLength,
-  $ZodCheckLowerCase: () => $ZodCheckLowerCase,
-  $ZodCheckLessThan: () => $ZodCheckLessThan,
-  $ZodCheckLengthEquals: () => $ZodCheckLengthEquals,
-  $ZodCheckIncludes: () => $ZodCheckIncludes,
-  $ZodCheckGreaterThan: () => $ZodCheckGreaterThan,
-  $ZodCheckEndsWith: () => $ZodCheckEndsWith,
-  $ZodCheckBigIntFormat: () => $ZodCheckBigIntFormat,
-  $ZodCheck: () => $ZodCheck,
-  $ZodCatch: () => $ZodCatch,
-  $ZodCUID2: () => $ZodCUID2,
-  $ZodCUID: () => $ZodCUID,
-  $ZodCIDRv6: () => $ZodCIDRv6,
-  $ZodCIDRv4: () => $ZodCIDRv4,
-  $ZodBoolean: () => $ZodBoolean,
-  $ZodBigIntFormat: () => $ZodBigIntFormat,
-  $ZodBigInt: () => $ZodBigInt,
-  $ZodBase64URL: () => $ZodBase64URL,
-  $ZodBase64: () => $ZodBase64,
-  $ZodAsyncError: () => $ZodAsyncError,
-  $ZodArray: () => $ZodArray,
-  $ZodAny: () => $ZodAny
-});
-
 // node_modules/zod/v4/core/core.js
 var NEVER = Object.freeze({
   status: "aborted"
@@ -1182,94 +10238,17 @@ function config(newConfig) {
   return globalConfig;
 }
 // node_modules/zod/v4/core/util.js
-var exports_util = {};
-__export(exports_util, {
-  unwrapMessage: () => unwrapMessage,
-  uint8ArrayToHex: () => uint8ArrayToHex,
-  uint8ArrayToBase64url: () => uint8ArrayToBase64url,
-  uint8ArrayToBase64: () => uint8ArrayToBase64,
-  stringifyPrimitive: () => stringifyPrimitive,
-  shallowClone: () => shallowClone,
-  safeExtend: () => safeExtend,
-  required: () => required,
-  randomString: () => randomString,
-  propertyKeyTypes: () => propertyKeyTypes,
-  promiseAllObject: () => promiseAllObject,
-  primitiveTypes: () => primitiveTypes,
-  prefixIssues: () => prefixIssues,
-  pick: () => pick,
-  partial: () => partial,
-  optionalKeys: () => optionalKeys,
-  omit: () => omit,
-  objectClone: () => objectClone,
-  numKeys: () => numKeys,
-  nullish: () => nullish,
-  normalizeParams: () => normalizeParams,
-  mergeDefs: () => mergeDefs,
-  merge: () => merge,
-  jsonStringifyReplacer: () => jsonStringifyReplacer,
-  joinValues: () => joinValues,
-  issue: () => issue,
-  isPlainObject: () => isPlainObject,
-  isObject: () => isObject,
-  hexToUint8Array: () => hexToUint8Array,
-  getSizableOrigin: () => getSizableOrigin,
-  getParsedType: () => getParsedType,
-  getLengthableOrigin: () => getLengthableOrigin,
-  getEnumValues: () => getEnumValues,
-  getElementAtPath: () => getElementAtPath,
-  floatSafeRemainder: () => floatSafeRemainder,
-  finalizeIssue: () => finalizeIssue,
-  extend: () => extend,
-  escapeRegex: () => escapeRegex,
-  esc: () => esc,
-  defineLazy: () => defineLazy,
-  createTransparentProxy: () => createTransparentProxy,
-  cloneDef: () => cloneDef,
-  clone: () => clone,
-  cleanRegex: () => cleanRegex,
-  cleanEnum: () => cleanEnum,
-  captureStackTrace: () => captureStackTrace,
-  cached: () => cached,
-  base64urlToUint8Array: () => base64urlToUint8Array,
-  base64ToUint8Array: () => base64ToUint8Array,
-  assignProp: () => assignProp,
-  assertNotEqual: () => assertNotEqual,
-  assertNever: () => assertNever,
-  assertIs: () => assertIs,
-  assertEqual: () => assertEqual,
-  assert: () => assert,
-  allowsEval: () => allowsEval,
-  aborted: () => aborted,
-  NUMBER_FORMAT_RANGES: () => NUMBER_FORMAT_RANGES,
-  Class: () => Class,
-  BIGINT_FORMAT_RANGES: () => BIGINT_FORMAT_RANGES
-});
-function assertEqual(val) {
-  return val;
-}
-function assertNotEqual(val) {
-  return val;
-}
-function assertIs(_arg) {}
-function assertNever(_x) {
-  throw new Error;
-}
-function assert(_) {}
 function getEnumValues(entries) {
   const numericValues = Object.values(entries).filter((v) => typeof v === "number");
   const values = Object.entries(entries).filter(([k, _]) => numericValues.indexOf(+k) === -1).map(([_, v]) => v);
   return values;
-}
-function joinValues(array, separator = "|") {
-  return array.map((val) => stringifyPrimitive(val)).join(separator);
 }
 function jsonStringifyReplacer(_, value) {
   if (typeof value === "bigint")
     return value.toString();
   return value;
 }
-function cached(getter) {
+function cached2(getter) {
   const set = false;
   return {
     get value() {
@@ -1346,41 +10325,14 @@ function mergeDefs(...defs) {
   }
   return Object.defineProperties({}, mergedDescriptors);
 }
-function cloneDef(schema) {
-  return mergeDefs(schema._zod.def);
-}
-function getElementAtPath(obj, path) {
-  if (!path)
-    return obj;
-  return path.reduce((acc, key) => acc?.[key], obj);
-}
-function promiseAllObject(promisesObj) {
-  const keys = Object.keys(promisesObj);
-  const promises = keys.map((key) => promisesObj[key]);
-  return Promise.all(promises).then((results) => {
-    const resolvedObj = {};
-    for (let i = 0;i < keys.length; i++) {
-      resolvedObj[keys[i]] = results[i];
-    }
-    return resolvedObj;
-  });
-}
-function randomString(length = 10) {
-  const chars = "abcdefghijklmnopqrstuvwxyz";
-  let str = "";
-  for (let i = 0;i < length; i++) {
-    str += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return str;
-}
 function esc(str) {
   return JSON.stringify(str);
 }
 var captureStackTrace = "captureStackTrace" in Error ? Error.captureStackTrace : (..._args) => {};
-function isObject(data) {
+function isObject2(data) {
   return typeof data === "object" && data !== null && !Array.isArray(data);
 }
-var allowsEval = cached(() => {
+var allowsEval = cached2(() => {
   if (typeof navigator !== "undefined" && navigator?.userAgent?.includes("Cloudflare")) {
     return false;
   }
@@ -1393,13 +10345,13 @@ var allowsEval = cached(() => {
   }
 });
 function isPlainObject(o) {
-  if (isObject(o) === false)
+  if (isObject2(o) === false)
     return false;
   const ctor = o.constructor;
   if (ctor === undefined)
     return true;
   const prot = ctor.prototype;
-  if (isObject(prot) === false)
+  if (isObject2(prot) === false)
     return false;
   if (Object.prototype.hasOwnProperty.call(prot, "isPrototypeOf") === false) {
     return false;
@@ -1413,59 +10365,6 @@ function shallowClone(o) {
     return [...o];
   return o;
 }
-function numKeys(data) {
-  let keyCount = 0;
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      keyCount++;
-    }
-  }
-  return keyCount;
-}
-var getParsedType = (data) => {
-  const t = typeof data;
-  switch (t) {
-    case "undefined":
-      return "undefined";
-    case "string":
-      return "string";
-    case "number":
-      return Number.isNaN(data) ? "nan" : "number";
-    case "boolean":
-      return "boolean";
-    case "function":
-      return "function";
-    case "bigint":
-      return "bigint";
-    case "symbol":
-      return "symbol";
-    case "object":
-      if (Array.isArray(data)) {
-        return "array";
-      }
-      if (data === null) {
-        return "null";
-      }
-      if (data.then && typeof data.then === "function" && data.catch && typeof data.catch === "function") {
-        return "promise";
-      }
-      if (typeof Map !== "undefined" && data instanceof Map) {
-        return "map";
-      }
-      if (typeof Set !== "undefined" && data instanceof Set) {
-        return "set";
-      }
-      if (typeof Date !== "undefined" && data instanceof Date) {
-        return "date";
-      }
-      if (typeof File !== "undefined" && data instanceof File) {
-        return "file";
-      }
-      return "object";
-    default:
-      throw new Error(`Unknown data type: ${t}`);
-  }
-};
 var propertyKeyTypes = new Set(["string", "number", "symbol"]);
 var primitiveTypes = new Set(["string", "number", "bigint", "boolean", "symbol", "undefined"]);
 function escapeRegex(str) {
@@ -1493,46 +10392,6 @@ function normalizeParams(_params) {
     return { ...params, error: () => params.error };
   return params;
 }
-function createTransparentProxy(getter) {
-  let target;
-  return new Proxy({}, {
-    get(_, prop, receiver) {
-      target ?? (target = getter());
-      return Reflect.get(target, prop, receiver);
-    },
-    set(_, prop, value, receiver) {
-      target ?? (target = getter());
-      return Reflect.set(target, prop, value, receiver);
-    },
-    has(_, prop) {
-      target ?? (target = getter());
-      return Reflect.has(target, prop);
-    },
-    deleteProperty(_, prop) {
-      target ?? (target = getter());
-      return Reflect.deleteProperty(target, prop);
-    },
-    ownKeys(_) {
-      target ?? (target = getter());
-      return Reflect.ownKeys(target);
-    },
-    getOwnPropertyDescriptor(_, prop) {
-      target ?? (target = getter());
-      return Reflect.getOwnPropertyDescriptor(target, prop);
-    },
-    defineProperty(_, prop, descriptor) {
-      target ?? (target = getter());
-      return Reflect.defineProperty(target, prop, descriptor);
-    }
-  });
-}
-function stringifyPrimitive(value) {
-  if (typeof value === "bigint")
-    return value.toString() + "n";
-  if (typeof value === "string")
-    return `"${value}"`;
-  return `${value}`;
-}
 function optionalKeys(shape) {
   return Object.keys(shape).filter((k) => {
     return shape[k]._zod.optin === "optional" && shape[k]._zod.optout === "optional";
@@ -1545,11 +10404,7 @@ var NUMBER_FORMAT_RANGES = {
   float32: [-340282346638528860000000000000000000000, 340282346638528860000000000000000000000],
   float64: [-Number.MAX_VALUE, Number.MAX_VALUE]
 };
-var BIGINT_FORMAT_RANGES = {
-  int64: [/* @__PURE__ */ BigInt("-9223372036854775808"), /* @__PURE__ */ BigInt("9223372036854775807")],
-  uint64: [/* @__PURE__ */ BigInt(0), /* @__PURE__ */ BigInt("18446744073709551615")]
-};
-function pick(schema, mask) {
+function pick2(schema, mask) {
   const currDef = schema._zod.def;
   const def = mergeDefs(schema._zod.def, {
     get shape() {
@@ -1569,7 +10424,7 @@ function pick(schema, mask) {
   });
   return clone(schema, def);
 }
-function omit(schema, mask) {
+function omit3(schema, mask) {
   const currDef = schema._zod.def;
   const def = mergeDefs(schema._zod.def, {
     get shape() {
@@ -1623,7 +10478,7 @@ function safeExtend(schema, shape) {
   };
   return clone(schema, def);
 }
-function merge(a, b) {
+function merge2(a, b) {
   const def = mergeDefs(a._zod.def, {
     get shape() {
       const _shape = { ...a._zod.def.shape, ...b._zod.def.shape };
@@ -1722,10 +10577,10 @@ function prefixIssues(path, issues) {
 function unwrapMessage(message) {
   return typeof message === "string" ? message : message?.message;
 }
-function finalizeIssue(iss, ctx, config2) {
+function finalizeIssue(iss, ctx, config) {
   const full = { ...iss, path: iss.path ?? [] };
   if (!iss.message) {
-    const message = unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config2.customError?.(iss)) ?? unwrapMessage(config2.localeError?.(iss)) ?? "Invalid input";
+    const message = unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config.customError?.(iss)) ?? unwrapMessage(config.localeError?.(iss)) ?? "Invalid input";
     full.message = message;
   }
   delete full.inst;
@@ -1734,15 +10589,6 @@ function finalizeIssue(iss, ctx, config2) {
     delete full.input;
   }
   return full;
-}
-function getSizableOrigin(input) {
-  if (input instanceof Set)
-    return "set";
-  if (input instanceof Map)
-    return "map";
-  if (input instanceof File)
-    return "file";
-  return "unknown";
 }
 function getLengthableOrigin(input) {
   if (Array.isArray(input))
@@ -1762,52 +10608,6 @@ function issue(...args) {
     };
   }
   return { ...iss };
-}
-function cleanEnum(obj) {
-  return Object.entries(obj).filter(([k, _]) => {
-    return Number.isNaN(Number.parseInt(k, 10));
-  }).map((el) => el[1]);
-}
-function base64ToUint8Array(base64) {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0;i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-function uint8ArrayToBase64(bytes) {
-  let binaryString = "";
-  for (let i = 0;i < bytes.length; i++) {
-    binaryString += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binaryString);
-}
-function base64urlToUint8Array(base64url) {
-  const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = "=".repeat((4 - base64.length % 4) % 4);
-  return base64ToUint8Array(base64 + padding);
-}
-function uint8ArrayToBase64url(bytes) {
-  return uint8ArrayToBase64(bytes).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
-}
-function hexToUint8Array(hex) {
-  const cleanHex = hex.replace(/^0x/, "");
-  if (cleanHex.length % 2 !== 0) {
-    throw new Error("Invalid hex string length");
-  }
-  const bytes = new Uint8Array(cleanHex.length / 2);
-  for (let i = 0;i < cleanHex.length; i += 2) {
-    bytes[i / 2] = Number.parseInt(cleanHex.slice(i, i + 2), 16);
-  }
-  return bytes;
-}
-function uint8ArrayToHex(bytes) {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-class Class {
-  constructor(..._args) {}
 }
 
 // node_modules/zod/v4/core/errors.js
@@ -1829,7 +10629,7 @@ var initializer = (inst, def) => {
 };
 var $ZodError = $constructor("$ZodError", initializer);
 var $ZodRealError = $constructor("$ZodError", initializer, { Parent: Error });
-function flattenError(error, mapper = (issue2) => issue2.message) {
+function flattenError(error, mapper = (issue) => issue.message) {
   const fieldErrors = {};
   const formErrors = [];
   for (const sub of error.issues) {
@@ -1843,31 +10643,31 @@ function flattenError(error, mapper = (issue2) => issue2.message) {
   return { formErrors, fieldErrors };
 }
 function formatError(error, _mapper) {
-  const mapper = _mapper || function(issue2) {
-    return issue2.message;
+  const mapper = _mapper || function(issue) {
+    return issue.message;
   };
   const fieldErrors = { _errors: [] };
-  const processError = (error2) => {
-    for (const issue2 of error2.issues) {
-      if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }));
-      } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues });
-      } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues });
-      } else if (issue2.path.length === 0) {
-        fieldErrors._errors.push(mapper(issue2));
+  const processError = (error) => {
+    for (const issue of error.issues) {
+      if (issue.code === "invalid_union" && issue.errors.length) {
+        issue.errors.map((issues) => processError({ issues }));
+      } else if (issue.code === "invalid_key") {
+        processError({ issues: issue.issues });
+      } else if (issue.code === "invalid_element") {
+        processError({ issues: issue.issues });
+      } else if (issue.path.length === 0) {
+        fieldErrors._errors.push(mapper(issue));
       } else {
         let curr = fieldErrors;
         let i = 0;
-        while (i < issue2.path.length) {
-          const el = issue2.path[i];
-          const terminal = i === issue2.path.length - 1;
+        while (i < issue.path.length) {
+          const el = issue.path[i];
+          const terminal = i === issue.path.length - 1;
           if (!terminal) {
             curr[el] = curr[el] || { _errors: [] };
           } else {
             curr[el] = curr[el] || { _errors: [] };
-            curr[el]._errors.push(mapper(issue2));
+            curr[el]._errors.push(mapper(issue));
           }
           curr = curr[el];
           i++;
@@ -1877,80 +10677,6 @@ function formatError(error, _mapper) {
   };
   processError(error);
   return fieldErrors;
-}
-function treeifyError(error, _mapper) {
-  const mapper = _mapper || function(issue2) {
-    return issue2.message;
-  };
-  const result = { errors: [] };
-  const processError = (error2, path = []) => {
-    var _a, _b;
-    for (const issue2 of error2.issues) {
-      if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, issue2.path));
-      } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, issue2.path);
-      } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, issue2.path);
-      } else {
-        const fullpath = [...path, ...issue2.path];
-        if (fullpath.length === 0) {
-          result.errors.push(mapper(issue2));
-          continue;
-        }
-        let curr = result;
-        let i = 0;
-        while (i < fullpath.length) {
-          const el = fullpath[i];
-          const terminal = i === fullpath.length - 1;
-          if (typeof el === "string") {
-            curr.properties ?? (curr.properties = {});
-            (_a = curr.properties)[el] ?? (_a[el] = { errors: [] });
-            curr = curr.properties[el];
-          } else {
-            curr.items ?? (curr.items = []);
-            (_b = curr.items)[el] ?? (_b[el] = { errors: [] });
-            curr = curr.items[el];
-          }
-          if (terminal) {
-            curr.errors.push(mapper(issue2));
-          }
-          i++;
-        }
-      }
-    }
-  };
-  processError(error);
-  return result;
-}
-function toDotPath(_path) {
-  const segs = [];
-  const path = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path) {
-    if (typeof seg === "number")
-      segs.push(`[${seg}]`);
-    else if (typeof seg === "symbol")
-      segs.push(`[${JSON.stringify(String(seg))}]`);
-    else if (/[^\w$]/.test(seg))
-      segs.push(`[${JSON.stringify(seg)}]`);
-    else {
-      if (segs.length)
-        segs.push(".");
-      segs.push(seg);
-    }
-  }
-  return segs.join("");
-}
-function prettifyError(error) {
-  const lines = [];
-  const issues = [...error.issues].sort((a, b) => (a.path ?? []).length - (b.path ?? []).length);
-  for (const issue2 of issues) {
-    lines.push(`✖ ${issue2.message}`);
-    if (issue2.path?.length)
-      lines.push(`  → at ${toDotPath(issue2.path)}`);
-  }
-  return lines.join(`
-`);
 }
 
 // node_modules/zod/v4/core/parse.js
@@ -1967,7 +10693,6 @@ var _parse = (_Err) => (schema, value, _ctx, _params) => {
   }
   return result.value;
 };
-var parse = /* @__PURE__ */ _parse($ZodRealError);
 var _parseAsync = (_Err) => async (schema, value, _ctx, params) => {
   const ctx = _ctx ? Object.assign(_ctx, { async: true }) : { async: true };
   let result = schema._zod.run({ value, issues: [] }, ctx);
@@ -1980,7 +10705,6 @@ var _parseAsync = (_Err) => async (schema, value, _ctx, params) => {
   }
   return result.value;
 };
-var parseAsync = /* @__PURE__ */ _parseAsync($ZodRealError);
 var _safeParse = (_Err) => (schema, value, _ctx) => {
   const ctx = _ctx ? { ..._ctx, async: false } : { async: false };
   const result = schema._zod.run({ value, issues: [] }, ctx);
@@ -2008,99 +10732,31 @@ var _encode = (_Err) => (schema, value, _ctx) => {
   const ctx = _ctx ? Object.assign(_ctx, { direction: "backward" }) : { direction: "backward" };
   return _parse(_Err)(schema, value, ctx);
 };
-var encode = /* @__PURE__ */ _encode($ZodRealError);
 var _decode = (_Err) => (schema, value, _ctx) => {
   return _parse(_Err)(schema, value, _ctx);
 };
-var decode = /* @__PURE__ */ _decode($ZodRealError);
 var _encodeAsync = (_Err) => async (schema, value, _ctx) => {
   const ctx = _ctx ? Object.assign(_ctx, { direction: "backward" }) : { direction: "backward" };
   return _parseAsync(_Err)(schema, value, ctx);
 };
-var encodeAsync = /* @__PURE__ */ _encodeAsync($ZodRealError);
 var _decodeAsync = (_Err) => async (schema, value, _ctx) => {
   return _parseAsync(_Err)(schema, value, _ctx);
 };
-var decodeAsync = /* @__PURE__ */ _decodeAsync($ZodRealError);
 var _safeEncode = (_Err) => (schema, value, _ctx) => {
   const ctx = _ctx ? Object.assign(_ctx, { direction: "backward" }) : { direction: "backward" };
   return _safeParse(_Err)(schema, value, ctx);
 };
-var safeEncode = /* @__PURE__ */ _safeEncode($ZodRealError);
 var _safeDecode = (_Err) => (schema, value, _ctx) => {
   return _safeParse(_Err)(schema, value, _ctx);
 };
-var safeDecode = /* @__PURE__ */ _safeDecode($ZodRealError);
 var _safeEncodeAsync = (_Err) => async (schema, value, _ctx) => {
   const ctx = _ctx ? Object.assign(_ctx, { direction: "backward" }) : { direction: "backward" };
   return _safeParseAsync(_Err)(schema, value, ctx);
 };
-var safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync($ZodRealError);
 var _safeDecodeAsync = (_Err) => async (schema, value, _ctx) => {
   return _safeParseAsync(_Err)(schema, value, _ctx);
 };
-var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync($ZodRealError);
 // node_modules/zod/v4/core/regexes.js
-var exports_regexes = {};
-__export(exports_regexes, {
-  xid: () => xid,
-  uuid7: () => uuid7,
-  uuid6: () => uuid6,
-  uuid4: () => uuid4,
-  uuid: () => uuid,
-  uppercase: () => uppercase,
-  unicodeEmail: () => unicodeEmail,
-  undefined: () => _undefined,
-  ulid: () => ulid,
-  time: () => time,
-  string: () => string,
-  sha512_hex: () => sha512_hex,
-  sha512_base64url: () => sha512_base64url,
-  sha512_base64: () => sha512_base64,
-  sha384_hex: () => sha384_hex,
-  sha384_base64url: () => sha384_base64url,
-  sha384_base64: () => sha384_base64,
-  sha256_hex: () => sha256_hex,
-  sha256_base64url: () => sha256_base64url,
-  sha256_base64: () => sha256_base64,
-  sha1_hex: () => sha1_hex,
-  sha1_base64url: () => sha1_base64url,
-  sha1_base64: () => sha1_base64,
-  rfc5322Email: () => rfc5322Email,
-  number: () => number,
-  null: () => _null,
-  nanoid: () => nanoid,
-  md5_hex: () => md5_hex,
-  md5_base64url: () => md5_base64url,
-  md5_base64: () => md5_base64,
-  lowercase: () => lowercase,
-  ksuid: () => ksuid,
-  ipv6: () => ipv6,
-  ipv4: () => ipv4,
-  integer: () => integer,
-  idnEmail: () => idnEmail,
-  html5Email: () => html5Email,
-  hostname: () => hostname,
-  hex: () => hex,
-  guid: () => guid,
-  extendedDuration: () => extendedDuration,
-  emoji: () => emoji,
-  email: () => email,
-  e164: () => e164,
-  duration: () => duration,
-  domain: () => domain,
-  datetime: () => datetime,
-  date: () => date,
-  cuid2: () => cuid2,
-  cuid: () => cuid,
-  cidrv6: () => cidrv6,
-  cidrv4: () => cidrv4,
-  browserEmail: () => browserEmail,
-  boolean: () => boolean,
-  bigint: () => bigint,
-  base64url: () => base64url,
-  base64: () => base64
-});
 var cuid = /^[cC][^\s-]{8,}$/;
 var cuid2 = /^[0-9a-z]+$/;
 var ulid = /^[0-9A-HJKMNP-TV-Za-hjkmnp-tv-z]{26}$/;
@@ -2108,22 +10764,13 @@ var xid = /^[0-9a-vA-V]{20}$/;
 var ksuid = /^[A-Za-z0-9]{27}$/;
 var nanoid = /^[a-zA-Z0-9_-]{21}$/;
 var duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
-var extendedDuration = /^[-+]?P(?!$)(?:(?:[-+]?\d+Y)|(?:[-+]?\d+[.,]\d+Y$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:(?:[-+]?\d+W)|(?:[-+]?\d+[.,]\d+W$))?(?:(?:[-+]?\d+D)|(?:[-+]?\d+[.,]\d+D$))?(?:T(?=[\d+-])(?:(?:[-+]?\d+H)|(?:[-+]?\d+[.,]\d+H$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:[-+]?\d+(?:[.,]\d+)?S)?)??$/;
 var guid = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
 var uuid = (version) => {
   if (!version)
     return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
   return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
 };
-var uuid4 = /* @__PURE__ */ uuid(4);
-var uuid6 = /* @__PURE__ */ uuid(6);
-var uuid7 = /* @__PURE__ */ uuid(7);
 var email = /^(?!\.)(?!.*\.\.)([A-Za-z0-9_'+\-\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\-]*\.)+[A-Za-z]{2,}$/;
-var html5Email = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
-var rfc5322Email = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-var unicodeEmail = /^[^\s@"]{1,64}@[^\s@]{1,255}$/u;
-var idnEmail = unicodeEmail;
-var browserEmail = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 var _emoji = `^(\\p{Extended_Pictographic}|\\p{Emoji_Component})+$`;
 function emoji() {
   return new RegExp(_emoji, "u");
@@ -2135,7 +10782,6 @@ var cidrv6 = /^(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|::|([0-9a-fA-F]{1,4})?::(
 var base64 = /^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$/;
 var base64url = /^[A-Za-z0-9_-]*$/;
 var hostname = /^(?=.{1,253}\.?$)[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[-0-9a-zA-Z]{0,61}[0-9a-zA-Z])?)*\.?$/;
-var domain = /^([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
 var e164 = /^\+(?:[0-9]){6,14}[0-9]$/;
 var dateSource = `(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))`;
 var date = /* @__PURE__ */ new RegExp(`^${dateSource}$`);
@@ -2148,49 +10794,24 @@ function time(args) {
   return new RegExp(`^${timeSource(args)}$`);
 }
 function datetime(args) {
-  const time2 = timeSource({ precision: args.precision });
+  const time = timeSource({ precision: args.precision });
   const opts = ["Z"];
   if (args.local)
     opts.push("");
   if (args.offset)
     opts.push(`([+-](?:[01]\\d|2[0-3]):[0-5]\\d)`);
-  const timeRegex = `${time2}(?:${opts.join("|")})`;
+  const timeRegex = `${time}(?:${opts.join("|")})`;
   return new RegExp(`^${dateSource}T(?:${timeRegex})$`);
 }
-var string = (params) => {
+var string3 = (params) => {
   const regex = params ? `[\\s\\S]{${params?.minimum ?? 0},${params?.maximum ?? ""}}` : `[\\s\\S]*`;
   return new RegExp(`^${regex}$`);
 };
-var bigint = /^-?\d+n?$/;
 var integer = /^-?\d+$/;
-var number = /^-?\d+(?:\.\d+)?/;
-var boolean = /^(?:true|false)$/i;
-var _null = /^null$/i;
-var _undefined = /^undefined$/i;
+var number3 = /^-?\d+(?:\.\d+)?/;
+var boolean2 = /^(?:true|false)$/i;
 var lowercase = /^[^A-Z]*$/;
 var uppercase = /^[^a-z]*$/;
-var hex = /^[0-9a-fA-F]*$/;
-function fixedBase64(bodyLength, padding) {
-  return new RegExp(`^[A-Za-z0-9+/]{${bodyLength}}${padding}$`);
-}
-function fixedBase64url(length) {
-  return new RegExp(`^[A-Za-z0-9_-]{${length}}$`);
-}
-var md5_hex = /^[0-9a-fA-F]{32}$/;
-var md5_base64 = /* @__PURE__ */ fixedBase64(22, "==");
-var md5_base64url = /* @__PURE__ */ fixedBase64url(22);
-var sha1_hex = /^[0-9a-fA-F]{40}$/;
-var sha1_base64 = /* @__PURE__ */ fixedBase64(27, "=");
-var sha1_base64url = /* @__PURE__ */ fixedBase64url(27);
-var sha256_hex = /^[0-9a-fA-F]{64}$/;
-var sha256_base64 = /* @__PURE__ */ fixedBase64(43, "=");
-var sha256_base64url = /* @__PURE__ */ fixedBase64url(43);
-var sha384_hex = /^[0-9a-fA-F]{96}$/;
-var sha384_base64 = /* @__PURE__ */ fixedBase64(64, "");
-var sha384_base64url = /* @__PURE__ */ fixedBase64url(64);
-var sha512_hex = /^[0-9a-fA-F]{128}$/;
-var sha512_base64 = /* @__PURE__ */ fixedBase64(86, "==");
-var sha512_base64url = /* @__PURE__ */ fixedBase64url(86);
 
 // node_modules/zod/v4/core/checks.js
 var $ZodCheck = /* @__PURE__ */ $constructor("$ZodCheck", (inst, def) => {
@@ -2207,8 +10828,8 @@ var numericOriginMap = {
 var $ZodCheckLessThan = /* @__PURE__ */ $constructor("$ZodCheckLessThan", (inst, def) => {
   $ZodCheck.init(inst, def);
   const origin = numericOriginMap[typeof def.value];
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     const curr = (def.inclusive ? bag.maximum : bag.exclusiveMaximum) ?? Number.POSITIVE_INFINITY;
     if (def.value < curr) {
       if (def.inclusive)
@@ -2235,8 +10856,8 @@ var $ZodCheckLessThan = /* @__PURE__ */ $constructor("$ZodCheckLessThan", (inst,
 var $ZodCheckGreaterThan = /* @__PURE__ */ $constructor("$ZodCheckGreaterThan", (inst, def) => {
   $ZodCheck.init(inst, def);
   const origin = numericOriginMap[typeof def.value];
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     const curr = (def.inclusive ? bag.minimum : bag.exclusiveMinimum) ?? Number.NEGATIVE_INFINITY;
     if (def.value > curr) {
       if (def.inclusive)
@@ -2262,9 +10883,9 @@ var $ZodCheckGreaterThan = /* @__PURE__ */ $constructor("$ZodCheckGreaterThan", 
 });
 var $ZodCheckMultipleOf = /* @__PURE__ */ $constructor("$ZodCheckMultipleOf", (inst, def) => {
   $ZodCheck.init(inst, def);
-  inst._zod.onattach.push((inst2) => {
+  inst._zod.onattach.push((inst) => {
     var _a;
-    (_a = inst2._zod.bag).multipleOf ?? (_a.multipleOf = def.value);
+    (_a = inst._zod.bag).multipleOf ?? (_a.multipleOf = def.value);
   });
   inst._zod.check = (payload) => {
     if (typeof payload.value !== typeof def.value)
@@ -2288,8 +10909,8 @@ var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat"
   const isInt = def.format?.includes("int");
   const origin = isInt ? "int" : "number";
   const [minimum, maximum] = NUMBER_FORMAT_RANGES[def.format];
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.format = def.format;
     bag.minimum = minimum;
     bag.maximum = maximum;
@@ -2357,125 +10978,6 @@ var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat"
     }
   };
 });
-var $ZodCheckBigIntFormat = /* @__PURE__ */ $constructor("$ZodCheckBigIntFormat", (inst, def) => {
-  $ZodCheck.init(inst, def);
-  const [minimum, maximum] = BIGINT_FORMAT_RANGES[def.format];
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
-    bag.format = def.format;
-    bag.minimum = minimum;
-    bag.maximum = maximum;
-  });
-  inst._zod.check = (payload) => {
-    const input = payload.value;
-    if (input < minimum) {
-      payload.issues.push({
-        origin: "bigint",
-        input,
-        code: "too_small",
-        minimum,
-        inclusive: true,
-        inst,
-        continue: !def.abort
-      });
-    }
-    if (input > maximum) {
-      payload.issues.push({
-        origin: "bigint",
-        input,
-        code: "too_big",
-        maximum,
-        inst
-      });
-    }
-  };
-});
-var $ZodCheckMaxSize = /* @__PURE__ */ $constructor("$ZodCheckMaxSize", (inst, def) => {
-  var _a;
-  $ZodCheck.init(inst, def);
-  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
-    const val = payload.value;
-    return !nullish(val) && val.size !== undefined;
-  });
-  inst._zod.onattach.push((inst2) => {
-    const curr = inst2._zod.bag.maximum ?? Number.POSITIVE_INFINITY;
-    if (def.maximum < curr)
-      inst2._zod.bag.maximum = def.maximum;
-  });
-  inst._zod.check = (payload) => {
-    const input = payload.value;
-    const size = input.size;
-    if (size <= def.maximum)
-      return;
-    payload.issues.push({
-      origin: getSizableOrigin(input),
-      code: "too_big",
-      maximum: def.maximum,
-      inclusive: true,
-      input,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
-var $ZodCheckMinSize = /* @__PURE__ */ $constructor("$ZodCheckMinSize", (inst, def) => {
-  var _a;
-  $ZodCheck.init(inst, def);
-  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
-    const val = payload.value;
-    return !nullish(val) && val.size !== undefined;
-  });
-  inst._zod.onattach.push((inst2) => {
-    const curr = inst2._zod.bag.minimum ?? Number.NEGATIVE_INFINITY;
-    if (def.minimum > curr)
-      inst2._zod.bag.minimum = def.minimum;
-  });
-  inst._zod.check = (payload) => {
-    const input = payload.value;
-    const size = input.size;
-    if (size >= def.minimum)
-      return;
-    payload.issues.push({
-      origin: getSizableOrigin(input),
-      code: "too_small",
-      minimum: def.minimum,
-      inclusive: true,
-      input,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
-var $ZodCheckSizeEquals = /* @__PURE__ */ $constructor("$ZodCheckSizeEquals", (inst, def) => {
-  var _a;
-  $ZodCheck.init(inst, def);
-  (_a = inst._zod.def).when ?? (_a.when = (payload) => {
-    const val = payload.value;
-    return !nullish(val) && val.size !== undefined;
-  });
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
-    bag.minimum = def.size;
-    bag.maximum = def.size;
-    bag.size = def.size;
-  });
-  inst._zod.check = (payload) => {
-    const input = payload.value;
-    const size = input.size;
-    if (size === def.size)
-      return;
-    const tooBig = size > def.size;
-    payload.issues.push({
-      origin: getSizableOrigin(input),
-      ...tooBig ? { code: "too_big", maximum: def.size } : { code: "too_small", minimum: def.size },
-      inclusive: true,
-      exact: true,
-      input: payload.value,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
 var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (inst, def) => {
   var _a;
   $ZodCheck.init(inst, def);
@@ -2483,10 +10985,10 @@ var $ZodCheckMaxLength = /* @__PURE__ */ $constructor("$ZodCheckMaxLength", (ins
     const val = payload.value;
     return !nullish(val) && val.length !== undefined;
   });
-  inst._zod.onattach.push((inst2) => {
-    const curr = inst2._zod.bag.maximum ?? Number.POSITIVE_INFINITY;
+  inst._zod.onattach.push((inst) => {
+    const curr = inst._zod.bag.maximum ?? Number.POSITIVE_INFINITY;
     if (def.maximum < curr)
-      inst2._zod.bag.maximum = def.maximum;
+      inst._zod.bag.maximum = def.maximum;
   });
   inst._zod.check = (payload) => {
     const input = payload.value;
@@ -2512,10 +11014,10 @@ var $ZodCheckMinLength = /* @__PURE__ */ $constructor("$ZodCheckMinLength", (ins
     const val = payload.value;
     return !nullish(val) && val.length !== undefined;
   });
-  inst._zod.onattach.push((inst2) => {
-    const curr = inst2._zod.bag.minimum ?? Number.NEGATIVE_INFINITY;
+  inst._zod.onattach.push((inst) => {
+    const curr = inst._zod.bag.minimum ?? Number.NEGATIVE_INFINITY;
     if (def.minimum > curr)
-      inst2._zod.bag.minimum = def.minimum;
+      inst._zod.bag.minimum = def.minimum;
   });
   inst._zod.check = (payload) => {
     const input = payload.value;
@@ -2541,8 +11043,8 @@ var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals"
     const val = payload.value;
     return !nullish(val) && val.length !== undefined;
   });
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.minimum = def.length;
     bag.maximum = def.length;
     bag.length = def.length;
@@ -2568,8 +11070,8 @@ var $ZodCheckLengthEquals = /* @__PURE__ */ $constructor("$ZodCheckLengthEquals"
 var $ZodCheckStringFormat = /* @__PURE__ */ $constructor("$ZodCheckStringFormat", (inst, def) => {
   var _a, _b;
   $ZodCheck.init(inst, def);
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.format = def.format;
     if (def.pattern) {
       bag.patterns ?? (bag.patterns = new Set);
@@ -2624,8 +11126,8 @@ var $ZodCheckIncludes = /* @__PURE__ */ $constructor("$ZodCheckIncludes", (inst,
   const escapedRegex = escapeRegex(def.includes);
   const pattern = new RegExp(typeof def.position === "number" ? `^.{${def.position}}${escapedRegex}` : escapedRegex);
   def.pattern = pattern;
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.patterns ?? (bag.patterns = new Set);
     bag.patterns.add(pattern);
   });
@@ -2647,8 +11149,8 @@ var $ZodCheckStartsWith = /* @__PURE__ */ $constructor("$ZodCheckStartsWith", (i
   $ZodCheck.init(inst, def);
   const pattern = new RegExp(`^${escapeRegex(def.prefix)}.*`);
   def.pattern ?? (def.pattern = pattern);
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.patterns ?? (bag.patterns = new Set);
     bag.patterns.add(pattern);
   });
@@ -2670,8 +11172,8 @@ var $ZodCheckEndsWith = /* @__PURE__ */ $constructor("$ZodCheckEndsWith", (inst,
   $ZodCheck.init(inst, def);
   const pattern = new RegExp(`.*${escapeRegex(def.suffix)}$`);
   def.pattern ?? (def.pattern = pattern);
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.patterns ?? (bag.patterns = new Set);
     bag.patterns.add(pattern);
   });
@@ -2684,43 +11186,6 @@ var $ZodCheckEndsWith = /* @__PURE__ */ $constructor("$ZodCheckEndsWith", (inst,
       format: "ends_with",
       suffix: def.suffix,
       input: payload.value,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
-function handleCheckPropertyResult(result, payload, property) {
-  if (result.issues.length) {
-    payload.issues.push(...prefixIssues(property, result.issues));
-  }
-}
-var $ZodCheckProperty = /* @__PURE__ */ $constructor("$ZodCheckProperty", (inst, def) => {
-  $ZodCheck.init(inst, def);
-  inst._zod.check = (payload) => {
-    const result = def.schema._zod.run({
-      value: payload.value[def.property],
-      issues: []
-    }, {});
-    if (result instanceof Promise) {
-      return result.then((result2) => handleCheckPropertyResult(result2, payload, def.property));
-    }
-    handleCheckPropertyResult(result, payload, def.property);
-    return;
-  };
-});
-var $ZodCheckMimeType = /* @__PURE__ */ $constructor("$ZodCheckMimeType", (inst, def) => {
-  $ZodCheck.init(inst, def);
-  const mimeSet = new Set(def.mime);
-  inst._zod.onattach.push((inst2) => {
-    inst2._zod.bag.mime = def.mime;
-  });
-  inst._zod.check = (payload) => {
-    if (mimeSet.has(payload.value.type))
-      return;
-    payload.issues.push({
-      code: "invalid_value",
-      values: def.mime,
-      input: payload.value.type,
       inst,
       continue: !def.abort
     });
@@ -2800,10 +11265,10 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       inst._zod.run = inst._zod.parse;
     });
   } else {
-    const runChecks = (payload, checks2, ctx) => {
+    const runChecks = (payload, checks, ctx) => {
       let isAborted = aborted(payload);
       let asyncResult;
-      for (const ch of checks2) {
+      for (const ch of checks) {
         if (ch._zod.def.when) {
           const shouldRun = ch._zod.def.when(payload);
           if (!shouldRun)
@@ -2849,7 +11314,7 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       if (checkResult instanceof Promise) {
         if (ctx.async === false)
           throw new $ZodAsyncError;
-        return checkResult.then((checkResult2) => inst._zod.parse(checkResult2, ctx));
+        return checkResult.then((checkResult) => inst._zod.parse(checkResult, ctx));
       }
       return inst._zod.parse(checkResult, ctx);
     };
@@ -2860,8 +11325,8 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       if (ctx.direction === "backward") {
         const canary = inst._zod.parse({ value: payload.value, issues: [] }, { ...ctx, skipChecks: true });
         if (canary instanceof Promise) {
-          return canary.then((canary2) => {
-            return handleCanaryResult(canary2, payload, ctx);
+          return canary.then((canary) => {
+            return handleCanaryResult(canary, payload, ctx);
           });
         }
         return handleCanaryResult(canary, payload, ctx);
@@ -2870,7 +11335,7 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
       if (result instanceof Promise) {
         if (ctx.async === false)
           throw new $ZodAsyncError;
-        return result.then((result2) => runChecks(result2, checks, ctx));
+        return result.then((result) => runChecks(result, checks, ctx));
       }
       return runChecks(result, checks, ctx);
     };
@@ -2890,12 +11355,12 @@ var $ZodType = /* @__PURE__ */ $constructor("$ZodType", (inst, def) => {
 });
 var $ZodString = /* @__PURE__ */ $constructor("$ZodString", (inst, def) => {
   $ZodType.init(inst, def);
-  inst._zod.pattern = [...inst?._zod.bag?.patterns ?? []].pop() ?? string(inst._zod.bag);
+  inst._zod.pattern = [...inst?._zod.bag?.patterns ?? []].pop() ?? string3(inst._zod.bag);
   inst._zod.parse = (payload, _) => {
     if (def.coerce)
       try {
         payload.value = String(payload.value);
-      } catch (_2) {}
+      } catch (_) {}
     if (typeof payload.value === "string")
       return payload;
     payload.issues.push({
@@ -3037,16 +11502,16 @@ var $ZodISODuration = /* @__PURE__ */ $constructor("$ZodISODuration", (inst, def
 var $ZodIPv4 = /* @__PURE__ */ $constructor("$ZodIPv4", (inst, def) => {
   def.pattern ?? (def.pattern = ipv4);
   $ZodStringFormat.init(inst, def);
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.format = `ipv4`;
   });
 });
 var $ZodIPv6 = /* @__PURE__ */ $constructor("$ZodIPv6", (inst, def) => {
   def.pattern ?? (def.pattern = ipv6);
   $ZodStringFormat.init(inst, def);
-  inst._zod.onattach.push((inst2) => {
-    const bag = inst2._zod.bag;
+  inst._zod.onattach.push((inst) => {
+    const bag = inst._zod.bag;
     bag.format = `ipv6`;
   });
   inst._zod.check = (payload) => {
@@ -3110,8 +11575,8 @@ function isValidBase64(data) {
 var $ZodBase64 = /* @__PURE__ */ $constructor("$ZodBase64", (inst, def) => {
   def.pattern ?? (def.pattern = base64);
   $ZodStringFormat.init(inst, def);
-  inst._zod.onattach.push((inst2) => {
-    inst2._zod.bag.contentEncoding = "base64";
+  inst._zod.onattach.push((inst) => {
+    inst._zod.bag.contentEncoding = "base64";
   });
   inst._zod.check = (payload) => {
     if (isValidBase64(payload.value))
@@ -3128,15 +11593,15 @@ var $ZodBase64 = /* @__PURE__ */ $constructor("$ZodBase64", (inst, def) => {
 function isValidBase64URL(data) {
   if (!base64url.test(data))
     return false;
-  const base642 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
-  const padded = base642.padEnd(Math.ceil(base642.length / 4) * 4, "=");
+  const base64 = data.replace(/[-_]/g, (c) => c === "-" ? "+" : "/");
+  const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
   return isValidBase64(padded);
 }
 var $ZodBase64URL = /* @__PURE__ */ $constructor("$ZodBase64URL", (inst, def) => {
   def.pattern ?? (def.pattern = base64url);
   $ZodStringFormat.init(inst, def);
-  inst._zod.onattach.push((inst2) => {
-    inst2._zod.bag.contentEncoding = "base64url";
+  inst._zod.onattach.push((inst) => {
+    inst._zod.bag.contentEncoding = "base64url";
   });
   inst._zod.check = (payload) => {
     if (isValidBase64URL(payload.value))
@@ -3188,23 +11653,9 @@ var $ZodJWT = /* @__PURE__ */ $constructor("$ZodJWT", (inst, def) => {
     });
   };
 });
-var $ZodCustomStringFormat = /* @__PURE__ */ $constructor("$ZodCustomStringFormat", (inst, def) => {
-  $ZodStringFormat.init(inst, def);
-  inst._zod.check = (payload) => {
-    if (def.fn(payload.value))
-      return;
-    payload.issues.push({
-      code: "invalid_format",
-      format: def.format,
-      input: payload.value,
-      inst,
-      continue: !def.abort
-    });
-  };
-});
 var $ZodNumber = /* @__PURE__ */ $constructor("$ZodNumber", (inst, def) => {
   $ZodType.init(inst, def);
-  inst._zod.pattern = inst._zod.bag.pattern ?? number;
+  inst._zod.pattern = inst._zod.bag.pattern ?? number3;
   inst._zod.parse = (payload, _ctx) => {
     if (def.coerce)
       try {
@@ -3231,7 +11682,7 @@ var $ZodNumberFormat = /* @__PURE__ */ $constructor("$ZodNumber", (inst, def) =>
 });
 var $ZodBoolean = /* @__PURE__ */ $constructor("$ZodBoolean", (inst, def) => {
   $ZodType.init(inst, def);
-  inst._zod.pattern = boolean;
+  inst._zod.pattern = boolean2;
   inst._zod.parse = (payload, _ctx) => {
     if (def.coerce)
       try {
@@ -3249,84 +11700,6 @@ var $ZodBoolean = /* @__PURE__ */ $constructor("$ZodBoolean", (inst, def) => {
     return payload;
   };
 });
-var $ZodBigInt = /* @__PURE__ */ $constructor("$ZodBigInt", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.pattern = bigint;
-  inst._zod.parse = (payload, _ctx) => {
-    if (def.coerce)
-      try {
-        payload.value = BigInt(payload.value);
-      } catch (_) {}
-    if (typeof payload.value === "bigint")
-      return payload;
-    payload.issues.push({
-      expected: "bigint",
-      code: "invalid_type",
-      input: payload.value,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodBigIntFormat = /* @__PURE__ */ $constructor("$ZodBigInt", (inst, def) => {
-  $ZodCheckBigIntFormat.init(inst, def);
-  $ZodBigInt.init(inst, def);
-});
-var $ZodSymbol = /* @__PURE__ */ $constructor("$ZodSymbol", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (typeof input === "symbol")
-      return payload;
-    payload.issues.push({
-      expected: "symbol",
-      code: "invalid_type",
-      input,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodUndefined = /* @__PURE__ */ $constructor("$ZodUndefined", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.pattern = _undefined;
-  inst._zod.values = new Set([undefined]);
-  inst._zod.optin = "optional";
-  inst._zod.optout = "optional";
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (typeof input === "undefined")
-      return payload;
-    payload.issues.push({
-      expected: "undefined",
-      code: "invalid_type",
-      input,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodNull = /* @__PURE__ */ $constructor("$ZodNull", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.pattern = _null;
-  inst._zod.values = new Set([null]);
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (input === null)
-      return payload;
-    payload.issues.push({
-      expected: "null",
-      code: "invalid_type",
-      input,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodAny = /* @__PURE__ */ $constructor("$ZodAny", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload) => payload;
-});
 var $ZodUnknown = /* @__PURE__ */ $constructor("$ZodUnknown", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.parse = (payload) => payload;
@@ -3338,44 +11711,6 @@ var $ZodNever = /* @__PURE__ */ $constructor("$ZodNever", (inst, def) => {
       expected: "never",
       code: "invalid_type",
       input: payload.value,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodVoid = /* @__PURE__ */ $constructor("$ZodVoid", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (typeof input === "undefined")
-      return payload;
-    payload.issues.push({
-      expected: "void",
-      code: "invalid_type",
-      input,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodDate = /* @__PURE__ */ $constructor("$ZodDate", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    if (def.coerce) {
-      try {
-        payload.value = new Date(payload.value);
-      } catch (_err) {}
-    }
-    const input = payload.value;
-    const isDate = input instanceof Date;
-    const isValidDate = isDate && !Number.isNaN(input.getTime());
-    if (isValidDate)
-      return payload;
-    payload.issues.push({
-      expected: "date",
-      code: "invalid_type",
-      input,
-      ...isDate ? { received: "Invalid Date" } : {},
       inst
     });
     return payload;
@@ -3409,7 +11744,7 @@ var $ZodArray = /* @__PURE__ */ $constructor("$ZodArray", (inst, def) => {
         issues: []
       }, ctx);
       if (result instanceof Promise) {
-        proms.push(result.then((result2) => handleArrayResult(result2, payload, i)));
+        proms.push(result.then((result) => handleArrayResult(result, payload, i)));
       } else {
         handleArrayResult(result, payload, i);
       }
@@ -3462,7 +11797,7 @@ function handleCatchall(proms, input, payload, ctx, def, inst) {
     }
     const r = _catchall.run({ value: input[key], issues: [] }, ctx);
     if (r instanceof Promise) {
-      proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input)));
+      proms.push(r.then((r) => handlePropertyResult(r, payload, key, input)));
     } else {
       handlePropertyResult(r, payload, key, input);
     }
@@ -3483,7 +11818,7 @@ function handleCatchall(proms, input, payload, ctx, def, inst) {
 }
 var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
   $ZodType.init(inst, def);
-  const _normalized = cached(() => normalizeDef(def));
+  const _normalized = cached2(() => normalizeDef(def));
   defineLazy(inst._zod, "propValues", () => {
     const shape = def.shape;
     const propValues = {};
@@ -3497,13 +11832,13 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
     }
     return propValues;
   });
-  const isObject2 = isObject;
+  const isObject = isObject2;
   const catchall = def.catchall;
   let value;
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input = payload.value;
-    if (!isObject2(input)) {
+    if (!isObject(input)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -3519,7 +11854,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
       const el = shape[key];
       const r = el._zod.run({ value: input[key], issues: [] }, ctx);
       if (r instanceof Promise) {
-        proms.push(r.then((r2) => handlePropertyResult(r2, payload, key, input)));
+        proms.push(r.then((r) => handlePropertyResult(r, payload, key, input)));
       } else {
         handlePropertyResult(r, payload, key, input);
       }
@@ -3533,7 +11868,7 @@ var $ZodObject = /* @__PURE__ */ $constructor("$ZodObject", (inst, def) => {
 var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) => {
   $ZodObject.init(inst, def);
   const superParse = inst._zod.parse;
-  const _normalized = cached(() => normalizeDef(def));
+  const _normalized = cached2(() => normalizeDef(def));
   const generateFastpass = (shape) => {
     const doc = new Doc(["shape", "payload", "ctx"]);
     const normalized = _normalized.value;
@@ -3577,7 +11912,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
     return (payload, ctx) => fn(shape, payload, ctx);
   };
   let fastpass;
-  const isObject2 = isObject;
+  const isObject = isObject2;
   const jit = !globalConfig.jitless;
   const allowsEval2 = allowsEval;
   const fastEnabled = jit && allowsEval2.value;
@@ -3586,7 +11921,7 @@ var $ZodObjectJIT = /* @__PURE__ */ $constructor("$ZodObjectJIT", (inst, def) =>
   inst._zod.parse = (payload, ctx) => {
     value ?? (value = _normalized.value);
     const input = payload.value;
-    if (!isObject2(input)) {
+    if (!isObject(input)) {
       payload.issues.push({
         expected: "object",
         code: "invalid_type",
@@ -3667,74 +12002,9 @@ var $ZodUnion = /* @__PURE__ */ $constructor("$ZodUnion", (inst, def) => {
     }
     if (!async)
       return handleUnionResults(results, payload, inst, ctx);
-    return Promise.all(results).then((results2) => {
-      return handleUnionResults(results2, payload, inst, ctx);
+    return Promise.all(results).then((results) => {
+      return handleUnionResults(results, payload, inst, ctx);
     });
-  };
-});
-var $ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("$ZodDiscriminatedUnion", (inst, def) => {
-  $ZodUnion.init(inst, def);
-  const _super = inst._zod.parse;
-  defineLazy(inst._zod, "propValues", () => {
-    const propValues = {};
-    for (const option of def.options) {
-      const pv = option._zod.propValues;
-      if (!pv || Object.keys(pv).length === 0)
-        throw new Error(`Invalid discriminated union option at index "${def.options.indexOf(option)}"`);
-      for (const [k, v] of Object.entries(pv)) {
-        if (!propValues[k])
-          propValues[k] = new Set;
-        for (const val of v) {
-          propValues[k].add(val);
-        }
-      }
-    }
-    return propValues;
-  });
-  const disc = cached(() => {
-    const opts = def.options;
-    const map = new Map;
-    for (const o of opts) {
-      const values = o._zod.propValues?.[def.discriminator];
-      if (!values || values.size === 0)
-        throw new Error(`Invalid discriminated union option at index "${def.options.indexOf(o)}"`);
-      for (const v of values) {
-        if (map.has(v)) {
-          throw new Error(`Duplicate discriminator value "${String(v)}"`);
-        }
-        map.set(v, o);
-      }
-    }
-    return map;
-  });
-  inst._zod.parse = (payload, ctx) => {
-    const input = payload.value;
-    if (!isObject(input)) {
-      payload.issues.push({
-        code: "invalid_type",
-        expected: "object",
-        input,
-        inst
-      });
-      return payload;
-    }
-    const opt = disc.value.get(input?.[def.discriminator]);
-    if (opt) {
-      return opt._zod.run(payload, ctx);
-    }
-    if (def.unionFallback) {
-      return _super(payload, ctx);
-    }
-    payload.issues.push({
-      code: "invalid_union",
-      errors: [],
-      note: "No matching discriminator",
-      discriminator: def.discriminator,
-      input,
-      path: [def.discriminator],
-      inst
-    });
-    return payload;
   };
 });
 var $ZodIntersection = /* @__PURE__ */ $constructor("$ZodIntersection", (inst, def) => {
@@ -3745,8 +12015,8 @@ var $ZodIntersection = /* @__PURE__ */ $constructor("$ZodIntersection", (inst, d
     const right = def.right._zod.run({ value: input, issues: [] }, ctx);
     const async = left instanceof Promise || right instanceof Promise;
     if (async) {
-      return Promise.all([left, right]).then(([left2, right2]) => {
-        return handleIntersectionResults(payload, left2, right2);
+      return Promise.all([left, right]).then(([left, right]) => {
+        return handleIntersectionResults(payload, left, right);
       });
     }
     return handleIntersectionResults(payload, left, right);
@@ -3812,79 +12082,6 @@ function handleIntersectionResults(result, left, right) {
   result.value = merged.data;
   return result;
 }
-var $ZodTuple = /* @__PURE__ */ $constructor("$ZodTuple", (inst, def) => {
-  $ZodType.init(inst, def);
-  const items = def.items;
-  const optStart = items.length - [...items].reverse().findIndex((item) => item._zod.optin !== "optional");
-  inst._zod.parse = (payload, ctx) => {
-    const input = payload.value;
-    if (!Array.isArray(input)) {
-      payload.issues.push({
-        input,
-        inst,
-        expected: "tuple",
-        code: "invalid_type"
-      });
-      return payload;
-    }
-    payload.value = [];
-    const proms = [];
-    if (!def.rest) {
-      const tooBig = input.length > items.length;
-      const tooSmall = input.length < optStart - 1;
-      if (tooBig || tooSmall) {
-        payload.issues.push({
-          ...tooBig ? { code: "too_big", maximum: items.length } : { code: "too_small", minimum: items.length },
-          input,
-          inst,
-          origin: "array"
-        });
-        return payload;
-      }
-    }
-    let i = -1;
-    for (const item of items) {
-      i++;
-      if (i >= input.length) {
-        if (i >= optStart)
-          continue;
-      }
-      const result = item._zod.run({
-        value: input[i],
-        issues: []
-      }, ctx);
-      if (result instanceof Promise) {
-        proms.push(result.then((result2) => handleTupleResult(result2, payload, i)));
-      } else {
-        handleTupleResult(result, payload, i);
-      }
-    }
-    if (def.rest) {
-      const rest = input.slice(items.length);
-      for (const el of rest) {
-        i++;
-        const result = def.rest._zod.run({
-          value: el,
-          issues: []
-        }, ctx);
-        if (result instanceof Promise) {
-          proms.push(result.then((result2) => handleTupleResult(result2, payload, i)));
-        } else {
-          handleTupleResult(result, payload, i);
-        }
-      }
-    }
-    if (proms.length)
-      return Promise.all(proms).then(() => payload);
-    return payload;
-  };
-});
-function handleTupleResult(result, final, index) {
-  if (result.issues.length) {
-    final.issues.push(...prefixIssues(index, result.issues));
-  }
-  final.value[index] = result.value;
-}
 var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.parse = (payload, ctx) => {
@@ -3906,11 +12103,11 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
         if (typeof key === "string" || typeof key === "number" || typeof key === "symbol") {
           const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
           if (result instanceof Promise) {
-            proms.push(result.then((result2) => {
-              if (result2.issues.length) {
-                payload.issues.push(...prefixIssues(key, result2.issues));
+            proms.push(result.then((result) => {
+              if (result.issues.length) {
+                payload.issues.push(...prefixIssues(key, result.issues));
               }
-              payload.value[key] = result2.value;
+              payload.value[key] = result.value;
             }));
           } else {
             if (result.issues.length) {
@@ -3958,11 +12155,11 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
         }
         const result = def.valueType._zod.run({ value: input[key], issues: [] }, ctx);
         if (result instanceof Promise) {
-          proms.push(result.then((result2) => {
-            if (result2.issues.length) {
-              payload.issues.push(...prefixIssues(key, result2.issues));
+          proms.push(result.then((result) => {
+            if (result.issues.length) {
+              payload.issues.push(...prefixIssues(key, result.issues));
             }
-            payload.value[keyResult.value] = result2.value;
+            payload.value[keyResult.value] = result.value;
           }));
         } else {
           if (result.issues.length) {
@@ -3978,100 +12175,6 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
     return payload;
   };
 });
-var $ZodMap = /* @__PURE__ */ $constructor("$ZodMap", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, ctx) => {
-    const input = payload.value;
-    if (!(input instanceof Map)) {
-      payload.issues.push({
-        expected: "map",
-        code: "invalid_type",
-        input,
-        inst
-      });
-      return payload;
-    }
-    const proms = [];
-    payload.value = new Map;
-    for (const [key, value] of input) {
-      const keyResult = def.keyType._zod.run({ value: key, issues: [] }, ctx);
-      const valueResult = def.valueType._zod.run({ value, issues: [] }, ctx);
-      if (keyResult instanceof Promise || valueResult instanceof Promise) {
-        proms.push(Promise.all([keyResult, valueResult]).then(([keyResult2, valueResult2]) => {
-          handleMapResult(keyResult2, valueResult2, payload, key, input, inst, ctx);
-        }));
-      } else {
-        handleMapResult(keyResult, valueResult, payload, key, input, inst, ctx);
-      }
-    }
-    if (proms.length)
-      return Promise.all(proms).then(() => payload);
-    return payload;
-  };
-});
-function handleMapResult(keyResult, valueResult, final, key, input, inst, ctx) {
-  if (keyResult.issues.length) {
-    if (propertyKeyTypes.has(typeof key)) {
-      final.issues.push(...prefixIssues(key, keyResult.issues));
-    } else {
-      final.issues.push({
-        code: "invalid_key",
-        origin: "map",
-        input,
-        inst,
-        issues: keyResult.issues.map((iss) => finalizeIssue(iss, ctx, config()))
-      });
-    }
-  }
-  if (valueResult.issues.length) {
-    if (propertyKeyTypes.has(typeof key)) {
-      final.issues.push(...prefixIssues(key, valueResult.issues));
-    } else {
-      final.issues.push({
-        origin: "map",
-        code: "invalid_element",
-        input,
-        inst,
-        key,
-        issues: valueResult.issues.map((iss) => finalizeIssue(iss, ctx, config()))
-      });
-    }
-  }
-  final.value.set(keyResult.value, valueResult.value);
-}
-var $ZodSet = /* @__PURE__ */ $constructor("$ZodSet", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, ctx) => {
-    const input = payload.value;
-    if (!(input instanceof Set)) {
-      payload.issues.push({
-        input,
-        inst,
-        expected: "set",
-        code: "invalid_type"
-      });
-      return payload;
-    }
-    const proms = [];
-    payload.value = new Set;
-    for (const item of input) {
-      const result = def.valueType._zod.run({ value: item, issues: [] }, ctx);
-      if (result instanceof Promise) {
-        proms.push(result.then((result2) => handleSetResult(result2, payload)));
-      } else
-        handleSetResult(result, payload);
-    }
-    if (proms.length)
-      return Promise.all(proms).then(() => payload);
-    return payload;
-  };
-});
-function handleSetResult(result, final) {
-  if (result.issues.length) {
-    final.issues.push(...result.issues);
-  }
-  final.value.add(result.value);
-}
 var $ZodEnum = /* @__PURE__ */ $constructor("$ZodEnum", (inst, def) => {
   $ZodType.init(inst, def);
   const values = getEnumValues(def.entries);
@@ -4092,42 +12195,6 @@ var $ZodEnum = /* @__PURE__ */ $constructor("$ZodEnum", (inst, def) => {
     return payload;
   };
 });
-var $ZodLiteral = /* @__PURE__ */ $constructor("$ZodLiteral", (inst, def) => {
-  $ZodType.init(inst, def);
-  if (def.values.length === 0) {
-    throw new Error("Cannot create literal schema with no valid values");
-  }
-  inst._zod.values = new Set(def.values);
-  inst._zod.pattern = new RegExp(`^(${def.values.map((o) => typeof o === "string" ? escapeRegex(o) : o ? escapeRegex(o.toString()) : String(o)).join("|")})$`);
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (inst._zod.values.has(input)) {
-      return payload;
-    }
-    payload.issues.push({
-      code: "invalid_value",
-      values: def.values,
-      input,
-      inst
-    });
-    return payload;
-  };
-});
-var $ZodFile = /* @__PURE__ */ $constructor("$ZodFile", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    const input = payload.value;
-    if (input instanceof File)
-      return payload;
-    payload.issues.push({
-      expected: "file",
-      code: "invalid_type",
-      input,
-      inst
-    });
-    return payload;
-  };
-});
 var $ZodTransform = /* @__PURE__ */ $constructor("$ZodTransform", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.parse = (payload, ctx) => {
@@ -4137,8 +12204,8 @@ var $ZodTransform = /* @__PURE__ */ $constructor("$ZodTransform", (inst, def) =>
     const _out = def.transform(payload.value, payload);
     if (ctx.async) {
       const output = _out instanceof Promise ? _out : Promise.resolve(_out);
-      return output.then((output2) => {
-        payload.value = output2;
+      return output.then((output) => {
+        payload.value = output;
         return payload;
       });
     }
@@ -4210,7 +12277,7 @@ var $ZodDefault = /* @__PURE__ */ $constructor("$ZodDefault", (inst, def) => {
     }
     const result = def.innerType._zod.run(payload, ctx);
     if (result instanceof Promise) {
-      return result.then((result2) => handleDefaultResult(result2, def));
+      return result.then((result) => handleDefaultResult(result, def));
     }
     return handleDefaultResult(result, def);
   };
@@ -4244,7 +12311,7 @@ var $ZodNonOptional = /* @__PURE__ */ $constructor("$ZodNonOptional", (inst, def
   inst._zod.parse = (payload, ctx) => {
     const result = def.innerType._zod.run(payload, ctx);
     if (result instanceof Promise) {
-      return result.then((result2) => handleNonOptionalResult(result2, inst));
+      return result.then((result) => handleNonOptionalResult(result, inst));
     }
     return handleNonOptionalResult(result, inst);
   };
@@ -4260,23 +12327,6 @@ function handleNonOptionalResult(payload, inst) {
   }
   return payload;
 }
-var $ZodSuccess = /* @__PURE__ */ $constructor("$ZodSuccess", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, ctx) => {
-    if (ctx.direction === "backward") {
-      throw new $ZodEncodeError("ZodSuccess");
-    }
-    const result = def.innerType._zod.run(payload, ctx);
-    if (result instanceof Promise) {
-      return result.then((result2) => {
-        payload.value = result2.issues.length === 0;
-        return payload;
-      });
-    }
-    payload.value = result.issues.length === 0;
-    return payload;
-  };
-});
 var $ZodCatch = /* @__PURE__ */ $constructor("$ZodCatch", (inst, def) => {
   $ZodType.init(inst, def);
   defineLazy(inst._zod, "optin", () => def.innerType._zod.optin);
@@ -4288,13 +12338,13 @@ var $ZodCatch = /* @__PURE__ */ $constructor("$ZodCatch", (inst, def) => {
     }
     const result = def.innerType._zod.run(payload, ctx);
     if (result instanceof Promise) {
-      return result.then((result2) => {
-        payload.value = result2.value;
-        if (result2.issues.length) {
+      return result.then((result) => {
+        payload.value = result.value;
+        if (result.issues.length) {
           payload.value = def.catchValue({
             ...payload,
             error: {
-              issues: result2.issues.map((iss) => finalizeIssue(iss, ctx, config()))
+              issues: result.issues.map((iss) => finalizeIssue(iss, ctx, config()))
             },
             input: payload.value
           });
@@ -4317,21 +12367,6 @@ var $ZodCatch = /* @__PURE__ */ $constructor("$ZodCatch", (inst, def) => {
     return payload;
   };
 });
-var $ZodNaN = /* @__PURE__ */ $constructor("$ZodNaN", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, _ctx) => {
-    if (typeof payload.value !== "number" || !Number.isNaN(payload.value)) {
-      payload.issues.push({
-        input: payload.value,
-        inst,
-        expected: "nan",
-        code: "invalid_type"
-      });
-      return payload;
-    }
-    return payload;
-  };
-});
 var $ZodPipe = /* @__PURE__ */ $constructor("$ZodPipe", (inst, def) => {
   $ZodType.init(inst, def);
   defineLazy(inst._zod, "values", () => def.in._zod.values);
@@ -4342,13 +12377,13 @@ var $ZodPipe = /* @__PURE__ */ $constructor("$ZodPipe", (inst, def) => {
     if (ctx.direction === "backward") {
       const right = def.out._zod.run(payload, ctx);
       if (right instanceof Promise) {
-        return right.then((right2) => handlePipeResult(right2, def.in, ctx));
+        return right.then((right) => handlePipeResult(right, def.in, ctx));
       }
       return handlePipeResult(right, def.in, ctx);
     }
     const left = def.in._zod.run(payload, ctx);
     if (left instanceof Promise) {
-      return left.then((left2) => handlePipeResult(left2, def.out, ctx));
+      return left.then((left) => handlePipeResult(left, def.out, ctx));
     }
     return handlePipeResult(left, def.out, ctx);
   };
@@ -4359,56 +12394,6 @@ function handlePipeResult(left, next, ctx) {
     return left;
   }
   return next._zod.run({ value: left.value, issues: left.issues }, ctx);
-}
-var $ZodCodec = /* @__PURE__ */ $constructor("$ZodCodec", (inst, def) => {
-  $ZodType.init(inst, def);
-  defineLazy(inst._zod, "values", () => def.in._zod.values);
-  defineLazy(inst._zod, "optin", () => def.in._zod.optin);
-  defineLazy(inst._zod, "optout", () => def.out._zod.optout);
-  defineLazy(inst._zod, "propValues", () => def.in._zod.propValues);
-  inst._zod.parse = (payload, ctx) => {
-    const direction = ctx.direction || "forward";
-    if (direction === "forward") {
-      const left = def.in._zod.run(payload, ctx);
-      if (left instanceof Promise) {
-        return left.then((left2) => handleCodecAResult(left2, def, ctx));
-      }
-      return handleCodecAResult(left, def, ctx);
-    } else {
-      const right = def.out._zod.run(payload, ctx);
-      if (right instanceof Promise) {
-        return right.then((right2) => handleCodecAResult(right2, def, ctx));
-      }
-      return handleCodecAResult(right, def, ctx);
-    }
-  };
-});
-function handleCodecAResult(result, def, ctx) {
-  if (result.issues.length) {
-    result.aborted = true;
-    return result;
-  }
-  const direction = ctx.direction || "forward";
-  if (direction === "forward") {
-    const transformed = def.transform(result.value, result);
-    if (transformed instanceof Promise) {
-      return transformed.then((value) => handleCodecTxResult(result, value, def.out, ctx));
-    }
-    return handleCodecTxResult(result, transformed, def.out, ctx);
-  } else {
-    const transformed = def.reverseTransform(result.value, result);
-    if (transformed instanceof Promise) {
-      return transformed.then((value) => handleCodecTxResult(result, value, def.in, ctx));
-    }
-    return handleCodecTxResult(result, transformed, def.in, ctx);
-  }
-}
-function handleCodecTxResult(left, value, nextSchema, ctx) {
-  if (left.issues.length) {
-    left.aborted = true;
-    return left;
-  }
-  return nextSchema._zod.run({ value, issues: left.issues }, ctx);
 }
 var $ZodReadonly = /* @__PURE__ */ $constructor("$ZodReadonly", (inst, def) => {
   $ZodType.init(inst, def);
@@ -4431,146 +12416,6 @@ function handleReadonlyResult(payload) {
   payload.value = Object.freeze(payload.value);
   return payload;
 }
-var $ZodTemplateLiteral = /* @__PURE__ */ $constructor("$ZodTemplateLiteral", (inst, def) => {
-  $ZodType.init(inst, def);
-  const regexParts = [];
-  for (const part of def.parts) {
-    if (typeof part === "object" && part !== null) {
-      if (!part._zod.pattern) {
-        throw new Error(`Invalid template literal part, no pattern found: ${[...part._zod.traits].shift()}`);
-      }
-      const source = part._zod.pattern instanceof RegExp ? part._zod.pattern.source : part._zod.pattern;
-      if (!source)
-        throw new Error(`Invalid template literal part: ${part._zod.traits}`);
-      const start = source.startsWith("^") ? 1 : 0;
-      const end = source.endsWith("$") ? source.length - 1 : source.length;
-      regexParts.push(source.slice(start, end));
-    } else if (part === null || primitiveTypes.has(typeof part)) {
-      regexParts.push(escapeRegex(`${part}`));
-    } else {
-      throw new Error(`Invalid template literal part: ${part}`);
-    }
-  }
-  inst._zod.pattern = new RegExp(`^${regexParts.join("")}$`);
-  inst._zod.parse = (payload, _ctx) => {
-    if (typeof payload.value !== "string") {
-      payload.issues.push({
-        input: payload.value,
-        inst,
-        expected: "template_literal",
-        code: "invalid_type"
-      });
-      return payload;
-    }
-    inst._zod.pattern.lastIndex = 0;
-    if (!inst._zod.pattern.test(payload.value)) {
-      payload.issues.push({
-        input: payload.value,
-        inst,
-        code: "invalid_format",
-        format: def.format ?? "template_literal",
-        pattern: inst._zod.pattern.source
-      });
-      return payload;
-    }
-    return payload;
-  };
-});
-var $ZodFunction = /* @__PURE__ */ $constructor("$ZodFunction", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._def = def;
-  inst._zod.def = def;
-  inst.implement = (func) => {
-    if (typeof func !== "function") {
-      throw new Error("implement() must be called with a function");
-    }
-    return function(...args) {
-      const parsedArgs = inst._def.input ? parse(inst._def.input, args) : args;
-      const result = Reflect.apply(func, this, parsedArgs);
-      if (inst._def.output) {
-        return parse(inst._def.output, result);
-      }
-      return result;
-    };
-  };
-  inst.implementAsync = (func) => {
-    if (typeof func !== "function") {
-      throw new Error("implementAsync() must be called with a function");
-    }
-    return async function(...args) {
-      const parsedArgs = inst._def.input ? await parseAsync(inst._def.input, args) : args;
-      const result = await Reflect.apply(func, this, parsedArgs);
-      if (inst._def.output) {
-        return await parseAsync(inst._def.output, result);
-      }
-      return result;
-    };
-  };
-  inst._zod.parse = (payload, _ctx) => {
-    if (typeof payload.value !== "function") {
-      payload.issues.push({
-        code: "invalid_type",
-        expected: "function",
-        input: payload.value,
-        inst
-      });
-      return payload;
-    }
-    const hasPromiseOutput = inst._def.output && inst._def.output._zod.def.type === "promise";
-    if (hasPromiseOutput) {
-      payload.value = inst.implementAsync(payload.value);
-    } else {
-      payload.value = inst.implement(payload.value);
-    }
-    return payload;
-  };
-  inst.input = (...args) => {
-    const F = inst.constructor;
-    if (Array.isArray(args[0])) {
-      return new F({
-        type: "function",
-        input: new $ZodTuple({
-          type: "tuple",
-          items: args[0],
-          rest: args[1]
-        }),
-        output: inst._def.output
-      });
-    }
-    return new F({
-      type: "function",
-      input: args[0],
-      output: inst._def.output
-    });
-  };
-  inst.output = (output) => {
-    const F = inst.constructor;
-    return new F({
-      type: "function",
-      input: inst._def.input,
-      output
-    });
-  };
-  return inst;
-});
-var $ZodPromise = /* @__PURE__ */ $constructor("$ZodPromise", (inst, def) => {
-  $ZodType.init(inst, def);
-  inst._zod.parse = (payload, ctx) => {
-    return Promise.resolve(payload.value).then((inner) => def.innerType._zod.run({ value: inner, issues: [] }, ctx));
-  };
-});
-var $ZodLazy = /* @__PURE__ */ $constructor("$ZodLazy", (inst, def) => {
-  $ZodType.init(inst, def);
-  defineLazy(inst._zod, "innerType", () => def.getter());
-  defineLazy(inst._zod, "pattern", () => inst._zod.innerType._zod.pattern);
-  defineLazy(inst._zod, "propValues", () => inst._zod.innerType._zod.propValues);
-  defineLazy(inst._zod, "optin", () => inst._zod.innerType._zod.optin ?? undefined);
-  defineLazy(inst._zod, "optout", () => inst._zod.innerType._zod.optout ?? undefined);
-  inst._zod.parse = (payload, ctx) => {
-    const inner = inst._zod.innerType;
-    return inner._zod.run(payload, ctx);
-  };
-});
 var $ZodCustom = /* @__PURE__ */ $constructor("$ZodCustom", (inst, def) => {
   $ZodCheck.init(inst, def);
   $ZodType.init(inst, def);
@@ -4581,7 +12426,7 @@ var $ZodCustom = /* @__PURE__ */ $constructor("$ZodCustom", (inst, def) => {
     const input = payload.value;
     const r = def.fn(input);
     if (r instanceof Promise) {
-      return r.then((r2) => handleRefineResult(r2, payload, input, inst));
+      return r.then((r) => handleRefineResult(r, payload, input, inst));
     }
     handleRefineResult(r, payload, input, inst);
     return;
@@ -4600,5489 +12445,6 @@ function handleRefineResult(result, payload, input, inst) {
       _iss.params = inst._zod.def.params;
     payload.issues.push(issue(_iss));
   }
-}
-// node_modules/zod/v4/locales/index.js
-var exports_locales = {};
-__export(exports_locales, {
-  zhTW: () => zh_TW_default,
-  zhCN: () => zh_CN_default,
-  yo: () => yo_default,
-  vi: () => vi_default,
-  ur: () => ur_default,
-  uk: () => uk_default,
-  ua: () => ua_default,
-  tr: () => tr_default,
-  th: () => th_default,
-  ta: () => ta_default,
-  sv: () => sv_default,
-  sl: () => sl_default,
-  ru: () => ru_default,
-  pt: () => pt_default,
-  ps: () => ps_default,
-  pl: () => pl_default,
-  ota: () => ota_default,
-  no: () => no_default,
-  nl: () => nl_default,
-  ms: () => ms_default,
-  mk: () => mk_default,
-  lt: () => lt_default,
-  ko: () => ko_default,
-  km: () => km_default,
-  kh: () => kh_default,
-  ka: () => ka_default,
-  ja: () => ja_default,
-  it: () => it_default,
-  is: () => is_default,
-  id: () => id_default,
-  hu: () => hu_default,
-  he: () => he_default,
-  frCA: () => fr_CA_default,
-  fr: () => fr_default,
-  fi: () => fi_default,
-  fa: () => fa_default,
-  es: () => es_default,
-  eo: () => eo_default,
-  en: () => en_default,
-  de: () => de_default,
-  da: () => da_default,
-  cs: () => cs_default,
-  ca: () => ca_default,
-  be: () => be_default,
-  az: () => az_default,
-  ar: () => ar_default
-});
-
-// node_modules/zod/v4/locales/ar.js
-var error = () => {
-  const Sizable = {
-    string: { unit: "حرف", verb: "أن يحوي" },
-    file: { unit: "بايت", verb: "أن يحوي" },
-    array: { unit: "عنصر", verb: "أن يحوي" },
-    set: { unit: "عنصر", verb: "أن يحوي" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "مدخل",
-    email: "بريد إلكتروني",
-    url: "رابط",
-    emoji: "إيموجي",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "تاريخ ووقت بمعيار ISO",
-    date: "تاريخ بمعيار ISO",
-    time: "وقت بمعيار ISO",
-    duration: "مدة بمعيار ISO",
-    ipv4: "عنوان IPv4",
-    ipv6: "عنوان IPv6",
-    cidrv4: "مدى عناوين بصيغة IPv4",
-    cidrv6: "مدى عناوين بصيغة IPv6",
-    base64: "نَص بترميز base64-encoded",
-    base64url: "نَص بترميز base64url-encoded",
-    json_string: "نَص على هيئة JSON",
-    e164: "رقم هاتف بمعيار E.164",
-    jwt: "JWT",
-    template_literal: "مدخل"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `مدخلات غير مقبولة: يفترض إدخال ${issue2.expected}، ولكن تم إدخال ${parsedType(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `مدخلات غير مقبولة: يفترض إدخال ${stringifyPrimitive(issue2.values[0])}`;
-        return `اختيار غير مقبول: يتوقع انتقاء أحد هذه الخيارات: ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return ` أكبر من اللازم: يفترض أن تكون ${issue2.origin ?? "القيمة"} ${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "عنصر"}`;
-        return `أكبر من اللازم: يفترض أن تكون ${issue2.origin ?? "القيمة"} ${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `أصغر من اللازم: يفترض لـ ${issue2.origin} أن يكون ${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `أصغر من اللازم: يفترض لـ ${issue2.origin} أن يكون ${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `نَص غير مقبول: يجب أن يبدأ بـ "${issue2.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `نَص غير مقبول: يجب أن ينتهي بـ "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `نَص غير مقبول: يجب أن يتضمَّن "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `نَص غير مقبول: يجب أن يطابق النمط ${_issue.pattern}`;
-        return `${Nouns[_issue.format] ?? issue2.format} غير مقبول`;
-      }
-      case "not_multiple_of":
-        return `رقم غير مقبول: يجب أن يكون من مضاعفات ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `معرف${issue2.keys.length > 1 ? "ات" : ""} غريب${issue2.keys.length > 1 ? "ة" : ""}: ${joinValues(issue2.keys, "، ")}`;
-      case "invalid_key":
-        return `معرف غير مقبول في ${issue2.origin}`;
-      case "invalid_union":
-        return "مدخل غير مقبول";
-      case "invalid_element":
-        return `مدخل غير مقبول في ${issue2.origin}`;
-      default:
-        return "مدخل غير مقبول";
-    }
-  };
-};
-function ar_default() {
-  return {
-    localeError: error()
-  };
-}
-// node_modules/zod/v4/locales/az.js
-var error2 = () => {
-  const Sizable = {
-    string: { unit: "simvol", verb: "olmalıdır" },
-    file: { unit: "bayt", verb: "olmalıdır" },
-    array: { unit: "element", verb: "olmalıdır" },
-    set: { unit: "element", verb: "olmalıdır" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "input",
-    email: "email address",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO datetime",
-    date: "ISO date",
-    time: "ISO time",
-    duration: "ISO duration",
-    ipv4: "IPv4 address",
-    ipv6: "IPv6 address",
-    cidrv4: "IPv4 range",
-    cidrv6: "IPv6 range",
-    base64: "base64-encoded string",
-    base64url: "base64url-encoded string",
-    json_string: "JSON string",
-    e164: "E.164 number",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Yanlış dəyər: gözlənilən ${issue2.expected}, daxil olan ${parsedType(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Yanlış dəyər: gözlənilən ${stringifyPrimitive(issue2.values[0])}`;
-        return `Yanlış seçim: aşağıdakılardan biri olmalıdır: ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Çox böyük: gözlənilən ${issue2.origin ?? "dəyər"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "element"}`;
-        return `Çox böyük: gözlənilən ${issue2.origin ?? "dəyər"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Çox kiçik: gözlənilən ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        return `Çox kiçik: gözlənilən ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Yanlış mətn: "${_issue.prefix}" ilə başlamalıdır`;
-        if (_issue.format === "ends_with")
-          return `Yanlış mətn: "${_issue.suffix}" ilə bitməlidir`;
-        if (_issue.format === "includes")
-          return `Yanlış mətn: "${_issue.includes}" daxil olmalıdır`;
-        if (_issue.format === "regex")
-          return `Yanlış mətn: ${_issue.pattern} şablonuna uyğun olmalıdır`;
-        return `Yanlış ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Yanlış ədəd: ${issue2.divisor} ilə bölünə bilən olmalıdır`;
-      case "unrecognized_keys":
-        return `Tanınmayan açar${issue2.keys.length > 1 ? "lar" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} daxilində yanlış açar`;
-      case "invalid_union":
-        return "Yanlış dəyər";
-      case "invalid_element":
-        return `${issue2.origin} daxilində yanlış dəyər`;
-      default:
-        return `Yanlış dəyər`;
-    }
-  };
-};
-function az_default() {
-  return {
-    localeError: error2()
-  };
-}
-// node_modules/zod/v4/locales/be.js
-function getBelarusianPlural(count, one, few, many) {
-  const absCount = Math.abs(count);
-  const lastDigit = absCount % 10;
-  const lastTwoDigits = absCount % 100;
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
-    return many;
-  }
-  if (lastDigit === 1) {
-    return one;
-  }
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return few;
-  }
-  return many;
-}
-var error3 = () => {
-  const Sizable = {
-    string: {
-      unit: {
-        one: "сімвал",
-        few: "сімвалы",
-        many: "сімвалаў"
-      },
-      verb: "мець"
-    },
-    array: {
-      unit: {
-        one: "элемент",
-        few: "элементы",
-        many: "элементаў"
-      },
-      verb: "мець"
-    },
-    set: {
-      unit: {
-        one: "элемент",
-        few: "элементы",
-        many: "элементаў"
-      },
-      verb: "мець"
-    },
-    file: {
-      unit: {
-        one: "байт",
-        few: "байты",
-        many: "байтаў"
-      },
-      verb: "мець"
-    }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "лік";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "масіў";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "увод",
-    email: "email адрас",
-    url: "URL",
-    emoji: "эмодзі",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO дата і час",
-    date: "ISO дата",
-    time: "ISO час",
-    duration: "ISO працягласць",
-    ipv4: "IPv4 адрас",
-    ipv6: "IPv6 адрас",
-    cidrv4: "IPv4 дыяпазон",
-    cidrv6: "IPv6 дыяпазон",
-    base64: "радок у фармаце base64",
-    base64url: "радок у фармаце base64url",
-    json_string: "JSON радок",
-    e164: "нумар E.164",
-    jwt: "JWT",
-    template_literal: "увод"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Няправільны ўвод: чакаўся ${issue2.expected}, атрымана ${parsedType(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Няправільны ўвод: чакалася ${stringifyPrimitive(issue2.values[0])}`;
-        return `Няправільны варыянт: чакаўся адзін з ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const maxValue = Number(issue2.maximum);
-          const unit = getBelarusianPlural(maxValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `Занадта вялікі: чакалася, што ${issue2.origin ?? "значэнне"} павінна ${sizing.verb} ${adj}${issue2.maximum.toString()} ${unit}`;
-        }
-        return `Занадта вялікі: чакалася, што ${issue2.origin ?? "значэнне"} павінна быць ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const minValue = Number(issue2.minimum);
-          const unit = getBelarusianPlural(minValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `Занадта малы: чакалася, што ${issue2.origin} павінна ${sizing.verb} ${adj}${issue2.minimum.toString()} ${unit}`;
-        }
-        return `Занадта малы: чакалася, што ${issue2.origin} павінна быць ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Няправільны радок: павінен пачынацца з "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Няправільны радок: павінен заканчвацца на "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Няправільны радок: павінен змяшчаць "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Няправільны радок: павінен адпавядаць шаблону ${_issue.pattern}`;
-        return `Няправільны ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Няправільны лік: павінен быць кратным ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Нераспазнаны ${issue2.keys.length > 1 ? "ключы" : "ключ"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Няправільны ключ у ${issue2.origin}`;
-      case "invalid_union":
-        return "Няправільны ўвод";
-      case "invalid_element":
-        return `Няправільнае значэнне ў ${issue2.origin}`;
-      default:
-        return `Няправільны ўвод`;
-    }
-  };
-};
-function be_default() {
-  return {
-    localeError: error3()
-  };
-}
-// node_modules/zod/v4/locales/ca.js
-var error4 = () => {
-  const Sizable = {
-    string: { unit: "caràcters", verb: "contenir" },
-    file: { unit: "bytes", verb: "contenir" },
-    array: { unit: "elements", verb: "contenir" },
-    set: { unit: "elements", verb: "contenir" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "entrada",
-    email: "adreça electrònica",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "data i hora ISO",
-    date: "data ISO",
-    time: "hora ISO",
-    duration: "durada ISO",
-    ipv4: "adreça IPv4",
-    ipv6: "adreça IPv6",
-    cidrv4: "rang IPv4",
-    cidrv6: "rang IPv6",
-    base64: "cadena codificada en base64",
-    base64url: "cadena codificada en base64url",
-    json_string: "cadena JSON",
-    e164: "número E.164",
-    jwt: "JWT",
-    template_literal: "entrada"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Tipus invàlid: s'esperava ${issue2.expected}, s'ha rebut ${parsedType(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Valor invàlid: s'esperava ${stringifyPrimitive(issue2.values[0])}`;
-        return `Opció invàlida: s'esperava una de ${joinValues(issue2.values, " o ")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "com a màxim" : "menys de";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Massa gran: s'esperava que ${issue2.origin ?? "el valor"} contingués ${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "elements"}`;
-        return `Massa gran: s'esperava que ${issue2.origin ?? "el valor"} fos ${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "com a mínim" : "més de";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Massa petit: s'esperava que ${issue2.origin} contingués ${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Massa petit: s'esperava que ${issue2.origin} fos ${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Format invàlid: ha de començar amb "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Format invàlid: ha d'acabar amb "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Format invàlid: ha d'incloure "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Format invàlid: ha de coincidir amb el patró ${_issue.pattern}`;
-        return `Format invàlid per a ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Número invàlid: ha de ser múltiple de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Clau${issue2.keys.length > 1 ? "s" : ""} no reconeguda${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Clau invàlida a ${issue2.origin}`;
-      case "invalid_union":
-        return "Entrada invàlida";
-      case "invalid_element":
-        return `Element invàlid a ${issue2.origin}`;
-      default:
-        return `Entrada invàlida`;
-    }
-  };
-};
-function ca_default() {
-  return {
-    localeError: error4()
-  };
-}
-// node_modules/zod/v4/locales/cs.js
-var error5 = () => {
-  const Sizable = {
-    string: { unit: "znaků", verb: "mít" },
-    file: { unit: "bajtů", verb: "mít" },
-    array: { unit: "prvků", verb: "mít" },
-    set: { unit: "prvků", verb: "mít" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "číslo";
-      }
-      case "string": {
-        return "řetězec";
-      }
-      case "boolean": {
-        return "boolean";
-      }
-      case "bigint": {
-        return "bigint";
-      }
-      case "function": {
-        return "funkce";
-      }
-      case "symbol": {
-        return "symbol";
-      }
-      case "undefined": {
-        return "undefined";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "pole";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "regulární výraz",
-    email: "e-mailová adresa",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "datum a čas ve formátu ISO",
-    date: "datum ve formátu ISO",
-    time: "čas ve formátu ISO",
-    duration: "doba trvání ISO",
-    ipv4: "IPv4 adresa",
-    ipv6: "IPv6 adresa",
-    cidrv4: "rozsah IPv4",
-    cidrv6: "rozsah IPv6",
-    base64: "řetězec zakódovaný ve formátu base64",
-    base64url: "řetězec zakódovaný ve formátu base64url",
-    json_string: "řetězec ve formátu JSON",
-    e164: "číslo E.164",
-    jwt: "JWT",
-    template_literal: "vstup"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Neplatný vstup: očekáváno ${issue2.expected}, obdrženo ${parsedType(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Neplatný vstup: očekáváno ${stringifyPrimitive(issue2.values[0])}`;
-        return `Neplatná možnost: očekávána jedna z hodnot ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Hodnota je příliš velká: ${issue2.origin ?? "hodnota"} musí mít ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "prvků"}`;
-        }
-        return `Hodnota je příliš velká: ${issue2.origin ?? "hodnota"} musí být ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Hodnota je příliš malá: ${issue2.origin ?? "hodnota"} musí mít ${adj}${issue2.minimum.toString()} ${sizing.unit ?? "prvků"}`;
-        }
-        return `Hodnota je příliš malá: ${issue2.origin ?? "hodnota"} musí být ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Neplatný řetězec: musí začínat na "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Neplatný řetězec: musí končit na "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Neplatný řetězec: musí obsahovat "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Neplatný řetězec: musí odpovídat vzoru ${_issue.pattern}`;
-        return `Neplatný formát ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Neplatné číslo: musí být násobkem ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Neznámé klíče: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Neplatný klíč v ${issue2.origin}`;
-      case "invalid_union":
-        return "Neplatný vstup";
-      case "invalid_element":
-        return `Neplatná hodnota v ${issue2.origin}`;
-      default:
-        return `Neplatný vstup`;
-    }
-  };
-};
-function cs_default() {
-  return {
-    localeError: error5()
-  };
-}
-// node_modules/zod/v4/locales/da.js
-var error6 = () => {
-  const Sizable = {
-    string: { unit: "tegn", verb: "havde" },
-    file: { unit: "bytes", verb: "havde" },
-    array: { unit: "elementer", verb: "indeholdt" },
-    set: { unit: "elementer", verb: "indeholdt" }
-  };
-  const TypeNames = {
-    string: "streng",
-    number: "tal",
-    boolean: "boolean",
-    array: "liste",
-    object: "objekt",
-    set: "sæt",
-    file: "fil"
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  function getTypeName(type) {
-    return TypeNames[type] ?? type;
-  }
-  const parsedType = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "tal";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "liste";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-        return "objekt";
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "input",
-    email: "e-mailadresse",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO dato- og klokkeslæt",
-    date: "ISO-dato",
-    time: "ISO-klokkeslæt",
-    duration: "ISO-varighed",
-    ipv4: "IPv4-område",
-    ipv6: "IPv6-område",
-    cidrv4: "IPv4-spektrum",
-    cidrv6: "IPv6-spektrum",
-    base64: "base64-kodet streng",
-    base64url: "base64url-kodet streng",
-    json_string: "JSON-streng",
-    e164: "E.164-nummer",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Ugyldigt input: forventede ${getTypeName(issue2.expected)}, fik ${getTypeName(parsedType(issue2.input))}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ugyldig værdi: forventede ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ugyldigt valg: forventede en af følgende ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        const origin = getTypeName(issue2.origin);
-        if (sizing)
-          return `For stor: forventede ${origin ?? "value"} ${sizing.verb} ${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "elementer"}`;
-        return `For stor: forventede ${origin ?? "value"} havde ${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        const origin = getTypeName(issue2.origin);
-        if (sizing) {
-          return `For lille: forventede ${origin} ${sizing.verb} ${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `For lille: forventede ${origin} havde ${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Ugyldig streng: skal starte med "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Ugyldig streng: skal ende med "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ugyldig streng: skal indeholde "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ugyldig streng: skal matche mønsteret ${_issue.pattern}`;
-        return `Ugyldig ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ugyldigt tal: skal være deleligt med ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Ukendte nøgler" : "Ukendt nøgle"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ugyldig nøgle i ${issue2.origin}`;
-      case "invalid_union":
-        return "Ugyldigt input: matcher ingen af de tilladte typer";
-      case "invalid_element":
-        return `Ugyldig værdi i ${issue2.origin}`;
-      default:
-        return `Ugyldigt input`;
-    }
-  };
-};
-function da_default() {
-  return {
-    localeError: error6()
-  };
-}
-// node_modules/zod/v4/locales/de.js
-var error7 = () => {
-  const Sizable = {
-    string: { unit: "Zeichen", verb: "zu haben" },
-    file: { unit: "Bytes", verb: "zu haben" },
-    array: { unit: "Elemente", verb: "zu haben" },
-    set: { unit: "Elemente", verb: "zu haben" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "Zahl";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "Array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "Eingabe",
-    email: "E-Mail-Adresse",
-    url: "URL",
-    emoji: "Emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO-Datum und -Uhrzeit",
-    date: "ISO-Datum",
-    time: "ISO-Uhrzeit",
-    duration: "ISO-Dauer",
-    ipv4: "IPv4-Adresse",
-    ipv6: "IPv6-Adresse",
-    cidrv4: "IPv4-Bereich",
-    cidrv6: "IPv6-Bereich",
-    base64: "Base64-codierter String",
-    base64url: "Base64-URL-codierter String",
-    json_string: "JSON-String",
-    e164: "E.164-Nummer",
-    jwt: "JWT",
-    template_literal: "Eingabe"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Ungültige Eingabe: erwartet ${issue2.expected}, erhalten ${parsedType(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ungültige Eingabe: erwartet ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ungültige Option: erwartet eine von ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Zu groß: erwartet, dass ${issue2.origin ?? "Wert"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "Elemente"} hat`;
-        return `Zu groß: erwartet, dass ${issue2.origin ?? "Wert"} ${adj}${issue2.maximum.toString()} ist`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Zu klein: erwartet, dass ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit} hat`;
-        }
-        return `Zu klein: erwartet, dass ${issue2.origin} ${adj}${issue2.minimum.toString()} ist`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Ungültiger String: muss mit "${_issue.prefix}" beginnen`;
-        if (_issue.format === "ends_with")
-          return `Ungültiger String: muss mit "${_issue.suffix}" enden`;
-        if (_issue.format === "includes")
-          return `Ungültiger String: muss "${_issue.includes}" enthalten`;
-        if (_issue.format === "regex")
-          return `Ungültiger String: muss dem Muster ${_issue.pattern} entsprechen`;
-        return `Ungültig: ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ungültige Zahl: muss ein Vielfaches von ${issue2.divisor} sein`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Unbekannte Schlüssel" : "Unbekannter Schlüssel"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ungültiger Schlüssel in ${issue2.origin}`;
-      case "invalid_union":
-        return "Ungültige Eingabe";
-      case "invalid_element":
-        return `Ungültiger Wert in ${issue2.origin}`;
-      default:
-        return `Ungültige Eingabe`;
-    }
-  };
-};
-function de_default() {
-  return {
-    localeError: error7()
-  };
-}
-// node_modules/zod/v4/locales/en.js
-var parsedType = (data) => {
-  const t = typeof data;
-  switch (t) {
-    case "number": {
-      return Number.isNaN(data) ? "NaN" : "number";
-    }
-    case "object": {
-      if (Array.isArray(data)) {
-        return "array";
-      }
-      if (data === null) {
-        return "null";
-      }
-      if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-        return data.constructor.name;
-      }
-    }
-  }
-  return t;
-};
-var error8 = () => {
-  const Sizable = {
-    string: { unit: "characters", verb: "to have" },
-    file: { unit: "bytes", verb: "to have" },
-    array: { unit: "items", verb: "to have" },
-    set: { unit: "items", verb: "to have" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const Nouns = {
-    regex: "input",
-    email: "email address",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO datetime",
-    date: "ISO date",
-    time: "ISO time",
-    duration: "ISO duration",
-    ipv4: "IPv4 address",
-    ipv6: "IPv6 address",
-    cidrv4: "IPv4 range",
-    cidrv6: "IPv6 range",
-    base64: "base64-encoded string",
-    base64url: "base64url-encoded string",
-    json_string: "JSON string",
-    e164: "E.164 number",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Invalid input: expected ${issue2.expected}, received ${parsedType(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Invalid input: expected ${stringifyPrimitive(issue2.values[0])}`;
-        return `Invalid option: expected one of ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Too big: expected ${issue2.origin ?? "value"} to have ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elements"}`;
-        return `Too big: expected ${issue2.origin ?? "value"} to be ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Too small: expected ${issue2.origin} to have ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Too small: expected ${issue2.origin} to be ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Invalid string: must start with "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Invalid string: must end with "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Invalid string: must include "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Invalid string: must match pattern ${_issue.pattern}`;
-        return `Invalid ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Invalid number: must be a multiple of ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Unrecognized key${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Invalid key in ${issue2.origin}`;
-      case "invalid_union":
-        return "Invalid input";
-      case "invalid_element":
-        return `Invalid value in ${issue2.origin}`;
-      default:
-        return `Invalid input`;
-    }
-  };
-};
-function en_default() {
-  return {
-    localeError: error8()
-  };
-}
-// node_modules/zod/v4/locales/eo.js
-var parsedType2 = (data) => {
-  const t = typeof data;
-  switch (t) {
-    case "number": {
-      return Number.isNaN(data) ? "NaN" : "nombro";
-    }
-    case "object": {
-      if (Array.isArray(data)) {
-        return "tabelo";
-      }
-      if (data === null) {
-        return "senvalora";
-      }
-      if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-        return data.constructor.name;
-      }
-    }
-  }
-  return t;
-};
-var error9 = () => {
-  const Sizable = {
-    string: { unit: "karaktrojn", verb: "havi" },
-    file: { unit: "bajtojn", verb: "havi" },
-    array: { unit: "elementojn", verb: "havi" },
-    set: { unit: "elementojn", verb: "havi" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const Nouns = {
-    regex: "enigo",
-    email: "retadreso",
-    url: "URL",
-    emoji: "emoĝio",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO-datotempo",
-    date: "ISO-dato",
-    time: "ISO-tempo",
-    duration: "ISO-daŭro",
-    ipv4: "IPv4-adreso",
-    ipv6: "IPv6-adreso",
-    cidrv4: "IPv4-rango",
-    cidrv6: "IPv6-rango",
-    base64: "64-ume kodita karaktraro",
-    base64url: "URL-64-ume kodita karaktraro",
-    json_string: "JSON-karaktraro",
-    e164: "E.164-nombro",
-    jwt: "JWT",
-    template_literal: "enigo"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Nevalida enigo: atendiĝis ${issue2.expected}, riceviĝis ${parsedType2(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Nevalida enigo: atendiĝis ${stringifyPrimitive(issue2.values[0])}`;
-        return `Nevalida opcio: atendiĝis unu el ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Tro granda: atendiĝis ke ${issue2.origin ?? "valoro"} havu ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementojn"}`;
-        return `Tro granda: atendiĝis ke ${issue2.origin ?? "valoro"} havu ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Tro malgranda: atendiĝis ke ${issue2.origin} havu ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Tro malgranda: atendiĝis ke ${issue2.origin} estu ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Nevalida karaktraro: devas komenciĝi per "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Nevalida karaktraro: devas finiĝi per "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Nevalida karaktraro: devas inkluzivi "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Nevalida karaktraro: devas kongrui kun la modelo ${_issue.pattern}`;
-        return `Nevalida ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Nevalida nombro: devas esti oblo de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Nekonata${issue2.keys.length > 1 ? "j" : ""} ŝlosilo${issue2.keys.length > 1 ? "j" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Nevalida ŝlosilo en ${issue2.origin}`;
-      case "invalid_union":
-        return "Nevalida enigo";
-      case "invalid_element":
-        return `Nevalida valoro en ${issue2.origin}`;
-      default:
-        return `Nevalida enigo`;
-    }
-  };
-};
-function eo_default() {
-  return {
-    localeError: error9()
-  };
-}
-// node_modules/zod/v4/locales/es.js
-var error10 = () => {
-  const Sizable = {
-    string: { unit: "caracteres", verb: "tener" },
-    file: { unit: "bytes", verb: "tener" },
-    array: { unit: "elementos", verb: "tener" },
-    set: { unit: "elementos", verb: "tener" }
-  };
-  const TypeNames = {
-    string: "texto",
-    number: "número",
-    boolean: "booleano",
-    array: "arreglo",
-    object: "objeto",
-    set: "conjunto",
-    file: "archivo",
-    date: "fecha",
-    bigint: "número grande",
-    symbol: "símbolo",
-    undefined: "indefinido",
-    null: "nulo",
-    function: "función",
-    map: "mapa",
-    record: "registro",
-    tuple: "tupla",
-    enum: "enumeración",
-    union: "unión",
-    literal: "literal",
-    promise: "promesa",
-    void: "vacío",
-    never: "nunca",
-    unknown: "desconocido",
-    any: "cualquiera"
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  function getTypeName(type) {
-    return TypeNames[type] ?? type;
-  }
-  const parsedType3 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype) {
-          return data.constructor.name;
-        }
-        return "object";
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "entrada",
-    email: "dirección de correo electrónico",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "fecha y hora ISO",
-    date: "fecha ISO",
-    time: "hora ISO",
-    duration: "duración ISO",
-    ipv4: "dirección IPv4",
-    ipv6: "dirección IPv6",
-    cidrv4: "rango IPv4",
-    cidrv6: "rango IPv6",
-    base64: "cadena codificada en base64",
-    base64url: "URL codificada en base64",
-    json_string: "cadena JSON",
-    e164: "número E.164",
-    jwt: "JWT",
-    template_literal: "entrada"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Entrada inválida: se esperaba ${getTypeName(issue2.expected)}, recibido ${getTypeName(parsedType3(issue2.input))}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Entrada inválida: se esperaba ${stringifyPrimitive(issue2.values[0])}`;
-        return `Opción inválida: se esperaba una de ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        const origin = getTypeName(issue2.origin);
-        if (sizing)
-          return `Demasiado grande: se esperaba que ${origin ?? "valor"} tuviera ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementos"}`;
-        return `Demasiado grande: se esperaba que ${origin ?? "valor"} fuera ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        const origin = getTypeName(issue2.origin);
-        if (sizing) {
-          return `Demasiado pequeño: se esperaba que ${origin} tuviera ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Demasiado pequeño: se esperaba que ${origin} fuera ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Cadena inválida: debe comenzar con "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Cadena inválida: debe terminar en "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Cadena inválida: debe incluir "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Cadena inválida: debe coincidir con el patrón ${_issue.pattern}`;
-        return `Inválido ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Número inválido: debe ser múltiplo de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Llave${issue2.keys.length > 1 ? "s" : ""} desconocida${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Llave inválida en ${getTypeName(issue2.origin)}`;
-      case "invalid_union":
-        return "Entrada inválida";
-      case "invalid_element":
-        return `Valor inválido en ${getTypeName(issue2.origin)}`;
-      default:
-        return `Entrada inválida`;
-    }
-  };
-};
-function es_default() {
-  return {
-    localeError: error10()
-  };
-}
-// node_modules/zod/v4/locales/fa.js
-var error11 = () => {
-  const Sizable = {
-    string: { unit: "کاراکتر", verb: "داشته باشد" },
-    file: { unit: "بایت", verb: "داشته باشد" },
-    array: { unit: "آیتم", verb: "داشته باشد" },
-    set: { unit: "آیتم", verb: "داشته باشد" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType3 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "عدد";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "آرایه";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "ورودی",
-    email: "آدرس ایمیل",
-    url: "URL",
-    emoji: "ایموجی",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "تاریخ و زمان ایزو",
-    date: "تاریخ ایزو",
-    time: "زمان ایزو",
-    duration: "مدت زمان ایزو",
-    ipv4: "IPv4 آدرس",
-    ipv6: "IPv6 آدرس",
-    cidrv4: "IPv4 دامنه",
-    cidrv6: "IPv6 دامنه",
-    base64: "base64-encoded رشته",
-    base64url: "base64url-encoded رشته",
-    json_string: "JSON رشته",
-    e164: "E.164 عدد",
-    jwt: "JWT",
-    template_literal: "ورودی"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `ورودی نامعتبر: می‌بایست ${issue2.expected} می‌بود، ${parsedType3(issue2.input)} دریافت شد`;
-      case "invalid_value":
-        if (issue2.values.length === 1) {
-          return `ورودی نامعتبر: می‌بایست ${stringifyPrimitive(issue2.values[0])} می‌بود`;
-        }
-        return `گزینه نامعتبر: می‌بایست یکی از ${joinValues(issue2.values, "|")} می‌بود`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `خیلی بزرگ: ${issue2.origin ?? "مقدار"} باید ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "عنصر"} باشد`;
-        }
-        return `خیلی بزرگ: ${issue2.origin ?? "مقدار"} باید ${adj}${issue2.maximum.toString()} باشد`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `خیلی کوچک: ${issue2.origin} باید ${adj}${issue2.minimum.toString()} ${sizing.unit} باشد`;
-        }
-        return `خیلی کوچک: ${issue2.origin} باید ${adj}${issue2.minimum.toString()} باشد`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `رشته نامعتبر: باید با "${_issue.prefix}" شروع شود`;
-        }
-        if (_issue.format === "ends_with") {
-          return `رشته نامعتبر: باید با "${_issue.suffix}" تمام شود`;
-        }
-        if (_issue.format === "includes") {
-          return `رشته نامعتبر: باید شامل "${_issue.includes}" باشد`;
-        }
-        if (_issue.format === "regex") {
-          return `رشته نامعتبر: باید با الگوی ${_issue.pattern} مطابقت داشته باشد`;
-        }
-        return `${Nouns[_issue.format] ?? issue2.format} نامعتبر`;
-      }
-      case "not_multiple_of":
-        return `عدد نامعتبر: باید مضرب ${issue2.divisor} باشد`;
-      case "unrecognized_keys":
-        return `کلید${issue2.keys.length > 1 ? "های" : ""} ناشناس: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `کلید ناشناس در ${issue2.origin}`;
-      case "invalid_union":
-        return `ورودی نامعتبر`;
-      case "invalid_element":
-        return `مقدار نامعتبر در ${issue2.origin}`;
-      default:
-        return `ورودی نامعتبر`;
-    }
-  };
-};
-function fa_default() {
-  return {
-    localeError: error11()
-  };
-}
-// node_modules/zod/v4/locales/fi.js
-var error12 = () => {
-  const Sizable = {
-    string: { unit: "merkkiä", subject: "merkkijonon" },
-    file: { unit: "tavua", subject: "tiedoston" },
-    array: { unit: "alkiota", subject: "listan" },
-    set: { unit: "alkiota", subject: "joukon" },
-    number: { unit: "", subject: "luvun" },
-    bigint: { unit: "", subject: "suuren kokonaisluvun" },
-    int: { unit: "", subject: "kokonaisluvun" },
-    date: { unit: "", subject: "päivämäärän" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType3 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "säännöllinen lauseke",
-    email: "sähköpostiosoite",
-    url: "URL-osoite",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO-aikaleima",
-    date: "ISO-päivämäärä",
-    time: "ISO-aika",
-    duration: "ISO-kesto",
-    ipv4: "IPv4-osoite",
-    ipv6: "IPv6-osoite",
-    cidrv4: "IPv4-alue",
-    cidrv6: "IPv6-alue",
-    base64: "base64-koodattu merkkijono",
-    base64url: "base64url-koodattu merkkijono",
-    json_string: "JSON-merkkijono",
-    e164: "E.164-luku",
-    jwt: "JWT",
-    template_literal: "templaattimerkkijono"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Virheellinen tyyppi: odotettiin ${issue2.expected}, oli ${parsedType3(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Virheellinen syöte: täytyy olla ${stringifyPrimitive(issue2.values[0])}`;
-        return `Virheellinen valinta: täytyy olla yksi seuraavista: ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Liian suuri: ${sizing.subject} täytyy olla ${adj}${issue2.maximum.toString()} ${sizing.unit}`.trim();
-        }
-        return `Liian suuri: arvon täytyy olla ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Liian pieni: ${sizing.subject} täytyy olla ${adj}${issue2.minimum.toString()} ${sizing.unit}`.trim();
-        }
-        return `Liian pieni: arvon täytyy olla ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Virheellinen syöte: täytyy alkaa "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Virheellinen syöte: täytyy loppua "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Virheellinen syöte: täytyy sisältää "${_issue.includes}"`;
-        if (_issue.format === "regex") {
-          return `Virheellinen syöte: täytyy vastata säännöllistä lauseketta ${_issue.pattern}`;
-        }
-        return `Virheellinen ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Virheellinen luku: täytyy olla luvun ${issue2.divisor} monikerta`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Tuntemattomat avaimet" : "Tuntematon avain"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return "Virheellinen avain tietueessa";
-      case "invalid_union":
-        return "Virheellinen unioni";
-      case "invalid_element":
-        return "Virheellinen arvo joukossa";
-      default:
-        return `Virheellinen syöte`;
-    }
-  };
-};
-function fi_default() {
-  return {
-    localeError: error12()
-  };
-}
-// node_modules/zod/v4/locales/fr.js
-var error13 = () => {
-  const Sizable = {
-    string: { unit: "caractères", verb: "avoir" },
-    file: { unit: "octets", verb: "avoir" },
-    array: { unit: "éléments", verb: "avoir" },
-    set: { unit: "éléments", verb: "avoir" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType3 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "nombre";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "tableau";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "entrée",
-    email: "adresse e-mail",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "date et heure ISO",
-    date: "date ISO",
-    time: "heure ISO",
-    duration: "durée ISO",
-    ipv4: "adresse IPv4",
-    ipv6: "adresse IPv6",
-    cidrv4: "plage IPv4",
-    cidrv6: "plage IPv6",
-    base64: "chaîne encodée en base64",
-    base64url: "chaîne encodée en base64url",
-    json_string: "chaîne JSON",
-    e164: "numéro E.164",
-    jwt: "JWT",
-    template_literal: "entrée"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Entrée invalide : ${issue2.expected} attendu, ${parsedType3(issue2.input)} reçu`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Entrée invalide : ${stringifyPrimitive(issue2.values[0])} attendu`;
-        return `Option invalide : une valeur parmi ${joinValues(issue2.values, "|")} attendue`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Trop grand : ${issue2.origin ?? "valeur"} doit ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "élément(s)"}`;
-        return `Trop grand : ${issue2.origin ?? "valeur"} doit être ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Trop petit : ${issue2.origin} doit ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Trop petit : ${issue2.origin} doit être ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Chaîne invalide : doit commencer par "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Chaîne invalide : doit se terminer par "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Chaîne invalide : doit inclure "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Chaîne invalide : doit correspondre au modèle ${_issue.pattern}`;
-        return `${Nouns[_issue.format] ?? issue2.format} invalide`;
-      }
-      case "not_multiple_of":
-        return `Nombre invalide : doit être un multiple de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Clé${issue2.keys.length > 1 ? "s" : ""} non reconnue${issue2.keys.length > 1 ? "s" : ""} : ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Clé invalide dans ${issue2.origin}`;
-      case "invalid_union":
-        return "Entrée invalide";
-      case "invalid_element":
-        return `Valeur invalide dans ${issue2.origin}`;
-      default:
-        return `Entrée invalide`;
-    }
-  };
-};
-function fr_default() {
-  return {
-    localeError: error13()
-  };
-}
-// node_modules/zod/v4/locales/fr-CA.js
-var error14 = () => {
-  const Sizable = {
-    string: { unit: "caractères", verb: "avoir" },
-    file: { unit: "octets", verb: "avoir" },
-    array: { unit: "éléments", verb: "avoir" },
-    set: { unit: "éléments", verb: "avoir" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType3 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "entrée",
-    email: "adresse courriel",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "date-heure ISO",
-    date: "date ISO",
-    time: "heure ISO",
-    duration: "durée ISO",
-    ipv4: "adresse IPv4",
-    ipv6: "adresse IPv6",
-    cidrv4: "plage IPv4",
-    cidrv6: "plage IPv6",
-    base64: "chaîne encodée en base64",
-    base64url: "chaîne encodée en base64url",
-    json_string: "chaîne JSON",
-    e164: "numéro E.164",
-    jwt: "JWT",
-    template_literal: "entrée"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Entrée invalide : attendu ${issue2.expected}, reçu ${parsedType3(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Entrée invalide : attendu ${stringifyPrimitive(issue2.values[0])}`;
-        return `Option invalide : attendu l'une des valeurs suivantes ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "≤" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Trop grand : attendu que ${issue2.origin ?? "la valeur"} ait ${adj}${issue2.maximum.toString()} ${sizing.unit}`;
-        return `Trop grand : attendu que ${issue2.origin ?? "la valeur"} soit ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "≥" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Trop petit : attendu que ${issue2.origin} ait ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Trop petit : attendu que ${issue2.origin} soit ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Chaîne invalide : doit commencer par "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Chaîne invalide : doit se terminer par "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Chaîne invalide : doit inclure "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Chaîne invalide : doit correspondre au motif ${_issue.pattern}`;
-        return `${Nouns[_issue.format] ?? issue2.format} invalide`;
-      }
-      case "not_multiple_of":
-        return `Nombre invalide : doit être un multiple de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Clé${issue2.keys.length > 1 ? "s" : ""} non reconnue${issue2.keys.length > 1 ? "s" : ""} : ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Clé invalide dans ${issue2.origin}`;
-      case "invalid_union":
-        return "Entrée invalide";
-      case "invalid_element":
-        return `Valeur invalide dans ${issue2.origin}`;
-      default:
-        return `Entrée invalide`;
-    }
-  };
-};
-function fr_CA_default() {
-  return {
-    localeError: error14()
-  };
-}
-// node_modules/zod/v4/locales/he.js
-var error15 = () => {
-  const Sizable = {
-    string: { unit: "אותיות", verb: "לכלול" },
-    file: { unit: "בייטים", verb: "לכלול" },
-    array: { unit: "פריטים", verb: "לכלול" },
-    set: { unit: "פריטים", verb: "לכלול" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType3 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "קלט",
-    email: "כתובת אימייל",
-    url: "כתובת רשת",
-    emoji: "אימוג'י",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "תאריך וזמן ISO",
-    date: "תאריך ISO",
-    time: "זמן ISO",
-    duration: "משך זמן ISO",
-    ipv4: "כתובת IPv4",
-    ipv6: "כתובת IPv6",
-    cidrv4: "טווח IPv4",
-    cidrv6: "טווח IPv6",
-    base64: "מחרוזת בבסיס 64",
-    base64url: "מחרוזת בבסיס 64 לכתובות רשת",
-    json_string: "מחרוזת JSON",
-    e164: "מספר E.164",
-    jwt: "JWT",
-    template_literal: "קלט"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `קלט לא תקין: צריך ${issue2.expected}, התקבל ${parsedType3(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `קלט לא תקין: צריך ${stringifyPrimitive(issue2.values[0])}`;
-        return `קלט לא תקין: צריך אחת מהאפשרויות  ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `גדול מדי: ${issue2.origin ?? "value"} צריך להיות ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elements"}`;
-        return `גדול מדי: ${issue2.origin ?? "value"} צריך להיות ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `קטן מדי: ${issue2.origin} צריך להיות ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `קטן מדי: ${issue2.origin} צריך להיות ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `מחרוזת לא תקינה: חייבת להתחיל ב"${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `מחרוזת לא תקינה: חייבת להסתיים ב "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `מחרוזת לא תקינה: חייבת לכלול "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `מחרוזת לא תקינה: חייבת להתאים לתבנית ${_issue.pattern}`;
-        return `${Nouns[_issue.format] ?? issue2.format} לא תקין`;
-      }
-      case "not_multiple_of":
-        return `מספר לא תקין: חייב להיות מכפלה של ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `מפתח${issue2.keys.length > 1 ? "ות" : ""} לא מזוה${issue2.keys.length > 1 ? "ים" : "ה"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `מפתח לא תקין ב${issue2.origin}`;
-      case "invalid_union":
-        return "קלט לא תקין";
-      case "invalid_element":
-        return `ערך לא תקין ב${issue2.origin}`;
-      default:
-        return `קלט לא תקין`;
-    }
-  };
-};
-function he_default() {
-  return {
-    localeError: error15()
-  };
-}
-// node_modules/zod/v4/locales/hu.js
-var error16 = () => {
-  const Sizable = {
-    string: { unit: "karakter", verb: "legyen" },
-    file: { unit: "byte", verb: "legyen" },
-    array: { unit: "elem", verb: "legyen" },
-    set: { unit: "elem", verb: "legyen" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType3 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "szám";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "tömb";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "bemenet",
-    email: "email cím",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO időbélyeg",
-    date: "ISO dátum",
-    time: "ISO idő",
-    duration: "ISO időintervallum",
-    ipv4: "IPv4 cím",
-    ipv6: "IPv6 cím",
-    cidrv4: "IPv4 tartomány",
-    cidrv6: "IPv6 tartomány",
-    base64: "base64-kódolt string",
-    base64url: "base64url-kódolt string",
-    json_string: "JSON string",
-    e164: "E.164 szám",
-    jwt: "JWT",
-    template_literal: "bemenet"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Érvénytelen bemenet: a várt érték ${issue2.expected}, a kapott érték ${parsedType3(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Érvénytelen bemenet: a várt érték ${stringifyPrimitive(issue2.values[0])}`;
-        return `Érvénytelen opció: valamelyik érték várt ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Túl nagy: ${issue2.origin ?? "érték"} mérete túl nagy ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elem"}`;
-        return `Túl nagy: a bemeneti érték ${issue2.origin ?? "érték"} túl nagy: ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Túl kicsi: a bemeneti érték ${issue2.origin} mérete túl kicsi ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Túl kicsi: a bemeneti érték ${issue2.origin} túl kicsi ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Érvénytelen string: "${_issue.prefix}" értékkel kell kezdődnie`;
-        if (_issue.format === "ends_with")
-          return `Érvénytelen string: "${_issue.suffix}" értékkel kell végződnie`;
-        if (_issue.format === "includes")
-          return `Érvénytelen string: "${_issue.includes}" értéket kell tartalmaznia`;
-        if (_issue.format === "regex")
-          return `Érvénytelen string: ${_issue.pattern} mintának kell megfelelnie`;
-        return `Érvénytelen ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Érvénytelen szám: ${issue2.divisor} többszörösének kell lennie`;
-      case "unrecognized_keys":
-        return `Ismeretlen kulcs${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Érvénytelen kulcs ${issue2.origin}`;
-      case "invalid_union":
-        return "Érvénytelen bemenet";
-      case "invalid_element":
-        return `Érvénytelen érték: ${issue2.origin}`;
-      default:
-        return `Érvénytelen bemenet`;
-    }
-  };
-};
-function hu_default() {
-  return {
-    localeError: error16()
-  };
-}
-// node_modules/zod/v4/locales/id.js
-var error17 = () => {
-  const Sizable = {
-    string: { unit: "karakter", verb: "memiliki" },
-    file: { unit: "byte", verb: "memiliki" },
-    array: { unit: "item", verb: "memiliki" },
-    set: { unit: "item", verb: "memiliki" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType3 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "input",
-    email: "alamat email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "tanggal dan waktu format ISO",
-    date: "tanggal format ISO",
-    time: "jam format ISO",
-    duration: "durasi format ISO",
-    ipv4: "alamat IPv4",
-    ipv6: "alamat IPv6",
-    cidrv4: "rentang alamat IPv4",
-    cidrv6: "rentang alamat IPv6",
-    base64: "string dengan enkode base64",
-    base64url: "string dengan enkode base64url",
-    json_string: "string JSON",
-    e164: "angka E.164",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Input tidak valid: diharapkan ${issue2.expected}, diterima ${parsedType3(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Input tidak valid: diharapkan ${stringifyPrimitive(issue2.values[0])}`;
-        return `Pilihan tidak valid: diharapkan salah satu dari ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Terlalu besar: diharapkan ${issue2.origin ?? "value"} memiliki ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elemen"}`;
-        return `Terlalu besar: diharapkan ${issue2.origin ?? "value"} menjadi ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Terlalu kecil: diharapkan ${issue2.origin} memiliki ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Terlalu kecil: diharapkan ${issue2.origin} menjadi ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `String tidak valid: harus dimulai dengan "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `String tidak valid: harus berakhir dengan "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `String tidak valid: harus menyertakan "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `String tidak valid: harus sesuai pola ${_issue.pattern}`;
-        return `${Nouns[_issue.format] ?? issue2.format} tidak valid`;
-      }
-      case "not_multiple_of":
-        return `Angka tidak valid: harus kelipatan dari ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Kunci tidak dikenali ${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Kunci tidak valid di ${issue2.origin}`;
-      case "invalid_union":
-        return "Input tidak valid";
-      case "invalid_element":
-        return `Nilai tidak valid di ${issue2.origin}`;
-      default:
-        return `Input tidak valid`;
-    }
-  };
-};
-function id_default() {
-  return {
-    localeError: error17()
-  };
-}
-// node_modules/zod/v4/locales/is.js
-var parsedType3 = (data) => {
-  const t = typeof data;
-  switch (t) {
-    case "number": {
-      return Number.isNaN(data) ? "NaN" : "númer";
-    }
-    case "object": {
-      if (Array.isArray(data)) {
-        return "fylki";
-      }
-      if (data === null) {
-        return "null";
-      }
-      if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-        return data.constructor.name;
-      }
-    }
-  }
-  return t;
-};
-var error18 = () => {
-  const Sizable = {
-    string: { unit: "stafi", verb: "að hafa" },
-    file: { unit: "bæti", verb: "að hafa" },
-    array: { unit: "hluti", verb: "að hafa" },
-    set: { unit: "hluti", verb: "að hafa" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const Nouns = {
-    regex: "gildi",
-    email: "netfang",
-    url: "vefslóð",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO dagsetning og tími",
-    date: "ISO dagsetning",
-    time: "ISO tími",
-    duration: "ISO tímalengd",
-    ipv4: "IPv4 address",
-    ipv6: "IPv6 address",
-    cidrv4: "IPv4 range",
-    cidrv6: "IPv6 range",
-    base64: "base64-encoded strengur",
-    base64url: "base64url-encoded strengur",
-    json_string: "JSON strengur",
-    e164: "E.164 tölugildi",
-    jwt: "JWT",
-    template_literal: "gildi"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Rangt gildi: Þú slóst inn ${parsedType3(issue2.input)} þar sem á að vera ${issue2.expected}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Rangt gildi: gert ráð fyrir ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ógilt val: má vera eitt af eftirfarandi ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Of stórt: gert er ráð fyrir að ${issue2.origin ?? "gildi"} hafi ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "hluti"}`;
-        return `Of stórt: gert er ráð fyrir að ${issue2.origin ?? "gildi"} sé ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Of lítið: gert er ráð fyrir að ${issue2.origin} hafi ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Of lítið: gert er ráð fyrir að ${issue2.origin} sé ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Ógildur strengur: verður að byrja á "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Ógildur strengur: verður að enda á "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ógildur strengur: verður að innihalda "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ógildur strengur: verður að fylgja mynstri ${_issue.pattern}`;
-        return `Rangt ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Röng tala: verður að vera margfeldi af ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Óþekkt ${issue2.keys.length > 1 ? "ir lyklar" : "ur lykill"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Rangur lykill í ${issue2.origin}`;
-      case "invalid_union":
-        return "Rangt gildi";
-      case "invalid_element":
-        return `Rangt gildi í ${issue2.origin}`;
-      default:
-        return `Rangt gildi`;
-    }
-  };
-};
-function is_default() {
-  return {
-    localeError: error18()
-  };
-}
-// node_modules/zod/v4/locales/it.js
-var error19 = () => {
-  const Sizable = {
-    string: { unit: "caratteri", verb: "avere" },
-    file: { unit: "byte", verb: "avere" },
-    array: { unit: "elementi", verb: "avere" },
-    set: { unit: "elementi", verb: "avere" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType4 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "numero";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "vettore";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "input",
-    email: "indirizzo email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "data e ora ISO",
-    date: "data ISO",
-    time: "ora ISO",
-    duration: "durata ISO",
-    ipv4: "indirizzo IPv4",
-    ipv6: "indirizzo IPv6",
-    cidrv4: "intervallo IPv4",
-    cidrv6: "intervallo IPv6",
-    base64: "stringa codificata in base64",
-    base64url: "URL codificata in base64",
-    json_string: "stringa JSON",
-    e164: "numero E.164",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Input non valido: atteso ${issue2.expected}, ricevuto ${parsedType4(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Input non valido: atteso ${stringifyPrimitive(issue2.values[0])}`;
-        return `Opzione non valida: atteso uno tra ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Troppo grande: ${issue2.origin ?? "valore"} deve avere ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementi"}`;
-        return `Troppo grande: ${issue2.origin ?? "valore"} deve essere ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Troppo piccolo: ${issue2.origin} deve avere ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Troppo piccolo: ${issue2.origin} deve essere ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Stringa non valida: deve iniziare con "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Stringa non valida: deve terminare con "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Stringa non valida: deve includere "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Stringa non valida: deve corrispondere al pattern ${_issue.pattern}`;
-        return `Invalid ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Numero non valido: deve essere un multiplo di ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Chiav${issue2.keys.length > 1 ? "i" : "e"} non riconosciut${issue2.keys.length > 1 ? "e" : "a"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Chiave non valida in ${issue2.origin}`;
-      case "invalid_union":
-        return "Input non valido";
-      case "invalid_element":
-        return `Valore non valido in ${issue2.origin}`;
-      default:
-        return `Input non valido`;
-    }
-  };
-};
-function it_default() {
-  return {
-    localeError: error19()
-  };
-}
-// node_modules/zod/v4/locales/ja.js
-var error20 = () => {
-  const Sizable = {
-    string: { unit: "文字", verb: "である" },
-    file: { unit: "バイト", verb: "である" },
-    array: { unit: "要素", verb: "である" },
-    set: { unit: "要素", verb: "である" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType4 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "数値";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "配列";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "入力値",
-    email: "メールアドレス",
-    url: "URL",
-    emoji: "絵文字",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO日時",
-    date: "ISO日付",
-    time: "ISO時刻",
-    duration: "ISO期間",
-    ipv4: "IPv4アドレス",
-    ipv6: "IPv6アドレス",
-    cidrv4: "IPv4範囲",
-    cidrv6: "IPv6範囲",
-    base64: "base64エンコード文字列",
-    base64url: "base64urlエンコード文字列",
-    json_string: "JSON文字列",
-    e164: "E.164番号",
-    jwt: "JWT",
-    template_literal: "入力値"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `無効な入力: ${issue2.expected}が期待されましたが、${parsedType4(issue2.input)}が入力されました`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `無効な入力: ${stringifyPrimitive(issue2.values[0])}が期待されました`;
-        return `無効な選択: ${joinValues(issue2.values, "、")}のいずれかである必要があります`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "以下である" : "より小さい";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `大きすぎる値: ${issue2.origin ?? "値"}は${issue2.maximum.toString()}${sizing.unit ?? "要素"}${adj}必要があります`;
-        return `大きすぎる値: ${issue2.origin ?? "値"}は${issue2.maximum.toString()}${adj}必要があります`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "以上である" : "より大きい";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `小さすぎる値: ${issue2.origin}は${issue2.minimum.toString()}${sizing.unit}${adj}必要があります`;
-        return `小さすぎる値: ${issue2.origin}は${issue2.minimum.toString()}${adj}必要があります`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `無効な文字列: "${_issue.prefix}"で始まる必要があります`;
-        if (_issue.format === "ends_with")
-          return `無効な文字列: "${_issue.suffix}"で終わる必要があります`;
-        if (_issue.format === "includes")
-          return `無効な文字列: "${_issue.includes}"を含む必要があります`;
-        if (_issue.format === "regex")
-          return `無効な文字列: パターン${_issue.pattern}に一致する必要があります`;
-        return `無効な${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `無効な数値: ${issue2.divisor}の倍数である必要があります`;
-      case "unrecognized_keys":
-        return `認識されていないキー${issue2.keys.length > 1 ? "群" : ""}: ${joinValues(issue2.keys, "、")}`;
-      case "invalid_key":
-        return `${issue2.origin}内の無効なキー`;
-      case "invalid_union":
-        return "無効な入力";
-      case "invalid_element":
-        return `${issue2.origin}内の無効な値`;
-      default:
-        return `無効な入力`;
-    }
-  };
-};
-function ja_default() {
-  return {
-    localeError: error20()
-  };
-}
-// node_modules/zod/v4/locales/ka.js
-var parsedType4 = (data) => {
-  const t = typeof data;
-  switch (t) {
-    case "number": {
-      return Number.isNaN(data) ? "NaN" : "რიცხვი";
-    }
-    case "object": {
-      if (Array.isArray(data)) {
-        return "მასივი";
-      }
-      if (data === null) {
-        return "null";
-      }
-      if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-        return data.constructor.name;
-      }
-    }
-  }
-  const typeMap = {
-    string: "სტრინგი",
-    boolean: "ბულეანი",
-    undefined: "undefined",
-    bigint: "bigint",
-    symbol: "symbol",
-    function: "ფუნქცია"
-  };
-  return typeMap[t] ?? t;
-};
-var error21 = () => {
-  const Sizable = {
-    string: { unit: "სიმბოლო", verb: "უნდა შეიცავდეს" },
-    file: { unit: "ბაიტი", verb: "უნდა შეიცავდეს" },
-    array: { unit: "ელემენტი", verb: "უნდა შეიცავდეს" },
-    set: { unit: "ელემენტი", verb: "უნდა შეიცავდეს" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const Nouns = {
-    regex: "შეყვანა",
-    email: "ელ-ფოსტის მისამართი",
-    url: "URL",
-    emoji: "ემოჯი",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "თარიღი-დრო",
-    date: "თარიღი",
-    time: "დრო",
-    duration: "ხანგრძლივობა",
-    ipv4: "IPv4 მისამართი",
-    ipv6: "IPv6 მისამართი",
-    cidrv4: "IPv4 დიაპაზონი",
-    cidrv6: "IPv6 დიაპაზონი",
-    base64: "base64-კოდირებული სტრინგი",
-    base64url: "base64url-კოდირებული სტრინგი",
-    json_string: "JSON სტრინგი",
-    e164: "E.164 ნომერი",
-    jwt: "JWT",
-    template_literal: "შეყვანა"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `არასწორი შეყვანა: მოსალოდნელი ${issue2.expected}, მიღებული ${parsedType4(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `არასწორი შეყვანა: მოსალოდნელი ${stringifyPrimitive(issue2.values[0])}`;
-        return `არასწორი ვარიანტი: მოსალოდნელია ერთ-ერთი ${joinValues(issue2.values, "|")}-დან`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `ზედმეტად დიდი: მოსალოდნელი ${issue2.origin ?? "მნიშვნელობა"} ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit}`;
-        return `ზედმეტად დიდი: მოსალოდნელი ${issue2.origin ?? "მნიშვნელობა"} იყოს ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `ზედმეტად პატარა: მოსალოდნელი ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `ზედმეტად პატარა: მოსალოდნელი ${issue2.origin} იყოს ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `არასწორი სტრინგი: უნდა იწყებოდეს "${_issue.prefix}"-ით`;
-        }
-        if (_issue.format === "ends_with")
-          return `არასწორი სტრინგი: უნდა მთავრდებოდეს "${_issue.suffix}"-ით`;
-        if (_issue.format === "includes")
-          return `არასწორი სტრინგი: უნდა შეიცავდეს "${_issue.includes}"-ს`;
-        if (_issue.format === "regex")
-          return `არასწორი სტრინგი: უნდა შეესაბამებოდეს შაბლონს ${_issue.pattern}`;
-        return `არასწორი ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `არასწორი რიცხვი: უნდა იყოს ${issue2.divisor}-ის ჯერადი`;
-      case "unrecognized_keys":
-        return `უცნობი გასაღებ${issue2.keys.length > 1 ? "ები" : "ი"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `არასწორი გასაღები ${issue2.origin}-ში`;
-      case "invalid_union":
-        return "არასწორი შეყვანა";
-      case "invalid_element":
-        return `არასწორი მნიშვნელობა ${issue2.origin}-ში`;
-      default:
-        return `არასწორი შეყვანა`;
-    }
-  };
-};
-function ka_default() {
-  return {
-    localeError: error21()
-  };
-}
-// node_modules/zod/v4/locales/km.js
-var error22 = () => {
-  const Sizable = {
-    string: { unit: "តួអក្សរ", verb: "គួរមាន" },
-    file: { unit: "បៃ", verb: "គួរមាន" },
-    array: { unit: "ធាតុ", verb: "គួរមាន" },
-    set: { unit: "ធាតុ", verb: "គួរមាន" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType5 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "មិនមែនជាលេខ (NaN)" : "លេខ";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "អារេ (Array)";
-        }
-        if (data === null) {
-          return "គ្មានតម្លៃ (null)";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "ទិន្នន័យបញ្ចូល",
-    email: "អាសយដ្ឋានអ៊ីមែល",
-    url: "URL",
-    emoji: "សញ្ញាអារម្មណ៍",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "កាលបរិច្ឆេទ និងម៉ោង ISO",
-    date: "កាលបរិច្ឆេទ ISO",
-    time: "ម៉ោង ISO",
-    duration: "រយៈពេល ISO",
-    ipv4: "អាសយដ្ឋាន IPv4",
-    ipv6: "អាសយដ្ឋាន IPv6",
-    cidrv4: "ដែនអាសយដ្ឋាន IPv4",
-    cidrv6: "ដែនអាសយដ្ឋាន IPv6",
-    base64: "ខ្សែអក្សរអ៊ិកូដ base64",
-    base64url: "ខ្សែអក្សរអ៊ិកូដ base64url",
-    json_string: "ខ្សែអក្សរ JSON",
-    e164: "លេខ E.164",
-    jwt: "JWT",
-    template_literal: "ទិន្នន័យបញ្ចូល"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `ទិន្នន័យបញ្ចូលមិនត្រឹមត្រូវ៖ ត្រូវការ ${issue2.expected} ប៉ុន្តែទទួលបាន ${parsedType5(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `ទិន្នន័យបញ្ចូលមិនត្រឹមត្រូវ៖ ត្រូវការ ${stringifyPrimitive(issue2.values[0])}`;
-        return `ជម្រើសមិនត្រឹមត្រូវ៖ ត្រូវជាមួយក្នុងចំណោម ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `ធំពេក៖ ត្រូវការ ${issue2.origin ?? "តម្លៃ"} ${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "ធាតុ"}`;
-        return `ធំពេក៖ ត្រូវការ ${issue2.origin ?? "តម្លៃ"} ${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `តូចពេក៖ ត្រូវការ ${issue2.origin} ${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `តូចពេក៖ ត្រូវការ ${issue2.origin} ${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `ខ្សែអក្សរមិនត្រឹមត្រូវ៖ ត្រូវចាប់ផ្តើមដោយ "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `ខ្សែអក្សរមិនត្រឹមត្រូវ៖ ត្រូវបញ្ចប់ដោយ "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `ខ្សែអក្សរមិនត្រឹមត្រូវ៖ ត្រូវមាន "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `ខ្សែអក្សរមិនត្រឹមត្រូវ៖ ត្រូវតែផ្គូផ្គងនឹងទម្រង់ដែលបានកំណត់ ${_issue.pattern}`;
-        return `មិនត្រឹមត្រូវ៖ ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `លេខមិនត្រឹមត្រូវ៖ ត្រូវតែជាពហុគុណនៃ ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `រកឃើញសោមិនស្គាល់៖ ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `សោមិនត្រឹមត្រូវនៅក្នុង ${issue2.origin}`;
-      case "invalid_union":
-        return `ទិន្នន័យមិនត្រឹមត្រូវ`;
-      case "invalid_element":
-        return `ទិន្នន័យមិនត្រឹមត្រូវនៅក្នុង ${issue2.origin}`;
-      default:
-        return `ទិន្នន័យមិនត្រឹមត្រូវ`;
-    }
-  };
-};
-function km_default() {
-  return {
-    localeError: error22()
-  };
-}
-
-// node_modules/zod/v4/locales/kh.js
-function kh_default() {
-  return km_default();
-}
-// node_modules/zod/v4/locales/ko.js
-var error23 = () => {
-  const Sizable = {
-    string: { unit: "문자", verb: "to have" },
-    file: { unit: "바이트", verb: "to have" },
-    array: { unit: "개", verb: "to have" },
-    set: { unit: "개", verb: "to have" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType5 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "입력",
-    email: "이메일 주소",
-    url: "URL",
-    emoji: "이모지",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO 날짜시간",
-    date: "ISO 날짜",
-    time: "ISO 시간",
-    duration: "ISO 기간",
-    ipv4: "IPv4 주소",
-    ipv6: "IPv6 주소",
-    cidrv4: "IPv4 범위",
-    cidrv6: "IPv6 범위",
-    base64: "base64 인코딩 문자열",
-    base64url: "base64url 인코딩 문자열",
-    json_string: "JSON 문자열",
-    e164: "E.164 번호",
-    jwt: "JWT",
-    template_literal: "입력"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `잘못된 입력: 예상 타입은 ${issue2.expected}, 받은 타입은 ${parsedType5(issue2.input)}입니다`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `잘못된 입력: 값은 ${stringifyPrimitive(issue2.values[0])} 이어야 합니다`;
-        return `잘못된 옵션: ${joinValues(issue2.values, "또는 ")} 중 하나여야 합니다`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "이하" : "미만";
-        const suffix = adj === "미만" ? "이어야 합니다" : "여야 합니다";
-        const sizing = getSizing(issue2.origin);
-        const unit = sizing?.unit ?? "요소";
-        if (sizing)
-          return `${issue2.origin ?? "값"}이 너무 큽니다: ${issue2.maximum.toString()}${unit} ${adj}${suffix}`;
-        return `${issue2.origin ?? "값"}이 너무 큽니다: ${issue2.maximum.toString()} ${adj}${suffix}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "이상" : "초과";
-        const suffix = adj === "이상" ? "이어야 합니다" : "여야 합니다";
-        const sizing = getSizing(issue2.origin);
-        const unit = sizing?.unit ?? "요소";
-        if (sizing) {
-          return `${issue2.origin ?? "값"}이 너무 작습니다: ${issue2.minimum.toString()}${unit} ${adj}${suffix}`;
-        }
-        return `${issue2.origin ?? "값"}이 너무 작습니다: ${issue2.minimum.toString()} ${adj}${suffix}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `잘못된 문자열: "${_issue.prefix}"(으)로 시작해야 합니다`;
-        }
-        if (_issue.format === "ends_with")
-          return `잘못된 문자열: "${_issue.suffix}"(으)로 끝나야 합니다`;
-        if (_issue.format === "includes")
-          return `잘못된 문자열: "${_issue.includes}"을(를) 포함해야 합니다`;
-        if (_issue.format === "regex")
-          return `잘못된 문자열: 정규식 ${_issue.pattern} 패턴과 일치해야 합니다`;
-        return `잘못된 ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `잘못된 숫자: ${issue2.divisor}의 배수여야 합니다`;
-      case "unrecognized_keys":
-        return `인식할 수 없는 키: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `잘못된 키: ${issue2.origin}`;
-      case "invalid_union":
-        return `잘못된 입력`;
-      case "invalid_element":
-        return `잘못된 값: ${issue2.origin}`;
-      default:
-        return `잘못된 입력`;
-    }
-  };
-};
-function ko_default() {
-  return {
-    localeError: error23()
-  };
-}
-// node_modules/zod/v4/locales/lt.js
-var parsedType5 = (data) => {
-  const t = typeof data;
-  return parsedTypeFromType(t, data);
-};
-var parsedTypeFromType = (t, data = undefined) => {
-  switch (t) {
-    case "number": {
-      return Number.isNaN(data) ? "NaN" : "skaičius";
-    }
-    case "bigint": {
-      return "sveikasis skaičius";
-    }
-    case "string": {
-      return "eilutė";
-    }
-    case "boolean": {
-      return "loginė reikšmė";
-    }
-    case "undefined":
-    case "void": {
-      return "neapibrėžta reikšmė";
-    }
-    case "function": {
-      return "funkcija";
-    }
-    case "symbol": {
-      return "simbolis";
-    }
-    case "object": {
-      if (data === undefined)
-        return "nežinomas objektas";
-      if (data === null)
-        return "nulinė reikšmė";
-      if (Array.isArray(data))
-        return "masyvas";
-      if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-        return data.constructor.name;
-      }
-      return "objektas";
-    }
-    case "null": {
-      return "nulinė reikšmė";
-    }
-  }
-  return t;
-};
-var capitalizeFirstCharacter = (text) => {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-};
-function getUnitTypeFromNumber(number2) {
-  const abs = Math.abs(number2);
-  const last = abs % 10;
-  const last2 = abs % 100;
-  if (last2 >= 11 && last2 <= 19 || last === 0)
-    return "many";
-  if (last === 1)
-    return "one";
-  return "few";
-}
-var error24 = () => {
-  const Sizable = {
-    string: {
-      unit: {
-        one: "simbolis",
-        few: "simboliai",
-        many: "simbolių"
-      },
-      verb: {
-        smaller: {
-          inclusive: "turi būti ne ilgesnė kaip",
-          notInclusive: "turi būti trumpesnė kaip"
-        },
-        bigger: {
-          inclusive: "turi būti ne trumpesnė kaip",
-          notInclusive: "turi būti ilgesnė kaip"
-        }
-      }
-    },
-    file: {
-      unit: {
-        one: "baitas",
-        few: "baitai",
-        many: "baitų"
-      },
-      verb: {
-        smaller: {
-          inclusive: "turi būti ne didesnis kaip",
-          notInclusive: "turi būti mažesnis kaip"
-        },
-        bigger: {
-          inclusive: "turi būti ne mažesnis kaip",
-          notInclusive: "turi būti didesnis kaip"
-        }
-      }
-    },
-    array: {
-      unit: {
-        one: "elementą",
-        few: "elementus",
-        many: "elementų"
-      },
-      verb: {
-        smaller: {
-          inclusive: "turi turėti ne daugiau kaip",
-          notInclusive: "turi turėti mažiau kaip"
-        },
-        bigger: {
-          inclusive: "turi turėti ne mažiau kaip",
-          notInclusive: "turi turėti daugiau kaip"
-        }
-      }
-    },
-    set: {
-      unit: {
-        one: "elementą",
-        few: "elementus",
-        many: "elementų"
-      },
-      verb: {
-        smaller: {
-          inclusive: "turi turėti ne daugiau kaip",
-          notInclusive: "turi turėti mažiau kaip"
-        },
-        bigger: {
-          inclusive: "turi turėti ne mažiau kaip",
-          notInclusive: "turi turėti daugiau kaip"
-        }
-      }
-    }
-  };
-  function getSizing(origin, unitType, inclusive, targetShouldBe) {
-    const result = Sizable[origin] ?? null;
-    if (result === null)
-      return result;
-    return {
-      unit: result.unit[unitType],
-      verb: result.verb[targetShouldBe][inclusive ? "inclusive" : "notInclusive"]
-    };
-  }
-  const Nouns = {
-    regex: "įvestis",
-    email: "el. pašto adresas",
-    url: "URL",
-    emoji: "jaustukas",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO data ir laikas",
-    date: "ISO data",
-    time: "ISO laikas",
-    duration: "ISO trukmė",
-    ipv4: "IPv4 adresas",
-    ipv6: "IPv6 adresas",
-    cidrv4: "IPv4 tinklo prefiksas (CIDR)",
-    cidrv6: "IPv6 tinklo prefiksas (CIDR)",
-    base64: "base64 užkoduota eilutė",
-    base64url: "base64url užkoduota eilutė",
-    json_string: "JSON eilutė",
-    e164: "E.164 numeris",
-    jwt: "JWT",
-    template_literal: "įvestis"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Gautas tipas ${parsedType5(issue2.input)}, o tikėtasi - ${parsedTypeFromType(issue2.expected)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Privalo būti ${stringifyPrimitive(issue2.values[0])}`;
-        return `Privalo būti vienas iš ${joinValues(issue2.values, "|")} pasirinkimų`;
-      case "too_big": {
-        const origin = parsedTypeFromType(issue2.origin);
-        const sizing = getSizing(issue2.origin, getUnitTypeFromNumber(Number(issue2.maximum)), issue2.inclusive ?? false, "smaller");
-        if (sizing?.verb)
-          return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} ${sizing.verb} ${issue2.maximum.toString()} ${sizing.unit ?? "elementų"}`;
-        const adj = issue2.inclusive ? "ne didesnis kaip" : "mažesnis kaip";
-        return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} turi būti ${adj} ${issue2.maximum.toString()} ${sizing?.unit}`;
-      }
-      case "too_small": {
-        const origin = parsedTypeFromType(issue2.origin);
-        const sizing = getSizing(issue2.origin, getUnitTypeFromNumber(Number(issue2.minimum)), issue2.inclusive ?? false, "bigger");
-        if (sizing?.verb)
-          return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} ${sizing.verb} ${issue2.minimum.toString()} ${sizing.unit ?? "elementų"}`;
-        const adj = issue2.inclusive ? "ne mažesnis kaip" : "didesnis kaip";
-        return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} turi būti ${adj} ${issue2.minimum.toString()} ${sizing?.unit}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Eilutė privalo prasidėti "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Eilutė privalo pasibaigti "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Eilutė privalo įtraukti "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Eilutė privalo atitikti ${_issue.pattern}`;
-        return `Neteisingas ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Skaičius privalo būti ${issue2.divisor} kartotinis.`;
-      case "unrecognized_keys":
-        return `Neatpažint${issue2.keys.length > 1 ? "i" : "as"} rakt${issue2.keys.length > 1 ? "ai" : "as"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return "Rastas klaidingas raktas";
-      case "invalid_union":
-        return "Klaidinga įvestis";
-      case "invalid_element": {
-        const origin = parsedTypeFromType(issue2.origin);
-        return `${capitalizeFirstCharacter(origin ?? issue2.origin ?? "reikšmė")} turi klaidingą įvestį`;
-      }
-      default:
-        return "Klaidinga įvestis";
-    }
-  };
-};
-function lt_default() {
-  return {
-    localeError: error24()
-  };
-}
-// node_modules/zod/v4/locales/mk.js
-var error25 = () => {
-  const Sizable = {
-    string: { unit: "знаци", verb: "да имаат" },
-    file: { unit: "бајти", verb: "да имаат" },
-    array: { unit: "ставки", verb: "да имаат" },
-    set: { unit: "ставки", verb: "да имаат" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "број";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "низа";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "внес",
-    email: "адреса на е-пошта",
-    url: "URL",
-    emoji: "емоџи",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO датум и време",
-    date: "ISO датум",
-    time: "ISO време",
-    duration: "ISO времетраење",
-    ipv4: "IPv4 адреса",
-    ipv6: "IPv6 адреса",
-    cidrv4: "IPv4 опсег",
-    cidrv6: "IPv6 опсег",
-    base64: "base64-енкодирана низа",
-    base64url: "base64url-енкодирана низа",
-    json_string: "JSON низа",
-    e164: "E.164 број",
-    jwt: "JWT",
-    template_literal: "внес"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Грешен внес: се очекува ${issue2.expected}, примено ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Invalid input: expected ${stringifyPrimitive(issue2.values[0])}`;
-        return `Грешана опција: се очекува една ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Премногу голем: се очекува ${issue2.origin ?? "вредноста"} да има ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "елементи"}`;
-        return `Премногу голем: се очекува ${issue2.origin ?? "вредноста"} да биде ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Премногу мал: се очекува ${issue2.origin} да има ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Премногу мал: се очекува ${issue2.origin} да биде ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Неважечка низа: мора да започнува со "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Неважечка низа: мора да завршува со "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Неважечка низа: мора да вклучува "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Неважечка низа: мора да одгоара на патернот ${_issue.pattern}`;
-        return `Invalid ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Грешен број: мора да биде делив со ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Непрепознаени клучеви" : "Непрепознаен клуч"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Грешен клуч во ${issue2.origin}`;
-      case "invalid_union":
-        return "Грешен внес";
-      case "invalid_element":
-        return `Грешна вредност во ${issue2.origin}`;
-      default:
-        return `Грешен внес`;
-    }
-  };
-};
-function mk_default() {
-  return {
-    localeError: error25()
-  };
-}
-// node_modules/zod/v4/locales/ms.js
-var error26 = () => {
-  const Sizable = {
-    string: { unit: "aksara", verb: "mempunyai" },
-    file: { unit: "bait", verb: "mempunyai" },
-    array: { unit: "elemen", verb: "mempunyai" },
-    set: { unit: "elemen", verb: "mempunyai" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "nombor";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "input",
-    email: "alamat e-mel",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "tarikh masa ISO",
-    date: "tarikh ISO",
-    time: "masa ISO",
-    duration: "tempoh ISO",
-    ipv4: "alamat IPv4",
-    ipv6: "alamat IPv6",
-    cidrv4: "julat IPv4",
-    cidrv6: "julat IPv6",
-    base64: "string dikodkan base64",
-    base64url: "string dikodkan base64url",
-    json_string: "string JSON",
-    e164: "nombor E.164",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Input tidak sah: dijangka ${issue2.expected}, diterima ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Input tidak sah: dijangka ${stringifyPrimitive(issue2.values[0])}`;
-        return `Pilihan tidak sah: dijangka salah satu daripada ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Terlalu besar: dijangka ${issue2.origin ?? "nilai"} ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elemen"}`;
-        return `Terlalu besar: dijangka ${issue2.origin ?? "nilai"} adalah ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Terlalu kecil: dijangka ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Terlalu kecil: dijangka ${issue2.origin} adalah ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `String tidak sah: mesti bermula dengan "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `String tidak sah: mesti berakhir dengan "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `String tidak sah: mesti mengandungi "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `String tidak sah: mesti sepadan dengan corak ${_issue.pattern}`;
-        return `${Nouns[_issue.format] ?? issue2.format} tidak sah`;
-      }
-      case "not_multiple_of":
-        return `Nombor tidak sah: perlu gandaan ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Kunci tidak dikenali: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Kunci tidak sah dalam ${issue2.origin}`;
-      case "invalid_union":
-        return "Input tidak sah";
-      case "invalid_element":
-        return `Nilai tidak sah dalam ${issue2.origin}`;
-      default:
-        return `Input tidak sah`;
-    }
-  };
-};
-function ms_default() {
-  return {
-    localeError: error26()
-  };
-}
-// node_modules/zod/v4/locales/nl.js
-var error27 = () => {
-  const Sizable = {
-    string: { unit: "tekens" },
-    file: { unit: "bytes" },
-    array: { unit: "elementen" },
-    set: { unit: "elementen" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "getal";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "invoer",
-    email: "emailadres",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO datum en tijd",
-    date: "ISO datum",
-    time: "ISO tijd",
-    duration: "ISO duur",
-    ipv4: "IPv4-adres",
-    ipv6: "IPv6-adres",
-    cidrv4: "IPv4-bereik",
-    cidrv6: "IPv6-bereik",
-    base64: "base64-gecodeerde tekst",
-    base64url: "base64 URL-gecodeerde tekst",
-    json_string: "JSON string",
-    e164: "E.164-nummer",
-    jwt: "JWT",
-    template_literal: "invoer"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Ongeldige invoer: verwacht ${issue2.expected}, ontving ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ongeldige invoer: verwacht ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ongeldige optie: verwacht één van ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Te lang: verwacht dat ${issue2.origin ?? "waarde"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementen"} bevat`;
-        return `Te lang: verwacht dat ${issue2.origin ?? "waarde"} ${adj}${issue2.maximum.toString()} is`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Te kort: verwacht dat ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit} bevat`;
-        }
-        return `Te kort: verwacht dat ${issue2.origin} ${adj}${issue2.minimum.toString()} is`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Ongeldige tekst: moet met "${_issue.prefix}" beginnen`;
-        }
-        if (_issue.format === "ends_with")
-          return `Ongeldige tekst: moet op "${_issue.suffix}" eindigen`;
-        if (_issue.format === "includes")
-          return `Ongeldige tekst: moet "${_issue.includes}" bevatten`;
-        if (_issue.format === "regex")
-          return `Ongeldige tekst: moet overeenkomen met patroon ${_issue.pattern}`;
-        return `Ongeldig: ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ongeldig getal: moet een veelvoud van ${issue2.divisor} zijn`;
-      case "unrecognized_keys":
-        return `Onbekende key${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ongeldige key in ${issue2.origin}`;
-      case "invalid_union":
-        return "Ongeldige invoer";
-      case "invalid_element":
-        return `Ongeldige waarde in ${issue2.origin}`;
-      default:
-        return `Ongeldige invoer`;
-    }
-  };
-};
-function nl_default() {
-  return {
-    localeError: error27()
-  };
-}
-// node_modules/zod/v4/locales/no.js
-var error28 = () => {
-  const Sizable = {
-    string: { unit: "tegn", verb: "å ha" },
-    file: { unit: "bytes", verb: "å ha" },
-    array: { unit: "elementer", verb: "å inneholde" },
-    set: { unit: "elementer", verb: "å inneholde" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "tall";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "liste";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "input",
-    email: "e-postadresse",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO dato- og klokkeslett",
-    date: "ISO-dato",
-    time: "ISO-klokkeslett",
-    duration: "ISO-varighet",
-    ipv4: "IPv4-område",
-    ipv6: "IPv6-område",
-    cidrv4: "IPv4-spekter",
-    cidrv6: "IPv6-spekter",
-    base64: "base64-enkodet streng",
-    base64url: "base64url-enkodet streng",
-    json_string: "JSON-streng",
-    e164: "E.164-nummer",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Ugyldig input: forventet ${issue2.expected}, fikk ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ugyldig verdi: forventet ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ugyldig valg: forventet en av ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `For stor(t): forventet ${issue2.origin ?? "value"} til å ha ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementer"}`;
-        return `For stor(t): forventet ${issue2.origin ?? "value"} til å ha ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `For lite(n): forventet ${issue2.origin} til å ha ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `For lite(n): forventet ${issue2.origin} til å ha ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Ugyldig streng: må starte med "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Ugyldig streng: må ende med "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ugyldig streng: må inneholde "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ugyldig streng: må matche mønsteret ${_issue.pattern}`;
-        return `Ugyldig ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ugyldig tall: må være et multiplum av ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Ukjente nøkler" : "Ukjent nøkkel"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ugyldig nøkkel i ${issue2.origin}`;
-      case "invalid_union":
-        return "Ugyldig input";
-      case "invalid_element":
-        return `Ugyldig verdi i ${issue2.origin}`;
-      default:
-        return `Ugyldig input`;
-    }
-  };
-};
-function no_default() {
-  return {
-    localeError: error28()
-  };
-}
-// node_modules/zod/v4/locales/ota.js
-var error29 = () => {
-  const Sizable = {
-    string: { unit: "harf", verb: "olmalıdır" },
-    file: { unit: "bayt", verb: "olmalıdır" },
-    array: { unit: "unsur", verb: "olmalıdır" },
-    set: { unit: "unsur", verb: "olmalıdır" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "numara";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "saf";
-        }
-        if (data === null) {
-          return "gayb";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "giren",
-    email: "epostagâh",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO hengâmı",
-    date: "ISO tarihi",
-    time: "ISO zamanı",
-    duration: "ISO müddeti",
-    ipv4: "IPv4 nişânı",
-    ipv6: "IPv6 nişânı",
-    cidrv4: "IPv4 menzili",
-    cidrv6: "IPv6 menzili",
-    base64: "base64-şifreli metin",
-    base64url: "base64url-şifreli metin",
-    json_string: "JSON metin",
-    e164: "E.164 sayısı",
-    jwt: "JWT",
-    template_literal: "giren"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Fâsit giren: umulan ${issue2.expected}, alınan ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Fâsit giren: umulan ${stringifyPrimitive(issue2.values[0])}`;
-        return `Fâsit tercih: mûteberler ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Fazla büyük: ${issue2.origin ?? "value"}, ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elements"} sahip olmalıydı.`;
-        return `Fazla büyük: ${issue2.origin ?? "value"}, ${adj}${issue2.maximum.toString()} olmalıydı.`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Fazla küçük: ${issue2.origin}, ${adj}${issue2.minimum.toString()} ${sizing.unit} sahip olmalıydı.`;
-        }
-        return `Fazla küçük: ${issue2.origin}, ${adj}${issue2.minimum.toString()} olmalıydı.`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Fâsit metin: "${_issue.prefix}" ile başlamalı.`;
-        if (_issue.format === "ends_with")
-          return `Fâsit metin: "${_issue.suffix}" ile bitmeli.`;
-        if (_issue.format === "includes")
-          return `Fâsit metin: "${_issue.includes}" ihtivâ etmeli.`;
-        if (_issue.format === "regex")
-          return `Fâsit metin: ${_issue.pattern} nakşına uymalı.`;
-        return `Fâsit ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Fâsit sayı: ${issue2.divisor} katı olmalıydı.`;
-      case "unrecognized_keys":
-        return `Tanınmayan anahtar ${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} için tanınmayan anahtar var.`;
-      case "invalid_union":
-        return "Giren tanınamadı.";
-      case "invalid_element":
-        return `${issue2.origin} için tanınmayan kıymet var.`;
-      default:
-        return `Kıymet tanınamadı.`;
-    }
-  };
-};
-function ota_default() {
-  return {
-    localeError: error29()
-  };
-}
-// node_modules/zod/v4/locales/ps.js
-var error30 = () => {
-  const Sizable = {
-    string: { unit: "توکي", verb: "ولري" },
-    file: { unit: "بایټس", verb: "ولري" },
-    array: { unit: "توکي", verb: "ولري" },
-    set: { unit: "توکي", verb: "ولري" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "عدد";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "ارې";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "ورودي",
-    email: "بریښنالیک",
-    url: "یو آر ال",
-    emoji: "ایموجي",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "نیټه او وخت",
-    date: "نېټه",
-    time: "وخت",
-    duration: "موده",
-    ipv4: "د IPv4 پته",
-    ipv6: "د IPv6 پته",
-    cidrv4: "د IPv4 ساحه",
-    cidrv6: "د IPv6 ساحه",
-    base64: "base64-encoded متن",
-    base64url: "base64url-encoded متن",
-    json_string: "JSON متن",
-    e164: "د E.164 شمېره",
-    jwt: "JWT",
-    template_literal: "ورودي"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `ناسم ورودي: باید ${issue2.expected} وای, مګر ${parsedType6(issue2.input)} ترلاسه شو`;
-      case "invalid_value":
-        if (issue2.values.length === 1) {
-          return `ناسم ورودي: باید ${stringifyPrimitive(issue2.values[0])} وای`;
-        }
-        return `ناسم انتخاب: باید یو له ${joinValues(issue2.values, "|")} څخه وای`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `ډیر لوی: ${issue2.origin ?? "ارزښت"} باید ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "عنصرونه"} ولري`;
-        }
-        return `ډیر لوی: ${issue2.origin ?? "ارزښت"} باید ${adj}${issue2.maximum.toString()} وي`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `ډیر کوچنی: ${issue2.origin} باید ${adj}${issue2.minimum.toString()} ${sizing.unit} ولري`;
-        }
-        return `ډیر کوچنی: ${issue2.origin} باید ${adj}${issue2.minimum.toString()} وي`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `ناسم متن: باید د "${_issue.prefix}" سره پیل شي`;
-        }
-        if (_issue.format === "ends_with") {
-          return `ناسم متن: باید د "${_issue.suffix}" سره پای ته ورسيږي`;
-        }
-        if (_issue.format === "includes") {
-          return `ناسم متن: باید "${_issue.includes}" ولري`;
-        }
-        if (_issue.format === "regex") {
-          return `ناسم متن: باید د ${_issue.pattern} سره مطابقت ولري`;
-        }
-        return `${Nouns[_issue.format] ?? issue2.format} ناسم دی`;
-      }
-      case "not_multiple_of":
-        return `ناسم عدد: باید د ${issue2.divisor} مضرب وي`;
-      case "unrecognized_keys":
-        return `ناسم ${issue2.keys.length > 1 ? "کلیډونه" : "کلیډ"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `ناسم کلیډ په ${issue2.origin} کې`;
-      case "invalid_union":
-        return `ناسمه ورودي`;
-      case "invalid_element":
-        return `ناسم عنصر په ${issue2.origin} کې`;
-      default:
-        return `ناسمه ورودي`;
-    }
-  };
-};
-function ps_default() {
-  return {
-    localeError: error30()
-  };
-}
-// node_modules/zod/v4/locales/pl.js
-var error31 = () => {
-  const Sizable = {
-    string: { unit: "znaków", verb: "mieć" },
-    file: { unit: "bajtów", verb: "mieć" },
-    array: { unit: "elementów", verb: "mieć" },
-    set: { unit: "elementów", verb: "mieć" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "liczba";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "tablica";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "wyrażenie",
-    email: "adres email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "data i godzina w formacie ISO",
-    date: "data w formacie ISO",
-    time: "godzina w formacie ISO",
-    duration: "czas trwania ISO",
-    ipv4: "adres IPv4",
-    ipv6: "adres IPv6",
-    cidrv4: "zakres IPv4",
-    cidrv6: "zakres IPv6",
-    base64: "ciąg znaków zakodowany w formacie base64",
-    base64url: "ciąg znaków zakodowany w formacie base64url",
-    json_string: "ciąg znaków w formacie JSON",
-    e164: "liczba E.164",
-    jwt: "JWT",
-    template_literal: "wejście"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Nieprawidłowe dane wejściowe: oczekiwano ${issue2.expected}, otrzymano ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Nieprawidłowe dane wejściowe: oczekiwano ${stringifyPrimitive(issue2.values[0])}`;
-        return `Nieprawidłowa opcja: oczekiwano jednej z wartości ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Za duża wartość: oczekiwano, że ${issue2.origin ?? "wartość"} będzie mieć ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementów"}`;
-        }
-        return `Zbyt duż(y/a/e): oczekiwano, że ${issue2.origin ?? "wartość"} będzie wynosić ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Za mała wartość: oczekiwano, że ${issue2.origin ?? "wartość"} będzie mieć ${adj}${issue2.minimum.toString()} ${sizing.unit ?? "elementów"}`;
-        }
-        return `Zbyt mał(y/a/e): oczekiwano, że ${issue2.origin ?? "wartość"} będzie wynosić ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Nieprawidłowy ciąg znaków: musi zaczynać się od "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Nieprawidłowy ciąg znaków: musi kończyć się na "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Nieprawidłowy ciąg znaków: musi zawierać "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Nieprawidłowy ciąg znaków: musi odpowiadać wzorcowi ${_issue.pattern}`;
-        return `Nieprawidłow(y/a/e) ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Nieprawidłowa liczba: musi być wielokrotnością ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Nierozpoznane klucze${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Nieprawidłowy klucz w ${issue2.origin}`;
-      case "invalid_union":
-        return "Nieprawidłowe dane wejściowe";
-      case "invalid_element":
-        return `Nieprawidłowa wartość w ${issue2.origin}`;
-      default:
-        return `Nieprawidłowe dane wejściowe`;
-    }
-  };
-};
-function pl_default() {
-  return {
-    localeError: error31()
-  };
-}
-// node_modules/zod/v4/locales/pt.js
-var error32 = () => {
-  const Sizable = {
-    string: { unit: "caracteres", verb: "ter" },
-    file: { unit: "bytes", verb: "ter" },
-    array: { unit: "itens", verb: "ter" },
-    set: { unit: "itens", verb: "ter" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "número";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "nulo";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "padrão",
-    email: "endereço de e-mail",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "data e hora ISO",
-    date: "data ISO",
-    time: "hora ISO",
-    duration: "duração ISO",
-    ipv4: "endereço IPv4",
-    ipv6: "endereço IPv6",
-    cidrv4: "faixa de IPv4",
-    cidrv6: "faixa de IPv6",
-    base64: "texto codificado em base64",
-    base64url: "URL codificada em base64",
-    json_string: "texto JSON",
-    e164: "número E.164",
-    jwt: "JWT",
-    template_literal: "entrada"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Tipo inválido: esperado ${issue2.expected}, recebido ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Entrada inválida: esperado ${stringifyPrimitive(issue2.values[0])}`;
-        return `Opção inválida: esperada uma das ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Muito grande: esperado que ${issue2.origin ?? "valor"} tivesse ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementos"}`;
-        return `Muito grande: esperado que ${issue2.origin ?? "valor"} fosse ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Muito pequeno: esperado que ${issue2.origin} tivesse ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Muito pequeno: esperado que ${issue2.origin} fosse ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Texto inválido: deve começar com "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Texto inválido: deve terminar com "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Texto inválido: deve incluir "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Texto inválido: deve corresponder ao padrão ${_issue.pattern}`;
-        return `${Nouns[_issue.format] ?? issue2.format} inválido`;
-      }
-      case "not_multiple_of":
-        return `Número inválido: deve ser múltiplo de ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Chave${issue2.keys.length > 1 ? "s" : ""} desconhecida${issue2.keys.length > 1 ? "s" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Chave inválida em ${issue2.origin}`;
-      case "invalid_union":
-        return "Entrada inválida";
-      case "invalid_element":
-        return `Valor inválido em ${issue2.origin}`;
-      default:
-        return `Campo inválido`;
-    }
-  };
-};
-function pt_default() {
-  return {
-    localeError: error32()
-  };
-}
-// node_modules/zod/v4/locales/ru.js
-function getRussianPlural(count, one, few, many) {
-  const absCount = Math.abs(count);
-  const lastDigit = absCount % 10;
-  const lastTwoDigits = absCount % 100;
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
-    return many;
-  }
-  if (lastDigit === 1) {
-    return one;
-  }
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return few;
-  }
-  return many;
-}
-var error33 = () => {
-  const Sizable = {
-    string: {
-      unit: {
-        one: "символ",
-        few: "символа",
-        many: "символов"
-      },
-      verb: "иметь"
-    },
-    file: {
-      unit: {
-        one: "байт",
-        few: "байта",
-        many: "байт"
-      },
-      verb: "иметь"
-    },
-    array: {
-      unit: {
-        one: "элемент",
-        few: "элемента",
-        many: "элементов"
-      },
-      verb: "иметь"
-    },
-    set: {
-      unit: {
-        one: "элемент",
-        few: "элемента",
-        many: "элементов"
-      },
-      verb: "иметь"
-    }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "число";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "массив";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "ввод",
-    email: "email адрес",
-    url: "URL",
-    emoji: "эмодзи",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO дата и время",
-    date: "ISO дата",
-    time: "ISO время",
-    duration: "ISO длительность",
-    ipv4: "IPv4 адрес",
-    ipv6: "IPv6 адрес",
-    cidrv4: "IPv4 диапазон",
-    cidrv6: "IPv6 диапазон",
-    base64: "строка в формате base64",
-    base64url: "строка в формате base64url",
-    json_string: "JSON строка",
-    e164: "номер E.164",
-    jwt: "JWT",
-    template_literal: "ввод"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Неверный ввод: ожидалось ${issue2.expected}, получено ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Неверный ввод: ожидалось ${stringifyPrimitive(issue2.values[0])}`;
-        return `Неверный вариант: ожидалось одно из ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const maxValue = Number(issue2.maximum);
-          const unit = getRussianPlural(maxValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `Слишком большое значение: ожидалось, что ${issue2.origin ?? "значение"} будет иметь ${adj}${issue2.maximum.toString()} ${unit}`;
-        }
-        return `Слишком большое значение: ожидалось, что ${issue2.origin ?? "значение"} будет ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          const minValue = Number(issue2.minimum);
-          const unit = getRussianPlural(minValue, sizing.unit.one, sizing.unit.few, sizing.unit.many);
-          return `Слишком маленькое значение: ожидалось, что ${issue2.origin} будет иметь ${adj}${issue2.minimum.toString()} ${unit}`;
-        }
-        return `Слишком маленькое значение: ожидалось, что ${issue2.origin} будет ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Неверная строка: должна начинаться с "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Неверная строка: должна заканчиваться на "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Неверная строка: должна содержать "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Неверная строка: должна соответствовать шаблону ${_issue.pattern}`;
-        return `Неверный ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Неверное число: должно быть кратным ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Нераспознанн${issue2.keys.length > 1 ? "ые" : "ый"} ключ${issue2.keys.length > 1 ? "и" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Неверный ключ в ${issue2.origin}`;
-      case "invalid_union":
-        return "Неверные входные данные";
-      case "invalid_element":
-        return `Неверное значение в ${issue2.origin}`;
-      default:
-        return `Неверные входные данные`;
-    }
-  };
-};
-function ru_default() {
-  return {
-    localeError: error33()
-  };
-}
-// node_modules/zod/v4/locales/sl.js
-var error34 = () => {
-  const Sizable = {
-    string: { unit: "znakov", verb: "imeti" },
-    file: { unit: "bajtov", verb: "imeti" },
-    array: { unit: "elementov", verb: "imeti" },
-    set: { unit: "elementov", verb: "imeti" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "število";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "tabela";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "vnos",
-    email: "e-poštni naslov",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO datum in čas",
-    date: "ISO datum",
-    time: "ISO čas",
-    duration: "ISO trajanje",
-    ipv4: "IPv4 naslov",
-    ipv6: "IPv6 naslov",
-    cidrv4: "obseg IPv4",
-    cidrv6: "obseg IPv6",
-    base64: "base64 kodiran niz",
-    base64url: "base64url kodiran niz",
-    json_string: "JSON niz",
-    e164: "E.164 številka",
-    jwt: "JWT",
-    template_literal: "vnos"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Neveljaven vnos: pričakovano ${issue2.expected}, prejeto ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Neveljaven vnos: pričakovano ${stringifyPrimitive(issue2.values[0])}`;
-        return `Neveljavna možnost: pričakovano eno izmed ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Preveliko: pričakovano, da bo ${issue2.origin ?? "vrednost"} imelo ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "elementov"}`;
-        return `Preveliko: pričakovano, da bo ${issue2.origin ?? "vrednost"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Premajhno: pričakovano, da bo ${issue2.origin} imelo ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Premajhno: pričakovano, da bo ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Neveljaven niz: mora se začeti z "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Neveljaven niz: mora se končati z "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Neveljaven niz: mora vsebovati "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Neveljaven niz: mora ustrezati vzorcu ${_issue.pattern}`;
-        return `Neveljaven ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Neveljavno število: mora biti večkratnik ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Neprepoznan${issue2.keys.length > 1 ? "i ključi" : " ključ"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Neveljaven ključ v ${issue2.origin}`;
-      case "invalid_union":
-        return "Neveljaven vnos";
-      case "invalid_element":
-        return `Neveljavna vrednost v ${issue2.origin}`;
-      default:
-        return "Neveljaven vnos";
-    }
-  };
-};
-function sl_default() {
-  return {
-    localeError: error34()
-  };
-}
-// node_modules/zod/v4/locales/sv.js
-var error35 = () => {
-  const Sizable = {
-    string: { unit: "tecken", verb: "att ha" },
-    file: { unit: "bytes", verb: "att ha" },
-    array: { unit: "objekt", verb: "att innehålla" },
-    set: { unit: "objekt", verb: "att innehålla" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "antal";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "lista";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "reguljärt uttryck",
-    email: "e-postadress",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO-datum och tid",
-    date: "ISO-datum",
-    time: "ISO-tid",
-    duration: "ISO-varaktighet",
-    ipv4: "IPv4-intervall",
-    ipv6: "IPv6-intervall",
-    cidrv4: "IPv4-spektrum",
-    cidrv6: "IPv6-spektrum",
-    base64: "base64-kodad sträng",
-    base64url: "base64url-kodad sträng",
-    json_string: "JSON-sträng",
-    e164: "E.164-nummer",
-    jwt: "JWT",
-    template_literal: "mall-literal"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Ogiltig inmatning: förväntat ${issue2.expected}, fick ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ogiltig inmatning: förväntat ${stringifyPrimitive(issue2.values[0])}`;
-        return `Ogiltigt val: förväntade en av ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `För stor(t): förväntade ${issue2.origin ?? "värdet"} att ha ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "element"}`;
-        }
-        return `För stor(t): förväntat ${issue2.origin ?? "värdet"} att ha ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `För lite(t): förväntade ${issue2.origin ?? "värdet"} att ha ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `För lite(t): förväntade ${issue2.origin ?? "värdet"} att ha ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `Ogiltig sträng: måste börja med "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `Ogiltig sträng: måste sluta med "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ogiltig sträng: måste innehålla "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ogiltig sträng: måste matcha mönstret "${_issue.pattern}"`;
-        return `Ogiltig(t) ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Ogiltigt tal: måste vara en multipel av ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `${issue2.keys.length > 1 ? "Okända nycklar" : "Okänd nyckel"}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Ogiltig nyckel i ${issue2.origin ?? "värdet"}`;
-      case "invalid_union":
-        return "Ogiltig input";
-      case "invalid_element":
-        return `Ogiltigt värde i ${issue2.origin ?? "värdet"}`;
-      default:
-        return `Ogiltig input`;
-    }
-  };
-};
-function sv_default() {
-  return {
-    localeError: error35()
-  };
-}
-// node_modules/zod/v4/locales/ta.js
-var error36 = () => {
-  const Sizable = {
-    string: { unit: "எழுத்துக்கள்", verb: "கொண்டிருக்க வேண்டும்" },
-    file: { unit: "பைட்டுகள்", verb: "கொண்டிருக்க வேண்டும்" },
-    array: { unit: "உறுப்புகள்", verb: "கொண்டிருக்க வேண்டும்" },
-    set: { unit: "உறுப்புகள்", verb: "கொண்டிருக்க வேண்டும்" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "எண் அல்லாதது" : "எண்";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "அணி";
-        }
-        if (data === null) {
-          return "வெறுமை";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "உள்ளீடு",
-    email: "மின்னஞ்சல் முகவரி",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO தேதி நேரம்",
-    date: "ISO தேதி",
-    time: "ISO நேரம்",
-    duration: "ISO கால அளவு",
-    ipv4: "IPv4 முகவரி",
-    ipv6: "IPv6 முகவரி",
-    cidrv4: "IPv4 வரம்பு",
-    cidrv6: "IPv6 வரம்பு",
-    base64: "base64-encoded சரம்",
-    base64url: "base64url-encoded சரம்",
-    json_string: "JSON சரம்",
-    e164: "E.164 எண்",
-    jwt: "JWT",
-    template_literal: "input"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `தவறான உள்ளீடு: எதிர்பார்க்கப்பட்டது ${issue2.expected}, பெறப்பட்டது ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `தவறான உள்ளீடு: எதிர்பார்க்கப்பட்டது ${stringifyPrimitive(issue2.values[0])}`;
-        return `தவறான விருப்பம்: எதிர்பார்க்கப்பட்டது ${joinValues(issue2.values, "|")} இல் ஒன்று`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `மிக பெரியது: எதிர்பார்க்கப்பட்டது ${issue2.origin ?? "மதிப்பு"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "உறுப்புகள்"} ஆக இருக்க வேண்டும்`;
-        }
-        return `மிக பெரியது: எதிர்பார்க்கப்பட்டது ${issue2.origin ?? "மதிப்பு"} ${adj}${issue2.maximum.toString()} ஆக இருக்க வேண்டும்`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `மிகச் சிறியது: எதிர்பார்க்கப்பட்டது ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit} ஆக இருக்க வேண்டும்`;
-        }
-        return `மிகச் சிறியது: எதிர்பார்க்கப்பட்டது ${issue2.origin} ${adj}${issue2.minimum.toString()} ஆக இருக்க வேண்டும்`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `தவறான சரம்: "${_issue.prefix}" இல் தொடங்க வேண்டும்`;
-        if (_issue.format === "ends_with")
-          return `தவறான சரம்: "${_issue.suffix}" இல் முடிவடைய வேண்டும்`;
-        if (_issue.format === "includes")
-          return `தவறான சரம்: "${_issue.includes}" ஐ உள்ளடக்க வேண்டும்`;
-        if (_issue.format === "regex")
-          return `தவறான சரம்: ${_issue.pattern} முறைபாட்டுடன் பொருந்த வேண்டும்`;
-        return `தவறான ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `தவறான எண்: ${issue2.divisor} இன் பலமாக இருக்க வேண்டும்`;
-      case "unrecognized_keys":
-        return `அடையாளம் தெரியாத விசை${issue2.keys.length > 1 ? "கள்" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} இல் தவறான விசை`;
-      case "invalid_union":
-        return "தவறான உள்ளீடு";
-      case "invalid_element":
-        return `${issue2.origin} இல் தவறான மதிப்பு`;
-      default:
-        return `தவறான உள்ளீடு`;
-    }
-  };
-};
-function ta_default() {
-  return {
-    localeError: error36()
-  };
-}
-// node_modules/zod/v4/locales/th.js
-var error37 = () => {
-  const Sizable = {
-    string: { unit: "ตัวอักษร", verb: "ควรมี" },
-    file: { unit: "ไบต์", verb: "ควรมี" },
-    array: { unit: "รายการ", verb: "ควรมี" },
-    set: { unit: "รายการ", verb: "ควรมี" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType6 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "ไม่ใช่ตัวเลข (NaN)" : "ตัวเลข";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "อาร์เรย์ (Array)";
-        }
-        if (data === null) {
-          return "ไม่มีค่า (null)";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "ข้อมูลที่ป้อน",
-    email: "ที่อยู่อีเมล",
-    url: "URL",
-    emoji: "อิโมจิ",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "วันที่เวลาแบบ ISO",
-    date: "วันที่แบบ ISO",
-    time: "เวลาแบบ ISO",
-    duration: "ช่วงเวลาแบบ ISO",
-    ipv4: "ที่อยู่ IPv4",
-    ipv6: "ที่อยู่ IPv6",
-    cidrv4: "ช่วง IP แบบ IPv4",
-    cidrv6: "ช่วง IP แบบ IPv6",
-    base64: "ข้อความแบบ Base64",
-    base64url: "ข้อความแบบ Base64 สำหรับ URL",
-    json_string: "ข้อความแบบ JSON",
-    e164: "เบอร์โทรศัพท์ระหว่างประเทศ (E.164)",
-    jwt: "โทเคน JWT",
-    template_literal: "ข้อมูลที่ป้อน"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `ประเภทข้อมูลไม่ถูกต้อง: ควรเป็น ${issue2.expected} แต่ได้รับ ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `ค่าไม่ถูกต้อง: ควรเป็น ${stringifyPrimitive(issue2.values[0])}`;
-        return `ตัวเลือกไม่ถูกต้อง: ควรเป็นหนึ่งใน ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "ไม่เกิน" : "น้อยกว่า";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `เกินกำหนด: ${issue2.origin ?? "ค่า"} ควรมี${adj} ${issue2.maximum.toString()} ${sizing.unit ?? "รายการ"}`;
-        return `เกินกำหนด: ${issue2.origin ?? "ค่า"} ควรมี${adj} ${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? "อย่างน้อย" : "มากกว่า";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `น้อยกว่ากำหนด: ${issue2.origin} ควรมี${adj} ${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `น้อยกว่ากำหนด: ${issue2.origin} ควรมี${adj} ${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `รูปแบบไม่ถูกต้อง: ข้อความต้องขึ้นต้นด้วย "${_issue.prefix}"`;
-        }
-        if (_issue.format === "ends_with")
-          return `รูปแบบไม่ถูกต้อง: ข้อความต้องลงท้ายด้วย "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `รูปแบบไม่ถูกต้อง: ข้อความต้องมี "${_issue.includes}" อยู่ในข้อความ`;
-        if (_issue.format === "regex")
-          return `รูปแบบไม่ถูกต้อง: ต้องตรงกับรูปแบบที่กำหนด ${_issue.pattern}`;
-        return `รูปแบบไม่ถูกต้อง: ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `ตัวเลขไม่ถูกต้อง: ต้องเป็นจำนวนที่หารด้วย ${issue2.divisor} ได้ลงตัว`;
-      case "unrecognized_keys":
-        return `พบคีย์ที่ไม่รู้จัก: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `คีย์ไม่ถูกต้องใน ${issue2.origin}`;
-      case "invalid_union":
-        return "ข้อมูลไม่ถูกต้อง: ไม่ตรงกับรูปแบบยูเนียนที่กำหนดไว้";
-      case "invalid_element":
-        return `ข้อมูลไม่ถูกต้องใน ${issue2.origin}`;
-      default:
-        return `ข้อมูลไม่ถูกต้อง`;
-    }
-  };
-};
-function th_default() {
-  return {
-    localeError: error37()
-  };
-}
-// node_modules/zod/v4/locales/tr.js
-var parsedType6 = (data) => {
-  const t = typeof data;
-  switch (t) {
-    case "number": {
-      return Number.isNaN(data) ? "NaN" : "number";
-    }
-    case "object": {
-      if (Array.isArray(data)) {
-        return "array";
-      }
-      if (data === null) {
-        return "null";
-      }
-      if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-        return data.constructor.name;
-      }
-    }
-  }
-  return t;
-};
-var error38 = () => {
-  const Sizable = {
-    string: { unit: "karakter", verb: "olmalı" },
-    file: { unit: "bayt", verb: "olmalı" },
-    array: { unit: "öğe", verb: "olmalı" },
-    set: { unit: "öğe", verb: "olmalı" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const Nouns = {
-    regex: "girdi",
-    email: "e-posta adresi",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO tarih ve saat",
-    date: "ISO tarih",
-    time: "ISO saat",
-    duration: "ISO süre",
-    ipv4: "IPv4 adresi",
-    ipv6: "IPv6 adresi",
-    cidrv4: "IPv4 aralığı",
-    cidrv6: "IPv6 aralığı",
-    base64: "base64 ile şifrelenmiş metin",
-    base64url: "base64url ile şifrelenmiş metin",
-    json_string: "JSON dizesi",
-    e164: "E.164 sayısı",
-    jwt: "JWT",
-    template_literal: "Şablon dizesi"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Geçersiz değer: beklenen ${issue2.expected}, alınan ${parsedType6(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Geçersiz değer: beklenen ${stringifyPrimitive(issue2.values[0])}`;
-        return `Geçersiz seçenek: aşağıdakilerden biri olmalı: ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Çok büyük: beklenen ${issue2.origin ?? "değer"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "öğe"}`;
-        return `Çok büyük: beklenen ${issue2.origin ?? "değer"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Çok küçük: beklenen ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        return `Çok küçük: beklenen ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Geçersiz metin: "${_issue.prefix}" ile başlamalı`;
-        if (_issue.format === "ends_with")
-          return `Geçersiz metin: "${_issue.suffix}" ile bitmeli`;
-        if (_issue.format === "includes")
-          return `Geçersiz metin: "${_issue.includes}" içermeli`;
-        if (_issue.format === "regex")
-          return `Geçersiz metin: ${_issue.pattern} desenine uymalı`;
-        return `Geçersiz ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Geçersiz sayı: ${issue2.divisor} ile tam bölünebilmeli`;
-      case "unrecognized_keys":
-        return `Tanınmayan anahtar${issue2.keys.length > 1 ? "lar" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} içinde geçersiz anahtar`;
-      case "invalid_union":
-        return "Geçersiz değer";
-      case "invalid_element":
-        return `${issue2.origin} içinde geçersiz değer`;
-      default:
-        return `Geçersiz değer`;
-    }
-  };
-};
-function tr_default() {
-  return {
-    localeError: error38()
-  };
-}
-// node_modules/zod/v4/locales/uk.js
-var error39 = () => {
-  const Sizable = {
-    string: { unit: "символів", verb: "матиме" },
-    file: { unit: "байтів", verb: "матиме" },
-    array: { unit: "елементів", verb: "матиме" },
-    set: { unit: "елементів", verb: "матиме" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType7 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "число";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "масив";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "вхідні дані",
-    email: "адреса електронної пошти",
-    url: "URL",
-    emoji: "емодзі",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "дата та час ISO",
-    date: "дата ISO",
-    time: "час ISO",
-    duration: "тривалість ISO",
-    ipv4: "адреса IPv4",
-    ipv6: "адреса IPv6",
-    cidrv4: "діапазон IPv4",
-    cidrv6: "діапазон IPv6",
-    base64: "рядок у кодуванні base64",
-    base64url: "рядок у кодуванні base64url",
-    json_string: "рядок JSON",
-    e164: "номер E.164",
-    jwt: "JWT",
-    template_literal: "вхідні дані"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Неправильні вхідні дані: очікується ${issue2.expected}, отримано ${parsedType7(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Неправильні вхідні дані: очікується ${stringifyPrimitive(issue2.values[0])}`;
-        return `Неправильна опція: очікується одне з ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Занадто велике: очікується, що ${issue2.origin ?? "значення"} ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "елементів"}`;
-        return `Занадто велике: очікується, що ${issue2.origin ?? "значення"} буде ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Занадто мале: очікується, що ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Занадто мале: очікується, що ${issue2.origin} буде ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Неправильний рядок: повинен починатися з "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Неправильний рядок: повинен закінчуватися на "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Неправильний рядок: повинен містити "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Неправильний рядок: повинен відповідати шаблону ${_issue.pattern}`;
-        return `Неправильний ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Неправильне число: повинно бути кратним ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Нерозпізнаний ключ${issue2.keys.length > 1 ? "і" : ""}: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Неправильний ключ у ${issue2.origin}`;
-      case "invalid_union":
-        return "Неправильні вхідні дані";
-      case "invalid_element":
-        return `Неправильне значення у ${issue2.origin}`;
-      default:
-        return `Неправильні вхідні дані`;
-    }
-  };
-};
-function uk_default() {
-  return {
-    localeError: error39()
-  };
-}
-
-// node_modules/zod/v4/locales/ua.js
-function ua_default() {
-  return uk_default();
-}
-// node_modules/zod/v4/locales/ur.js
-var error40 = () => {
-  const Sizable = {
-    string: { unit: "حروف", verb: "ہونا" },
-    file: { unit: "بائٹس", verb: "ہونا" },
-    array: { unit: "آئٹمز", verb: "ہونا" },
-    set: { unit: "آئٹمز", verb: "ہونا" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType7 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "نمبر";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "آرے";
-        }
-        if (data === null) {
-          return "نل";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "ان پٹ",
-    email: "ای میل ایڈریس",
-    url: "یو آر ایل",
-    emoji: "ایموجی",
-    uuid: "یو یو آئی ڈی",
-    uuidv4: "یو یو آئی ڈی وی 4",
-    uuidv6: "یو یو آئی ڈی وی 6",
-    nanoid: "نینو آئی ڈی",
-    guid: "جی یو آئی ڈی",
-    cuid: "سی یو آئی ڈی",
-    cuid2: "سی یو آئی ڈی 2",
-    ulid: "یو ایل آئی ڈی",
-    xid: "ایکس آئی ڈی",
-    ksuid: "کے ایس یو آئی ڈی",
-    datetime: "آئی ایس او ڈیٹ ٹائم",
-    date: "آئی ایس او تاریخ",
-    time: "آئی ایس او وقت",
-    duration: "آئی ایس او مدت",
-    ipv4: "آئی پی وی 4 ایڈریس",
-    ipv6: "آئی پی وی 6 ایڈریس",
-    cidrv4: "آئی پی وی 4 رینج",
-    cidrv6: "آئی پی وی 6 رینج",
-    base64: "بیس 64 ان کوڈڈ سٹرنگ",
-    base64url: "بیس 64 یو آر ایل ان کوڈڈ سٹرنگ",
-    json_string: "جے ایس او این سٹرنگ",
-    e164: "ای 164 نمبر",
-    jwt: "جے ڈبلیو ٹی",
-    template_literal: "ان پٹ"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `غلط ان پٹ: ${issue2.expected} متوقع تھا، ${parsedType7(issue2.input)} موصول ہوا`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `غلط ان پٹ: ${stringifyPrimitive(issue2.values[0])} متوقع تھا`;
-        return `غلط آپشن: ${joinValues(issue2.values, "|")} میں سے ایک متوقع تھا`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `بہت بڑا: ${issue2.origin ?? "ویلیو"} کے ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "عناصر"} ہونے متوقع تھے`;
-        return `بہت بڑا: ${issue2.origin ?? "ویلیو"} کا ${adj}${issue2.maximum.toString()} ہونا متوقع تھا`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `بہت چھوٹا: ${issue2.origin} کے ${adj}${issue2.minimum.toString()} ${sizing.unit} ہونے متوقع تھے`;
-        }
-        return `بہت چھوٹا: ${issue2.origin} کا ${adj}${issue2.minimum.toString()} ہونا متوقع تھا`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `غلط سٹرنگ: "${_issue.prefix}" سے شروع ہونا چاہیے`;
-        }
-        if (_issue.format === "ends_with")
-          return `غلط سٹرنگ: "${_issue.suffix}" پر ختم ہونا چاہیے`;
-        if (_issue.format === "includes")
-          return `غلط سٹرنگ: "${_issue.includes}" شامل ہونا چاہیے`;
-        if (_issue.format === "regex")
-          return `غلط سٹرنگ: پیٹرن ${_issue.pattern} سے میچ ہونا چاہیے`;
-        return `غلط ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `غلط نمبر: ${issue2.divisor} کا مضاعف ہونا چاہیے`;
-      case "unrecognized_keys":
-        return `غیر تسلیم شدہ کی${issue2.keys.length > 1 ? "ز" : ""}: ${joinValues(issue2.keys, "، ")}`;
-      case "invalid_key":
-        return `${issue2.origin} میں غلط کی`;
-      case "invalid_union":
-        return "غلط ان پٹ";
-      case "invalid_element":
-        return `${issue2.origin} میں غلط ویلیو`;
-      default:
-        return `غلط ان پٹ`;
-    }
-  };
-};
-function ur_default() {
-  return {
-    localeError: error40()
-  };
-}
-// node_modules/zod/v4/locales/vi.js
-var error41 = () => {
-  const Sizable = {
-    string: { unit: "ký tự", verb: "có" },
-    file: { unit: "byte", verb: "có" },
-    array: { unit: "phần tử", verb: "có" },
-    set: { unit: "phần tử", verb: "có" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType7 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "số";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "mảng";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "đầu vào",
-    email: "địa chỉ email",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ngày giờ ISO",
-    date: "ngày ISO",
-    time: "giờ ISO",
-    duration: "khoảng thời gian ISO",
-    ipv4: "địa chỉ IPv4",
-    ipv6: "địa chỉ IPv6",
-    cidrv4: "dải IPv4",
-    cidrv6: "dải IPv6",
-    base64: "chuỗi mã hóa base64",
-    base64url: "chuỗi mã hóa base64url",
-    json_string: "chuỗi JSON",
-    e164: "số E.164",
-    jwt: "JWT",
-    template_literal: "đầu vào"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Đầu vào không hợp lệ: mong đợi ${issue2.expected}, nhận được ${parsedType7(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Đầu vào không hợp lệ: mong đợi ${stringifyPrimitive(issue2.values[0])}`;
-        return `Tùy chọn không hợp lệ: mong đợi một trong các giá trị ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Quá lớn: mong đợi ${issue2.origin ?? "giá trị"} ${sizing.verb} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "phần tử"}`;
-        return `Quá lớn: mong đợi ${issue2.origin ?? "giá trị"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `Quá nhỏ: mong đợi ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `Quá nhỏ: mong đợi ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Chuỗi không hợp lệ: phải bắt đầu bằng "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Chuỗi không hợp lệ: phải kết thúc bằng "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Chuỗi không hợp lệ: phải bao gồm "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Chuỗi không hợp lệ: phải khớp với mẫu ${_issue.pattern}`;
-        return `${Nouns[_issue.format] ?? issue2.format} không hợp lệ`;
-      }
-      case "not_multiple_of":
-        return `Số không hợp lệ: phải là bội số của ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Khóa không được nhận dạng: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Khóa không hợp lệ trong ${issue2.origin}`;
-      case "invalid_union":
-        return "Đầu vào không hợp lệ";
-      case "invalid_element":
-        return `Giá trị không hợp lệ trong ${issue2.origin}`;
-      default:
-        return `Đầu vào không hợp lệ`;
-    }
-  };
-};
-function vi_default() {
-  return {
-    localeError: error41()
-  };
-}
-// node_modules/zod/v4/locales/zh-CN.js
-var error42 = () => {
-  const Sizable = {
-    string: { unit: "字符", verb: "包含" },
-    file: { unit: "字节", verb: "包含" },
-    array: { unit: "项", verb: "包含" },
-    set: { unit: "项", verb: "包含" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType7 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "非数字(NaN)" : "数字";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "数组";
-        }
-        if (data === null) {
-          return "空值(null)";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "输入",
-    email: "电子邮件",
-    url: "URL",
-    emoji: "表情符号",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO日期时间",
-    date: "ISO日期",
-    time: "ISO时间",
-    duration: "ISO时长",
-    ipv4: "IPv4地址",
-    ipv6: "IPv6地址",
-    cidrv4: "IPv4网段",
-    cidrv6: "IPv6网段",
-    base64: "base64编码字符串",
-    base64url: "base64url编码字符串",
-    json_string: "JSON字符串",
-    e164: "E.164号码",
-    jwt: "JWT",
-    template_literal: "输入"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `无效输入：期望 ${issue2.expected}，实际接收 ${parsedType7(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `无效输入：期望 ${stringifyPrimitive(issue2.values[0])}`;
-        return `无效选项：期望以下之一 ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `数值过大：期望 ${issue2.origin ?? "值"} ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "个元素"}`;
-        return `数值过大：期望 ${issue2.origin ?? "值"} ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `数值过小：期望 ${issue2.origin} ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `数值过小：期望 ${issue2.origin} ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `无效字符串：必须以 "${_issue.prefix}" 开头`;
-        if (_issue.format === "ends_with")
-          return `无效字符串：必须以 "${_issue.suffix}" 结尾`;
-        if (_issue.format === "includes")
-          return `无效字符串：必须包含 "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `无效字符串：必须满足正则表达式 ${_issue.pattern}`;
-        return `无效${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `无效数字：必须是 ${issue2.divisor} 的倍数`;
-      case "unrecognized_keys":
-        return `出现未知的键(key): ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `${issue2.origin} 中的键(key)无效`;
-      case "invalid_union":
-        return "无效输入";
-      case "invalid_element":
-        return `${issue2.origin} 中包含无效值(value)`;
-      default:
-        return `无效输入`;
-    }
-  };
-};
-function zh_CN_default() {
-  return {
-    localeError: error42()
-  };
-}
-// node_modules/zod/v4/locales/zh-TW.js
-var error43 = () => {
-  const Sizable = {
-    string: { unit: "字元", verb: "擁有" },
-    file: { unit: "位元組", verb: "擁有" },
-    array: { unit: "項目", verb: "擁有" },
-    set: { unit: "項目", verb: "擁有" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType7 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "number";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "array";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "輸入",
-    email: "郵件地址",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "ISO 日期時間",
-    date: "ISO 日期",
-    time: "ISO 時間",
-    duration: "ISO 期間",
-    ipv4: "IPv4 位址",
-    ipv6: "IPv6 位址",
-    cidrv4: "IPv4 範圍",
-    cidrv6: "IPv6 範圍",
-    base64: "base64 編碼字串",
-    base64url: "base64url 編碼字串",
-    json_string: "JSON 字串",
-    e164: "E.164 數值",
-    jwt: "JWT",
-    template_literal: "輸入"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `無效的輸入值：預期為 ${issue2.expected}，但收到 ${parsedType7(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `無效的輸入值：預期為 ${stringifyPrimitive(issue2.values[0])}`;
-        return `無效的選項：預期為以下其中之一 ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `數值過大：預期 ${issue2.origin ?? "值"} 應為 ${adj}${issue2.maximum.toString()} ${sizing.unit ?? "個元素"}`;
-        return `數值過大：預期 ${issue2.origin ?? "值"} 應為 ${adj}${issue2.maximum.toString()}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing) {
-          return `數值過小：預期 ${issue2.origin} 應為 ${adj}${issue2.minimum.toString()} ${sizing.unit}`;
-        }
-        return `數值過小：預期 ${issue2.origin} 應為 ${adj}${issue2.minimum.toString()}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with") {
-          return `無效的字串：必須以 "${_issue.prefix}" 開頭`;
-        }
-        if (_issue.format === "ends_with")
-          return `無效的字串：必須以 "${_issue.suffix}" 結尾`;
-        if (_issue.format === "includes")
-          return `無效的字串：必須包含 "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `無效的字串：必須符合格式 ${_issue.pattern}`;
-        return `無效的 ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `無效的數字：必須為 ${issue2.divisor} 的倍數`;
-      case "unrecognized_keys":
-        return `無法識別的鍵值${issue2.keys.length > 1 ? "們" : ""}：${joinValues(issue2.keys, "、")}`;
-      case "invalid_key":
-        return `${issue2.origin} 中有無效的鍵值`;
-      case "invalid_union":
-        return "無效的輸入值";
-      case "invalid_element":
-        return `${issue2.origin} 中有無效的值`;
-      default:
-        return `無效的輸入值`;
-    }
-  };
-};
-function zh_TW_default() {
-  return {
-    localeError: error43()
-  };
-}
-// node_modules/zod/v4/locales/yo.js
-var error44 = () => {
-  const Sizable = {
-    string: { unit: "àmi", verb: "ní" },
-    file: { unit: "bytes", verb: "ní" },
-    array: { unit: "nkan", verb: "ní" },
-    set: { unit: "nkan", verb: "ní" }
-  };
-  function getSizing(origin) {
-    return Sizable[origin] ?? null;
-  }
-  const parsedType7 = (data) => {
-    const t = typeof data;
-    switch (t) {
-      case "number": {
-        return Number.isNaN(data) ? "NaN" : "nọ́mbà";
-      }
-      case "object": {
-        if (Array.isArray(data)) {
-          return "akopọ";
-        }
-        if (data === null) {
-          return "null";
-        }
-        if (Object.getPrototypeOf(data) !== Object.prototype && data.constructor) {
-          return data.constructor.name;
-        }
-      }
-    }
-    return t;
-  };
-  const Nouns = {
-    regex: "ẹ̀rọ ìbáwọlé",
-    email: "àdírẹ́sì ìmẹ́lì",
-    url: "URL",
-    emoji: "emoji",
-    uuid: "UUID",
-    uuidv4: "UUIDv4",
-    uuidv6: "UUIDv6",
-    nanoid: "nanoid",
-    guid: "GUID",
-    cuid: "cuid",
-    cuid2: "cuid2",
-    ulid: "ULID",
-    xid: "XID",
-    ksuid: "KSUID",
-    datetime: "àkókò ISO",
-    date: "ọjọ́ ISO",
-    time: "àkókò ISO",
-    duration: "àkókò tó pé ISO",
-    ipv4: "àdírẹ́sì IPv4",
-    ipv6: "àdírẹ́sì IPv6",
-    cidrv4: "àgbègbè IPv4",
-    cidrv6: "àgbègbè IPv6",
-    base64: "ọ̀rọ̀ tí a kọ́ ní base64",
-    base64url: "ọ̀rọ̀ base64url",
-    json_string: "ọ̀rọ̀ JSON",
-    e164: "nọ́mbà E.164",
-    jwt: "JWT",
-    template_literal: "ẹ̀rọ ìbáwọlé"
-  };
-  return (issue2) => {
-    switch (issue2.code) {
-      case "invalid_type":
-        return `Ìbáwọlé aṣìṣe: a ní láti fi ${issue2.expected}, àmọ̀ a rí ${parsedType7(issue2.input)}`;
-      case "invalid_value":
-        if (issue2.values.length === 1)
-          return `Ìbáwọlé aṣìṣe: a ní láti fi ${stringifyPrimitive(issue2.values[0])}`;
-        return `Àṣàyàn aṣìṣe: yan ọ̀kan lára ${joinValues(issue2.values, "|")}`;
-      case "too_big": {
-        const adj = issue2.inclusive ? "<=" : "<";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Tó pọ̀ jù: a ní láti jẹ́ pé ${issue2.origin ?? "iye"} ${sizing.verb} ${adj}${issue2.maximum} ${sizing.unit}`;
-        return `Tó pọ̀ jù: a ní láti jẹ́ ${adj}${issue2.maximum}`;
-      }
-      case "too_small": {
-        const adj = issue2.inclusive ? ">=" : ">";
-        const sizing = getSizing(issue2.origin);
-        if (sizing)
-          return `Kéré ju: a ní láti jẹ́ pé ${issue2.origin} ${sizing.verb} ${adj}${issue2.minimum} ${sizing.unit}`;
-        return `Kéré ju: a ní láti jẹ́ ${adj}${issue2.minimum}`;
-      }
-      case "invalid_format": {
-        const _issue = issue2;
-        if (_issue.format === "starts_with")
-          return `Ọ̀rọ̀ aṣìṣe: gbọ́dọ̀ bẹ̀rẹ̀ pẹ̀lú "${_issue.prefix}"`;
-        if (_issue.format === "ends_with")
-          return `Ọ̀rọ̀ aṣìṣe: gbọ́dọ̀ parí pẹ̀lú "${_issue.suffix}"`;
-        if (_issue.format === "includes")
-          return `Ọ̀rọ̀ aṣìṣe: gbọ́dọ̀ ní "${_issue.includes}"`;
-        if (_issue.format === "regex")
-          return `Ọ̀rọ̀ aṣìṣe: gbọ́dọ̀ bá àpẹẹrẹ mu ${_issue.pattern}`;
-        return `Aṣìṣe: ${Nouns[_issue.format] ?? issue2.format}`;
-      }
-      case "not_multiple_of":
-        return `Nọ́mbà aṣìṣe: gbọ́dọ̀ jẹ́ èyà pípín ti ${issue2.divisor}`;
-      case "unrecognized_keys":
-        return `Bọtìnì àìmọ̀: ${joinValues(issue2.keys, ", ")}`;
-      case "invalid_key":
-        return `Bọtìnì aṣìṣe nínú ${issue2.origin}`;
-      case "invalid_union":
-        return "Ìbáwọlé aṣìṣe";
-      case "invalid_element":
-        return `Iye aṣìṣe nínú ${issue2.origin}`;
-      default:
-        return "Ìbáwọlé aṣìṣe";
-    }
-  };
-};
-function yo_default() {
-  return {
-    localeError: error44()
-  };
 }
 // node_modules/zod/v4/core/registries.js
 var $output = Symbol("ZodOutput");
@@ -10136,21 +12498,14 @@ function registry() {
 }
 var globalRegistry = /* @__PURE__ */ registry();
 // node_modules/zod/v4/core/api.js
-function _string(Class2, params) {
-  return new Class2({
+function _string(Class, params) {
+  return new Class({
     type: "string",
     ...normalizeParams(params)
   });
 }
-function _coercedString(Class2, params) {
-  return new Class2({
-    type: "string",
-    coerce: true,
-    ...normalizeParams(params)
-  });
-}
-function _email(Class2, params) {
-  return new Class2({
+function _email(Class, params) {
+  return new Class({
     type: "string",
     format: "email",
     check: "string_format",
@@ -10158,8 +12513,8 @@ function _email(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _guid(Class2, params) {
-  return new Class2({
+function _guid(Class, params) {
+  return new Class({
     type: "string",
     format: "guid",
     check: "string_format",
@@ -10167,8 +12522,8 @@ function _guid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuid(Class2, params) {
-  return new Class2({
+function _uuid(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -10176,8 +12531,8 @@ function _uuid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuidv4(Class2, params) {
-  return new Class2({
+function _uuidv4(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -10186,8 +12541,8 @@ function _uuidv4(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuidv6(Class2, params) {
-  return new Class2({
+function _uuidv6(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -10196,8 +12551,8 @@ function _uuidv6(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _uuidv7(Class2, params) {
-  return new Class2({
+function _uuidv7(Class, params) {
+  return new Class({
     type: "string",
     format: "uuid",
     check: "string_format",
@@ -10206,8 +12561,8 @@ function _uuidv7(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _url(Class2, params) {
-  return new Class2({
+function _url(Class, params) {
+  return new Class({
     type: "string",
     format: "url",
     check: "string_format",
@@ -10215,8 +12570,8 @@ function _url(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _emoji2(Class2, params) {
-  return new Class2({
+function _emoji2(Class, params) {
+  return new Class({
     type: "string",
     format: "emoji",
     check: "string_format",
@@ -10224,8 +12579,8 @@ function _emoji2(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _nanoid(Class2, params) {
-  return new Class2({
+function _nanoid(Class, params) {
+  return new Class({
     type: "string",
     format: "nanoid",
     check: "string_format",
@@ -10233,8 +12588,8 @@ function _nanoid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cuid(Class2, params) {
-  return new Class2({
+function _cuid(Class, params) {
+  return new Class({
     type: "string",
     format: "cuid",
     check: "string_format",
@@ -10242,8 +12597,8 @@ function _cuid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cuid2(Class2, params) {
-  return new Class2({
+function _cuid2(Class, params) {
+  return new Class({
     type: "string",
     format: "cuid2",
     check: "string_format",
@@ -10251,8 +12606,8 @@ function _cuid2(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ulid(Class2, params) {
-  return new Class2({
+function _ulid(Class, params) {
+  return new Class({
     type: "string",
     format: "ulid",
     check: "string_format",
@@ -10260,8 +12615,8 @@ function _ulid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _xid(Class2, params) {
-  return new Class2({
+function _xid(Class, params) {
+  return new Class({
     type: "string",
     format: "xid",
     check: "string_format",
@@ -10269,8 +12624,8 @@ function _xid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ksuid(Class2, params) {
-  return new Class2({
+function _ksuid(Class, params) {
+  return new Class({
     type: "string",
     format: "ksuid",
     check: "string_format",
@@ -10278,8 +12633,8 @@ function _ksuid(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ipv4(Class2, params) {
-  return new Class2({
+function _ipv4(Class, params) {
+  return new Class({
     type: "string",
     format: "ipv4",
     check: "string_format",
@@ -10287,8 +12642,8 @@ function _ipv4(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _ipv6(Class2, params) {
-  return new Class2({
+function _ipv6(Class, params) {
+  return new Class({
     type: "string",
     format: "ipv6",
     check: "string_format",
@@ -10296,8 +12651,8 @@ function _ipv6(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cidrv4(Class2, params) {
-  return new Class2({
+function _cidrv4(Class, params) {
+  return new Class({
     type: "string",
     format: "cidrv4",
     check: "string_format",
@@ -10305,8 +12660,8 @@ function _cidrv4(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _cidrv6(Class2, params) {
-  return new Class2({
+function _cidrv6(Class, params) {
+  return new Class({
     type: "string",
     format: "cidrv6",
     check: "string_format",
@@ -10314,8 +12669,8 @@ function _cidrv6(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _base64(Class2, params) {
-  return new Class2({
+function _base64(Class, params) {
+  return new Class({
     type: "string",
     format: "base64",
     check: "string_format",
@@ -10323,8 +12678,8 @@ function _base64(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _base64url(Class2, params) {
-  return new Class2({
+function _base64url(Class, params) {
+  return new Class({
     type: "string",
     format: "base64url",
     check: "string_format",
@@ -10332,8 +12687,8 @@ function _base64url(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _e164(Class2, params) {
-  return new Class2({
+function _e164(Class, params) {
+  return new Class({
     type: "string",
     format: "e164",
     check: "string_format",
@@ -10341,8 +12696,8 @@ function _e164(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _jwt(Class2, params) {
-  return new Class2({
+function _jwt(Class, params) {
+  return new Class({
     type: "string",
     format: "jwt",
     check: "string_format",
@@ -10350,15 +12705,8 @@ function _jwt(Class2, params) {
     ...normalizeParams(params)
   });
 }
-var TimePrecision = {
-  Any: null,
-  Minute: -1,
-  Second: 0,
-  Millisecond: 3,
-  Microsecond: 6
-};
-function _isoDateTime(Class2, params) {
-  return new Class2({
+function _isoDateTime(Class, params) {
+  return new Class({
     type: "string",
     format: "datetime",
     check: "string_format",
@@ -10368,16 +12716,16 @@ function _isoDateTime(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _isoDate(Class2, params) {
-  return new Class2({
+function _isoDate(Class, params) {
+  return new Class({
     type: "string",
     format: "date",
     check: "string_format",
     ...normalizeParams(params)
   });
 }
-function _isoTime(Class2, params) {
-  return new Class2({
+function _isoTime(Class, params) {
+  return new Class({
     type: "string",
     format: "time",
     check: "string_format",
@@ -10385,31 +12733,23 @@ function _isoTime(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _isoDuration(Class2, params) {
-  return new Class2({
+function _isoDuration(Class, params) {
+  return new Class({
     type: "string",
     format: "duration",
     check: "string_format",
     ...normalizeParams(params)
   });
 }
-function _number(Class2, params) {
-  return new Class2({
+function _number(Class, params) {
+  return new Class({
     type: "number",
     checks: [],
     ...normalizeParams(params)
   });
 }
-function _coercedNumber(Class2, params) {
-  return new Class2({
-    type: "number",
-    coerce: true,
-    checks: [],
-    ...normalizeParams(params)
-  });
-}
-function _int(Class2, params) {
-  return new Class2({
+function _int(Class, params) {
+  return new Class({
     type: "number",
     check: "number_format",
     abort: false,
@@ -10417,142 +12757,20 @@ function _int(Class2, params) {
     ...normalizeParams(params)
   });
 }
-function _float32(Class2, params) {
-  return new Class2({
-    type: "number",
-    check: "number_format",
-    abort: false,
-    format: "float32",
-    ...normalizeParams(params)
-  });
-}
-function _float64(Class2, params) {
-  return new Class2({
-    type: "number",
-    check: "number_format",
-    abort: false,
-    format: "float64",
-    ...normalizeParams(params)
-  });
-}
-function _int32(Class2, params) {
-  return new Class2({
-    type: "number",
-    check: "number_format",
-    abort: false,
-    format: "int32",
-    ...normalizeParams(params)
-  });
-}
-function _uint32(Class2, params) {
-  return new Class2({
-    type: "number",
-    check: "number_format",
-    abort: false,
-    format: "uint32",
-    ...normalizeParams(params)
-  });
-}
-function _boolean(Class2, params) {
-  return new Class2({
+function _boolean(Class, params) {
+  return new Class({
     type: "boolean",
     ...normalizeParams(params)
   });
 }
-function _coercedBoolean(Class2, params) {
-  return new Class2({
-    type: "boolean",
-    coerce: true,
-    ...normalizeParams(params)
-  });
-}
-function _bigint(Class2, params) {
-  return new Class2({
-    type: "bigint",
-    ...normalizeParams(params)
-  });
-}
-function _coercedBigint(Class2, params) {
-  return new Class2({
-    type: "bigint",
-    coerce: true,
-    ...normalizeParams(params)
-  });
-}
-function _int64(Class2, params) {
-  return new Class2({
-    type: "bigint",
-    check: "bigint_format",
-    abort: false,
-    format: "int64",
-    ...normalizeParams(params)
-  });
-}
-function _uint64(Class2, params) {
-  return new Class2({
-    type: "bigint",
-    check: "bigint_format",
-    abort: false,
-    format: "uint64",
-    ...normalizeParams(params)
-  });
-}
-function _symbol(Class2, params) {
-  return new Class2({
-    type: "symbol",
-    ...normalizeParams(params)
-  });
-}
-function _undefined2(Class2, params) {
-  return new Class2({
-    type: "undefined",
-    ...normalizeParams(params)
-  });
-}
-function _null2(Class2, params) {
-  return new Class2({
-    type: "null",
-    ...normalizeParams(params)
-  });
-}
-function _any(Class2) {
-  return new Class2({
-    type: "any"
-  });
-}
-function _unknown(Class2) {
-  return new Class2({
+function _unknown(Class) {
+  return new Class({
     type: "unknown"
   });
 }
-function _never(Class2, params) {
-  return new Class2({
+function _never(Class, params) {
+  return new Class({
     type: "never",
-    ...normalizeParams(params)
-  });
-}
-function _void(Class2, params) {
-  return new Class2({
-    type: "void",
-    ...normalizeParams(params)
-  });
-}
-function _date(Class2, params) {
-  return new Class2({
-    type: "date",
-    ...normalizeParams(params)
-  });
-}
-function _coercedDate(Class2, params) {
-  return new Class2({
-    type: "date",
-    coerce: true,
-    ...normalizeParams(params)
-  });
-}
-function _nan(Class2, params) {
-  return new Class2({
-    type: "nan",
     ...normalizeParams(params)
   });
 }
@@ -10588,44 +12806,11 @@ function _gte(value, params) {
     inclusive: true
   });
 }
-function _positive(params) {
-  return _gt(0, params);
-}
-function _negative(params) {
-  return _lt(0, params);
-}
-function _nonpositive(params) {
-  return _lte(0, params);
-}
-function _nonnegative(params) {
-  return _gte(0, params);
-}
 function _multipleOf(value, params) {
   return new $ZodCheckMultipleOf({
     check: "multiple_of",
     ...normalizeParams(params),
     value
-  });
-}
-function _maxSize(maximum, params) {
-  return new $ZodCheckMaxSize({
-    check: "max_size",
-    ...normalizeParams(params),
-    maximum
-  });
-}
-function _minSize(minimum, params) {
-  return new $ZodCheckMinSize({
-    check: "min_size",
-    ...normalizeParams(params),
-    minimum
-  });
-}
-function _size(size, params) {
-  return new $ZodCheckSizeEquals({
-    check: "size_equals",
-    ...normalizeParams(params),
-    size
   });
 }
 function _maxLength(maximum, params) {
@@ -10696,21 +12881,6 @@ function _endsWith(suffix, params) {
     suffix
   });
 }
-function _property(property, schema, params) {
-  return new $ZodCheckProperty({
-    check: "property",
-    property,
-    schema,
-    ...normalizeParams(params)
-  });
-}
-function _mime(types, params) {
-  return new $ZodCheckMimeType({
-    check: "mime_type",
-    mime: types,
-    ...normalizeParams(params)
-  });
-}
 function _overwrite(tx) {
   return new $ZodCheckOverwrite({
     check: "overwrite",
@@ -10729,189 +12899,15 @@ function _toLowerCase() {
 function _toUpperCase() {
   return _overwrite((input) => input.toUpperCase());
 }
-function _array(Class2, element, params) {
-  return new Class2({
+function _array(Class, element, params) {
+  return new Class({
     type: "array",
     element,
     ...normalizeParams(params)
   });
 }
-function _union(Class2, options, params) {
-  return new Class2({
-    type: "union",
-    options,
-    ...normalizeParams(params)
-  });
-}
-function _discriminatedUnion(Class2, discriminator, options, params) {
-  return new Class2({
-    type: "union",
-    options,
-    discriminator,
-    ...normalizeParams(params)
-  });
-}
-function _intersection(Class2, left, right) {
-  return new Class2({
-    type: "intersection",
-    left,
-    right
-  });
-}
-function _tuple(Class2, items, _paramsOrRest, _params) {
-  const hasRest = _paramsOrRest instanceof $ZodType;
-  const params = hasRest ? _params : _paramsOrRest;
-  const rest = hasRest ? _paramsOrRest : null;
-  return new Class2({
-    type: "tuple",
-    items,
-    rest,
-    ...normalizeParams(params)
-  });
-}
-function _record(Class2, keyType, valueType, params) {
-  return new Class2({
-    type: "record",
-    keyType,
-    valueType,
-    ...normalizeParams(params)
-  });
-}
-function _map(Class2, keyType, valueType, params) {
-  return new Class2({
-    type: "map",
-    keyType,
-    valueType,
-    ...normalizeParams(params)
-  });
-}
-function _set(Class2, valueType, params) {
-  return new Class2({
-    type: "set",
-    valueType,
-    ...normalizeParams(params)
-  });
-}
-function _enum(Class2, values, params) {
-  const entries = Array.isArray(values) ? Object.fromEntries(values.map((v) => [v, v])) : values;
-  return new Class2({
-    type: "enum",
-    entries,
-    ...normalizeParams(params)
-  });
-}
-function _nativeEnum(Class2, entries, params) {
-  return new Class2({
-    type: "enum",
-    entries,
-    ...normalizeParams(params)
-  });
-}
-function _literal(Class2, value, params) {
-  return new Class2({
-    type: "literal",
-    values: Array.isArray(value) ? value : [value],
-    ...normalizeParams(params)
-  });
-}
-function _file(Class2, params) {
-  return new Class2({
-    type: "file",
-    ...normalizeParams(params)
-  });
-}
-function _transform(Class2, fn) {
-  return new Class2({
-    type: "transform",
-    transform: fn
-  });
-}
-function _optional(Class2, innerType) {
-  return new Class2({
-    type: "optional",
-    innerType
-  });
-}
-function _nullable(Class2, innerType) {
-  return new Class2({
-    type: "nullable",
-    innerType
-  });
-}
-function _default(Class2, innerType, defaultValue) {
-  return new Class2({
-    type: "default",
-    innerType,
-    get defaultValue() {
-      return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
-    }
-  });
-}
-function _nonoptional(Class2, innerType, params) {
-  return new Class2({
-    type: "nonoptional",
-    innerType,
-    ...normalizeParams(params)
-  });
-}
-function _success(Class2, innerType) {
-  return new Class2({
-    type: "success",
-    innerType
-  });
-}
-function _catch(Class2, innerType, catchValue) {
-  return new Class2({
-    type: "catch",
-    innerType,
-    catchValue: typeof catchValue === "function" ? catchValue : () => catchValue
-  });
-}
-function _pipe(Class2, in_, out) {
-  return new Class2({
-    type: "pipe",
-    in: in_,
-    out
-  });
-}
-function _readonly(Class2, innerType) {
-  return new Class2({
-    type: "readonly",
-    innerType
-  });
-}
-function _templateLiteral(Class2, parts, params) {
-  return new Class2({
-    type: "template_literal",
-    parts,
-    ...normalizeParams(params)
-  });
-}
-function _lazy(Class2, getter) {
-  return new Class2({
-    type: "lazy",
-    getter
-  });
-}
-function _promise(Class2, innerType) {
-  return new Class2({
-    type: "promise",
-    innerType
-  });
-}
-function _custom(Class2, fn, _params) {
-  const norm = normalizeParams(_params);
-  norm.abort ?? (norm.abort = true);
-  const schema = new Class2({
-    type: "custom",
-    check: "custom",
-    fn,
-    ...norm
-  });
-  return schema;
-}
-function _refine(Class2, fn, _params) {
-  const schema = new Class2({
+function _refine(Class, fn, _params) {
+  const schema = new Class({
     type: "custom",
     check: "custom",
     fn,
@@ -10947,890 +12943,7 @@ function _check(fn, params) {
   ch._zod.check = fn;
   return ch;
 }
-function _stringbool(Classes, _params) {
-  const params = normalizeParams(_params);
-  let truthyArray = params.truthy ?? ["true", "1", "yes", "on", "y", "enabled"];
-  let falsyArray = params.falsy ?? ["false", "0", "no", "off", "n", "disabled"];
-  if (params.case !== "sensitive") {
-    truthyArray = truthyArray.map((v) => typeof v === "string" ? v.toLowerCase() : v);
-    falsyArray = falsyArray.map((v) => typeof v === "string" ? v.toLowerCase() : v);
-  }
-  const truthySet = new Set(truthyArray);
-  const falsySet = new Set(falsyArray);
-  const _Codec = Classes.Codec ?? $ZodCodec;
-  const _Boolean = Classes.Boolean ?? $ZodBoolean;
-  const _String = Classes.String ?? $ZodString;
-  const stringSchema = new _String({ type: "string", error: params.error });
-  const booleanSchema = new _Boolean({ type: "boolean", error: params.error });
-  const codec = new _Codec({
-    type: "pipe",
-    in: stringSchema,
-    out: booleanSchema,
-    transform: (input, payload) => {
-      let data = input;
-      if (params.case !== "sensitive")
-        data = data.toLowerCase();
-      if (truthySet.has(data)) {
-        return true;
-      } else if (falsySet.has(data)) {
-        return false;
-      } else {
-        payload.issues.push({
-          code: "invalid_value",
-          expected: "stringbool",
-          values: [...truthySet, ...falsySet],
-          input: payload.value,
-          inst: codec,
-          continue: false
-        });
-        return {};
-      }
-    },
-    reverseTransform: (input, _payload) => {
-      if (input === true) {
-        return truthyArray[0] || "true";
-      } else {
-        return falsyArray[0] || "false";
-      }
-    },
-    error: params.error
-  });
-  return codec;
-}
-function _stringFormat(Class2, format, fnOrRegex, _params = {}) {
-  const params = normalizeParams(_params);
-  const def = {
-    ...normalizeParams(_params),
-    check: "string_format",
-    type: "string",
-    format,
-    fn: typeof fnOrRegex === "function" ? fnOrRegex : (val) => fnOrRegex.test(val),
-    ...params
-  };
-  if (fnOrRegex instanceof RegExp) {
-    def.pattern = fnOrRegex;
-  }
-  const inst = new Class2(def);
-  return inst;
-}
-// node_modules/zod/v4/core/to-json-schema.js
-class JSONSchemaGenerator {
-  constructor(params) {
-    this.counter = 0;
-    this.metadataRegistry = params?.metadata ?? globalRegistry;
-    this.target = params?.target ?? "draft-2020-12";
-    this.unrepresentable = params?.unrepresentable ?? "throw";
-    this.override = params?.override ?? (() => {});
-    this.io = params?.io ?? "output";
-    this.seen = new Map;
-  }
-  process(schema, _params = { path: [], schemaPath: [] }) {
-    var _a;
-    const def = schema._zod.def;
-    const formatMap = {
-      guid: "uuid",
-      url: "uri",
-      datetime: "date-time",
-      json_string: "json-string",
-      regex: ""
-    };
-    const seen = this.seen.get(schema);
-    if (seen) {
-      seen.count++;
-      const isCycle = _params.schemaPath.includes(schema);
-      if (isCycle) {
-        seen.cycle = _params.path;
-      }
-      return seen.schema;
-    }
-    const result = { schema: {}, count: 1, cycle: undefined, path: _params.path };
-    this.seen.set(schema, result);
-    const overrideSchema = schema._zod.toJSONSchema?.();
-    if (overrideSchema) {
-      result.schema = overrideSchema;
-    } else {
-      const params = {
-        ..._params,
-        schemaPath: [..._params.schemaPath, schema],
-        path: _params.path
-      };
-      const parent = schema._zod.parent;
-      if (parent) {
-        result.ref = parent;
-        this.process(parent, params);
-        this.seen.get(parent).isParent = true;
-      } else {
-        const _json = result.schema;
-        switch (def.type) {
-          case "string": {
-            const json = _json;
-            json.type = "string";
-            const { minimum, maximum, format, patterns, contentEncoding } = schema._zod.bag;
-            if (typeof minimum === "number")
-              json.minLength = minimum;
-            if (typeof maximum === "number")
-              json.maxLength = maximum;
-            if (format) {
-              json.format = formatMap[format] ?? format;
-              if (json.format === "")
-                delete json.format;
-            }
-            if (contentEncoding)
-              json.contentEncoding = contentEncoding;
-            if (patterns && patterns.size > 0) {
-              const regexes = [...patterns];
-              if (regexes.length === 1)
-                json.pattern = regexes[0].source;
-              else if (regexes.length > 1) {
-                result.schema.allOf = [
-                  ...regexes.map((regex) => ({
-                    ...this.target === "draft-7" || this.target === "draft-4" || this.target === "openapi-3.0" ? { type: "string" } : {},
-                    pattern: regex.source
-                  }))
-                ];
-              }
-            }
-            break;
-          }
-          case "number": {
-            const json = _json;
-            const { minimum, maximum, format, multipleOf, exclusiveMaximum, exclusiveMinimum } = schema._zod.bag;
-            if (typeof format === "string" && format.includes("int"))
-              json.type = "integer";
-            else
-              json.type = "number";
-            if (typeof exclusiveMinimum === "number") {
-              if (this.target === "draft-4" || this.target === "openapi-3.0") {
-                json.minimum = exclusiveMinimum;
-                json.exclusiveMinimum = true;
-              } else {
-                json.exclusiveMinimum = exclusiveMinimum;
-              }
-            }
-            if (typeof minimum === "number") {
-              json.minimum = minimum;
-              if (typeof exclusiveMinimum === "number" && this.target !== "draft-4") {
-                if (exclusiveMinimum >= minimum)
-                  delete json.minimum;
-                else
-                  delete json.exclusiveMinimum;
-              }
-            }
-            if (typeof exclusiveMaximum === "number") {
-              if (this.target === "draft-4" || this.target === "openapi-3.0") {
-                json.maximum = exclusiveMaximum;
-                json.exclusiveMaximum = true;
-              } else {
-                json.exclusiveMaximum = exclusiveMaximum;
-              }
-            }
-            if (typeof maximum === "number") {
-              json.maximum = maximum;
-              if (typeof exclusiveMaximum === "number" && this.target !== "draft-4") {
-                if (exclusiveMaximum <= maximum)
-                  delete json.maximum;
-                else
-                  delete json.exclusiveMaximum;
-              }
-            }
-            if (typeof multipleOf === "number")
-              json.multipleOf = multipleOf;
-            break;
-          }
-          case "boolean": {
-            const json = _json;
-            json.type = "boolean";
-            break;
-          }
-          case "bigint": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("BigInt cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "symbol": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("Symbols cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "null": {
-            if (this.target === "openapi-3.0") {
-              _json.type = "string";
-              _json.nullable = true;
-              _json.enum = [null];
-            } else
-              _json.type = "null";
-            break;
-          }
-          case "any": {
-            break;
-          }
-          case "unknown": {
-            break;
-          }
-          case "undefined": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("Undefined cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "void": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("Void cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "never": {
-            _json.not = {};
-            break;
-          }
-          case "date": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("Date cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "array": {
-            const json = _json;
-            const { minimum, maximum } = schema._zod.bag;
-            if (typeof minimum === "number")
-              json.minItems = minimum;
-            if (typeof maximum === "number")
-              json.maxItems = maximum;
-            json.type = "array";
-            json.items = this.process(def.element, { ...params, path: [...params.path, "items"] });
-            break;
-          }
-          case "object": {
-            const json = _json;
-            json.type = "object";
-            json.properties = {};
-            const shape = def.shape;
-            for (const key in shape) {
-              json.properties[key] = this.process(shape[key], {
-                ...params,
-                path: [...params.path, "properties", key]
-              });
-            }
-            const allKeys = new Set(Object.keys(shape));
-            const requiredKeys = new Set([...allKeys].filter((key) => {
-              const v = def.shape[key]._zod;
-              if (this.io === "input") {
-                return v.optin === undefined;
-              } else {
-                return v.optout === undefined;
-              }
-            }));
-            if (requiredKeys.size > 0) {
-              json.required = Array.from(requiredKeys);
-            }
-            if (def.catchall?._zod.def.type === "never") {
-              json.additionalProperties = false;
-            } else if (!def.catchall) {
-              if (this.io === "output")
-                json.additionalProperties = false;
-            } else if (def.catchall) {
-              json.additionalProperties = this.process(def.catchall, {
-                ...params,
-                path: [...params.path, "additionalProperties"]
-              });
-            }
-            break;
-          }
-          case "union": {
-            const json = _json;
-            const options = def.options.map((x, i) => this.process(x, {
-              ...params,
-              path: [...params.path, "anyOf", i]
-            }));
-            json.anyOf = options;
-            break;
-          }
-          case "intersection": {
-            const json = _json;
-            const a = this.process(def.left, {
-              ...params,
-              path: [...params.path, "allOf", 0]
-            });
-            const b = this.process(def.right, {
-              ...params,
-              path: [...params.path, "allOf", 1]
-            });
-            const isSimpleIntersection = (val) => ("allOf" in val) && Object.keys(val).length === 1;
-            const allOf = [
-              ...isSimpleIntersection(a) ? a.allOf : [a],
-              ...isSimpleIntersection(b) ? b.allOf : [b]
-            ];
-            json.allOf = allOf;
-            break;
-          }
-          case "tuple": {
-            const json = _json;
-            json.type = "array";
-            const prefixPath = this.target === "draft-2020-12" ? "prefixItems" : "items";
-            const restPath = this.target === "draft-2020-12" ? "items" : this.target === "openapi-3.0" ? "items" : "additionalItems";
-            const prefixItems = def.items.map((x, i) => this.process(x, {
-              ...params,
-              path: [...params.path, prefixPath, i]
-            }));
-            const rest = def.rest ? this.process(def.rest, {
-              ...params,
-              path: [...params.path, restPath, ...this.target === "openapi-3.0" ? [def.items.length] : []]
-            }) : null;
-            if (this.target === "draft-2020-12") {
-              json.prefixItems = prefixItems;
-              if (rest) {
-                json.items = rest;
-              }
-            } else if (this.target === "openapi-3.0") {
-              json.items = {
-                anyOf: prefixItems
-              };
-              if (rest) {
-                json.items.anyOf.push(rest);
-              }
-              json.minItems = prefixItems.length;
-              if (!rest) {
-                json.maxItems = prefixItems.length;
-              }
-            } else {
-              json.items = prefixItems;
-              if (rest) {
-                json.additionalItems = rest;
-              }
-            }
-            const { minimum, maximum } = schema._zod.bag;
-            if (typeof minimum === "number")
-              json.minItems = minimum;
-            if (typeof maximum === "number")
-              json.maxItems = maximum;
-            break;
-          }
-          case "record": {
-            const json = _json;
-            json.type = "object";
-            if (this.target === "draft-7" || this.target === "draft-2020-12") {
-              json.propertyNames = this.process(def.keyType, {
-                ...params,
-                path: [...params.path, "propertyNames"]
-              });
-            }
-            json.additionalProperties = this.process(def.valueType, {
-              ...params,
-              path: [...params.path, "additionalProperties"]
-            });
-            break;
-          }
-          case "map": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("Map cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "set": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("Set cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "enum": {
-            const json = _json;
-            const values = getEnumValues(def.entries);
-            if (values.every((v) => typeof v === "number"))
-              json.type = "number";
-            if (values.every((v) => typeof v === "string"))
-              json.type = "string";
-            json.enum = values;
-            break;
-          }
-          case "literal": {
-            const json = _json;
-            const vals = [];
-            for (const val of def.values) {
-              if (val === undefined) {
-                if (this.unrepresentable === "throw") {
-                  throw new Error("Literal `undefined` cannot be represented in JSON Schema");
-                }
-              } else if (typeof val === "bigint") {
-                if (this.unrepresentable === "throw") {
-                  throw new Error("BigInt literals cannot be represented in JSON Schema");
-                } else {
-                  vals.push(Number(val));
-                }
-              } else {
-                vals.push(val);
-              }
-            }
-            if (vals.length === 0) {} else if (vals.length === 1) {
-              const val = vals[0];
-              json.type = val === null ? "null" : typeof val;
-              if (this.target === "draft-4" || this.target === "openapi-3.0") {
-                json.enum = [val];
-              } else {
-                json.const = val;
-              }
-            } else {
-              if (vals.every((v) => typeof v === "number"))
-                json.type = "number";
-              if (vals.every((v) => typeof v === "string"))
-                json.type = "string";
-              if (vals.every((v) => typeof v === "boolean"))
-                json.type = "string";
-              if (vals.every((v) => v === null))
-                json.type = "null";
-              json.enum = vals;
-            }
-            break;
-          }
-          case "file": {
-            const json = _json;
-            const file = {
-              type: "string",
-              format: "binary",
-              contentEncoding: "binary"
-            };
-            const { minimum, maximum, mime } = schema._zod.bag;
-            if (minimum !== undefined)
-              file.minLength = minimum;
-            if (maximum !== undefined)
-              file.maxLength = maximum;
-            if (mime) {
-              if (mime.length === 1) {
-                file.contentMediaType = mime[0];
-                Object.assign(json, file);
-              } else {
-                json.anyOf = mime.map((m) => {
-                  const mFile = { ...file, contentMediaType: m };
-                  return mFile;
-                });
-              }
-            } else {
-              Object.assign(json, file);
-            }
-            break;
-          }
-          case "transform": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("Transforms cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "nullable": {
-            const inner = this.process(def.innerType, params);
-            if (this.target === "openapi-3.0") {
-              result.ref = def.innerType;
-              _json.nullable = true;
-            } else {
-              _json.anyOf = [inner, { type: "null" }];
-            }
-            break;
-          }
-          case "nonoptional": {
-            this.process(def.innerType, params);
-            result.ref = def.innerType;
-            break;
-          }
-          case "success": {
-            const json = _json;
-            json.type = "boolean";
-            break;
-          }
-          case "default": {
-            this.process(def.innerType, params);
-            result.ref = def.innerType;
-            _json.default = JSON.parse(JSON.stringify(def.defaultValue));
-            break;
-          }
-          case "prefault": {
-            this.process(def.innerType, params);
-            result.ref = def.innerType;
-            if (this.io === "input")
-              _json._prefault = JSON.parse(JSON.stringify(def.defaultValue));
-            break;
-          }
-          case "catch": {
-            this.process(def.innerType, params);
-            result.ref = def.innerType;
-            let catchValue;
-            try {
-              catchValue = def.catchValue(undefined);
-            } catch {
-              throw new Error("Dynamic catch values are not supported in JSON Schema");
-            }
-            _json.default = catchValue;
-            break;
-          }
-          case "nan": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("NaN cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "template_literal": {
-            const json = _json;
-            const pattern = schema._zod.pattern;
-            if (!pattern)
-              throw new Error("Pattern not found in template literal");
-            json.type = "string";
-            json.pattern = pattern.source;
-            break;
-          }
-          case "pipe": {
-            const innerType = this.io === "input" ? def.in._zod.def.type === "transform" ? def.out : def.in : def.out;
-            this.process(innerType, params);
-            result.ref = innerType;
-            break;
-          }
-          case "readonly": {
-            this.process(def.innerType, params);
-            result.ref = def.innerType;
-            _json.readOnly = true;
-            break;
-          }
-          case "promise": {
-            this.process(def.innerType, params);
-            result.ref = def.innerType;
-            break;
-          }
-          case "optional": {
-            this.process(def.innerType, params);
-            result.ref = def.innerType;
-            break;
-          }
-          case "lazy": {
-            const innerType = schema._zod.innerType;
-            this.process(innerType, params);
-            result.ref = innerType;
-            break;
-          }
-          case "custom": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("Custom types cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          case "function": {
-            if (this.unrepresentable === "throw") {
-              throw new Error("Function types cannot be represented in JSON Schema");
-            }
-            break;
-          }
-          default: {}
-        }
-      }
-    }
-    const meta = this.metadataRegistry.get(schema);
-    if (meta)
-      Object.assign(result.schema, meta);
-    if (this.io === "input" && isTransforming(schema)) {
-      delete result.schema.examples;
-      delete result.schema.default;
-    }
-    if (this.io === "input" && result.schema._prefault)
-      (_a = result.schema).default ?? (_a.default = result.schema._prefault);
-    delete result.schema._prefault;
-    const _result = this.seen.get(schema);
-    return _result.schema;
-  }
-  emit(schema, _params) {
-    const params = {
-      cycles: _params?.cycles ?? "ref",
-      reused: _params?.reused ?? "inline",
-      external: _params?.external ?? undefined
-    };
-    const root = this.seen.get(schema);
-    if (!root)
-      throw new Error("Unprocessed schema. This is a bug in Zod.");
-    const makeURI = (entry) => {
-      const defsSegment = this.target === "draft-2020-12" ? "$defs" : "definitions";
-      if (params.external) {
-        const externalId = params.external.registry.get(entry[0])?.id;
-        const uriGenerator = params.external.uri ?? ((id2) => id2);
-        if (externalId) {
-          return { ref: uriGenerator(externalId) };
-        }
-        const id = entry[1].defId ?? entry[1].schema.id ?? `schema${this.counter++}`;
-        entry[1].defId = id;
-        return { defId: id, ref: `${uriGenerator("__shared")}#/${defsSegment}/${id}` };
-      }
-      if (entry[1] === root) {
-        return { ref: "#" };
-      }
-      const uriPrefix = `#`;
-      const defUriPrefix = `${uriPrefix}/${defsSegment}/`;
-      const defId = entry[1].schema.id ?? `__schema${this.counter++}`;
-      return { defId, ref: defUriPrefix + defId };
-    };
-    const extractToDef = (entry) => {
-      if (entry[1].schema.$ref) {
-        return;
-      }
-      const seen = entry[1];
-      const { ref, defId } = makeURI(entry);
-      seen.def = { ...seen.schema };
-      if (defId)
-        seen.defId = defId;
-      const schema2 = seen.schema;
-      for (const key in schema2) {
-        delete schema2[key];
-      }
-      schema2.$ref = ref;
-    };
-    if (params.cycles === "throw") {
-      for (const entry of this.seen.entries()) {
-        const seen = entry[1];
-        if (seen.cycle) {
-          throw new Error("Cycle detected: " + `#/${seen.cycle?.join("/")}/<root>` + '\n\nSet the `cycles` parameter to `"ref"` to resolve cyclical schemas with defs.');
-        }
-      }
-    }
-    for (const entry of this.seen.entries()) {
-      const seen = entry[1];
-      if (schema === entry[0]) {
-        extractToDef(entry);
-        continue;
-      }
-      if (params.external) {
-        const ext = params.external.registry.get(entry[0])?.id;
-        if (schema !== entry[0] && ext) {
-          extractToDef(entry);
-          continue;
-        }
-      }
-      const id = this.metadataRegistry.get(entry[0])?.id;
-      if (id) {
-        extractToDef(entry);
-        continue;
-      }
-      if (seen.cycle) {
-        extractToDef(entry);
-        continue;
-      }
-      if (seen.count > 1) {
-        if (params.reused === "ref") {
-          extractToDef(entry);
-          continue;
-        }
-      }
-    }
-    const flattenRef = (zodSchema, params2) => {
-      const seen = this.seen.get(zodSchema);
-      const schema2 = seen.def ?? seen.schema;
-      const _cached = { ...schema2 };
-      if (seen.ref === null) {
-        return;
-      }
-      const ref = seen.ref;
-      seen.ref = null;
-      if (ref) {
-        flattenRef(ref, params2);
-        const refSchema = this.seen.get(ref).schema;
-        if (refSchema.$ref && (params2.target === "draft-7" || params2.target === "draft-4" || params2.target === "openapi-3.0")) {
-          schema2.allOf = schema2.allOf ?? [];
-          schema2.allOf.push(refSchema);
-        } else {
-          Object.assign(schema2, refSchema);
-          Object.assign(schema2, _cached);
-        }
-      }
-      if (!seen.isParent)
-        this.override({
-          zodSchema,
-          jsonSchema: schema2,
-          path: seen.path ?? []
-        });
-    };
-    for (const entry of [...this.seen.entries()].reverse()) {
-      flattenRef(entry[0], { target: this.target });
-    }
-    const result = {};
-    if (this.target === "draft-2020-12") {
-      result.$schema = "https://json-schema.org/draft/2020-12/schema";
-    } else if (this.target === "draft-7") {
-      result.$schema = "http://json-schema.org/draft-07/schema#";
-    } else if (this.target === "draft-4") {
-      result.$schema = "http://json-schema.org/draft-04/schema#";
-    } else if (this.target === "openapi-3.0") {} else {
-      console.warn(`Invalid target: ${this.target}`);
-    }
-    if (params.external?.uri) {
-      const id = params.external.registry.get(schema)?.id;
-      if (!id)
-        throw new Error("Schema is missing an `id` property");
-      result.$id = params.external.uri(id);
-    }
-    Object.assign(result, root.def);
-    const defs = params.external?.defs ?? {};
-    for (const entry of this.seen.entries()) {
-      const seen = entry[1];
-      if (seen.def && seen.defId) {
-        defs[seen.defId] = seen.def;
-      }
-    }
-    if (params.external) {} else {
-      if (Object.keys(defs).length > 0) {
-        if (this.target === "draft-2020-12") {
-          result.$defs = defs;
-        } else {
-          result.definitions = defs;
-        }
-      }
-    }
-    try {
-      return JSON.parse(JSON.stringify(result));
-    } catch (_err) {
-      throw new Error("Error converting schema to JSON.");
-    }
-  }
-}
-function toJSONSchema(input, _params) {
-  if (input instanceof $ZodRegistry) {
-    const gen2 = new JSONSchemaGenerator(_params);
-    const defs = {};
-    for (const entry of input._idmap.entries()) {
-      const [_, schema] = entry;
-      gen2.process(schema);
-    }
-    const schemas = {};
-    const external = {
-      registry: input,
-      uri: _params?.uri,
-      defs
-    };
-    for (const entry of input._idmap.entries()) {
-      const [key, schema] = entry;
-      schemas[key] = gen2.emit(schema, {
-        ..._params,
-        external
-      });
-    }
-    if (Object.keys(defs).length > 0) {
-      const defsSegment = gen2.target === "draft-2020-12" ? "$defs" : "definitions";
-      schemas.__shared = {
-        [defsSegment]: defs
-      };
-    }
-    return { schemas };
-  }
-  const gen = new JSONSchemaGenerator(_params);
-  gen.process(input);
-  return gen.emit(input, _params);
-}
-function isTransforming(_schema, _ctx) {
-  const ctx = _ctx ?? { seen: new Set };
-  if (ctx.seen.has(_schema))
-    return false;
-  ctx.seen.add(_schema);
-  const schema = _schema;
-  const def = schema._zod.def;
-  switch (def.type) {
-    case "string":
-    case "number":
-    case "bigint":
-    case "boolean":
-    case "date":
-    case "symbol":
-    case "undefined":
-    case "null":
-    case "any":
-    case "unknown":
-    case "never":
-    case "void":
-    case "literal":
-    case "enum":
-    case "nan":
-    case "file":
-    case "template_literal":
-      return false;
-    case "array": {
-      return isTransforming(def.element, ctx);
-    }
-    case "object": {
-      for (const key in def.shape) {
-        if (isTransforming(def.shape[key], ctx))
-          return true;
-      }
-      return false;
-    }
-    case "union": {
-      for (const option of def.options) {
-        if (isTransforming(option, ctx))
-          return true;
-      }
-      return false;
-    }
-    case "intersection": {
-      return isTransforming(def.left, ctx) || isTransforming(def.right, ctx);
-    }
-    case "tuple": {
-      for (const item of def.items) {
-        if (isTransforming(item, ctx))
-          return true;
-      }
-      if (def.rest && isTransforming(def.rest, ctx))
-        return true;
-      return false;
-    }
-    case "record": {
-      return isTransforming(def.keyType, ctx) || isTransforming(def.valueType, ctx);
-    }
-    case "map": {
-      return isTransforming(def.keyType, ctx) || isTransforming(def.valueType, ctx);
-    }
-    case "set": {
-      return isTransforming(def.valueType, ctx);
-    }
-    case "promise":
-    case "optional":
-    case "nonoptional":
-    case "nullable":
-    case "readonly":
-      return isTransforming(def.innerType, ctx);
-    case "lazy":
-      return isTransforming(def.getter(), ctx);
-    case "default": {
-      return isTransforming(def.innerType, ctx);
-    }
-    case "prefault": {
-      return isTransforming(def.innerType, ctx);
-    }
-    case "custom": {
-      return false;
-    }
-    case "transform": {
-      return true;
-    }
-    case "pipe": {
-      return isTransforming(def.in, ctx) || isTransforming(def.out, ctx);
-    }
-    case "success": {
-      return false;
-    }
-    case "catch": {
-      return false;
-    }
-    case "function": {
-      return false;
-    }
-    default:
-  }
-  throw new Error(`Unknown schema type: ${def.type}`);
-}
-// node_modules/zod/v4/core/json-schema.js
-var exports_json_schema = {};
 // node_modules/zod/v4/classic/iso.js
-var exports_iso = {};
-__export(exports_iso, {
-  time: () => time2,
-  duration: () => duration2,
-  datetime: () => datetime2,
-  date: () => date2,
-  ZodISOTime: () => ZodISOTime,
-  ZodISODuration: () => ZodISODuration,
-  ZodISODateTime: () => ZodISODateTime,
-  ZodISODate: () => ZodISODate
-});
 var ZodISODateTime = /* @__PURE__ */ $constructor("ZodISODateTime", (inst, def) => {
   $ZodISODateTime.init(inst, def);
   ZodStringFormat.init(inst, def);
@@ -11872,14 +12985,14 @@ var initializer2 = (inst, issues) => {
       value: (mapper) => flattenError(inst, mapper)
     },
     addIssue: {
-      value: (issue2) => {
-        inst.issues.push(issue2);
+      value: (issue) => {
+        inst.issues.push(issue);
         inst.message = JSON.stringify(inst.issues, jsonStringifyReplacer, 2);
       }
     },
     addIssues: {
-      value: (issues2) => {
-        inst.issues.push(...issues2);
+      value: (issues) => {
+        inst.issues.push(...issues);
         inst.message = JSON.stringify(inst.issues, jsonStringifyReplacer, 2);
       }
     },
@@ -11900,14 +13013,14 @@ var parse3 = /* @__PURE__ */ _parse(ZodRealError);
 var parseAsync2 = /* @__PURE__ */ _parseAsync(ZodRealError);
 var safeParse2 = /* @__PURE__ */ _safeParse(ZodRealError);
 var safeParseAsync2 = /* @__PURE__ */ _safeParseAsync(ZodRealError);
-var encode2 = /* @__PURE__ */ _encode(ZodRealError);
-var decode2 = /* @__PURE__ */ _decode(ZodRealError);
-var encodeAsync2 = /* @__PURE__ */ _encodeAsync(ZodRealError);
-var decodeAsync2 = /* @__PURE__ */ _decodeAsync(ZodRealError);
-var safeEncode2 = /* @__PURE__ */ _safeEncode(ZodRealError);
-var safeDecode2 = /* @__PURE__ */ _safeDecode(ZodRealError);
-var safeEncodeAsync2 = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
-var safeDecodeAsync2 = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
+var encode3 = /* @__PURE__ */ _encode(ZodRealError);
+var decode3 = /* @__PURE__ */ _decode(ZodRealError);
+var encodeAsync = /* @__PURE__ */ _encodeAsync(ZodRealError);
+var decodeAsync = /* @__PURE__ */ _decodeAsync(ZodRealError);
+var safeEncode = /* @__PURE__ */ _safeEncode(ZodRealError);
+var safeDecode = /* @__PURE__ */ _safeDecode(ZodRealError);
+var safeEncodeAsync = /* @__PURE__ */ _safeEncodeAsync(ZodRealError);
+var safeDecodeAsync = /* @__PURE__ */ _safeDecodeAsync(ZodRealError);
 
 // node_modules/zod/v4/classic/schemas.js
 var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
@@ -11915,16 +13028,16 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
   inst.def = def;
   inst.type = def.type;
   Object.defineProperty(inst, "_def", { value: def });
-  inst.check = (...checks2) => {
+  inst.check = (...checks) => {
     return inst.clone({
       ...def,
       checks: [
         ...def.checks ?? [],
-        ...checks2.map((ch) => typeof ch === "function" ? { _zod: { check: ch, def: { check: "custom" }, onattach: [] } } : ch)
+        ...checks.map((ch) => typeof ch === "function" ? { _zod: { check: ch, def: { check: "custom" }, onattach: [] } } : ch)
       ]
     });
   };
-  inst.clone = (def2, params) => clone(inst, def2, params);
+  inst.clone = (def, params) => clone(inst, def, params);
   inst.brand = () => inst;
   inst.register = (reg, meta) => {
     reg.add(inst, meta);
@@ -11935,28 +13048,28 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
   inst.parseAsync = async (data, params) => parseAsync2(inst, data, params, { callee: inst.parseAsync });
   inst.safeParseAsync = async (data, params) => safeParseAsync2(inst, data, params);
   inst.spa = inst.safeParseAsync;
-  inst.encode = (data, params) => encode2(inst, data, params);
-  inst.decode = (data, params) => decode2(inst, data, params);
-  inst.encodeAsync = async (data, params) => encodeAsync2(inst, data, params);
-  inst.decodeAsync = async (data, params) => decodeAsync2(inst, data, params);
-  inst.safeEncode = (data, params) => safeEncode2(inst, data, params);
-  inst.safeDecode = (data, params) => safeDecode2(inst, data, params);
-  inst.safeEncodeAsync = async (data, params) => safeEncodeAsync2(inst, data, params);
-  inst.safeDecodeAsync = async (data, params) => safeDecodeAsync2(inst, data, params);
+  inst.encode = (data, params) => encode3(inst, data, params);
+  inst.decode = (data, params) => decode3(inst, data, params);
+  inst.encodeAsync = async (data, params) => encodeAsync(inst, data, params);
+  inst.decodeAsync = async (data, params) => decodeAsync(inst, data, params);
+  inst.safeEncode = (data, params) => safeEncode(inst, data, params);
+  inst.safeDecode = (data, params) => safeDecode(inst, data, params);
+  inst.safeEncodeAsync = async (data, params) => safeEncodeAsync(inst, data, params);
+  inst.safeDecodeAsync = async (data, params) => safeDecodeAsync(inst, data, params);
   inst.refine = (check, params) => inst.check(refine(check, params));
   inst.superRefine = (refinement) => inst.check(superRefine(refinement));
   inst.overwrite = (fn) => inst.check(_overwrite(fn));
-  inst.optional = () => optional(inst);
+  inst.optional = () => optional4(inst);
   inst.nullable = () => nullable(inst);
-  inst.nullish = () => optional(nullable(inst));
+  inst.nullish = () => optional4(nullable(inst));
   inst.nonoptional = (params) => nonoptional(inst, params);
-  inst.array = () => array(inst);
-  inst.or = (arg) => union([inst, arg]);
+  inst.array = () => array2(inst);
+  inst.or = (arg) => union2([inst, arg]);
   inst.and = (arg) => intersection(inst, arg);
-  inst.transform = (tx) => pipe(inst, transform(tx));
-  inst.default = (def2) => _default2(inst, def2);
-  inst.prefault = (def2) => prefault(inst, def2);
-  inst.catch = (params) => _catch2(inst, params);
+  inst.transform = (tx) => pipe(inst, transform3(tx));
+  inst.default = (def) => _default(inst, def);
+  inst.prefault = (def) => prefault(inst, def);
+  inst.catch = (params) => _catch(inst, params);
   inst.pipe = (target) => pipe(inst, target);
   inst.readonly = () => readonly(inst);
   inst.describe = (description) => {
@@ -12035,7 +13148,7 @@ var ZodString = /* @__PURE__ */ $constructor("ZodString", (inst, def) => {
   inst.time = (params) => inst.check(time2(params));
   inst.duration = (params) => inst.check(duration2(params));
 });
-function string2(params) {
+function string4(params) {
   return _string(ZodString, params);
 }
 var ZodStringFormat = /* @__PURE__ */ $constructor("ZodStringFormat", (inst, def) => {
@@ -12046,172 +13159,78 @@ var ZodEmail = /* @__PURE__ */ $constructor("ZodEmail", (inst, def) => {
   $ZodEmail.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function email2(params) {
-  return _email(ZodEmail, params);
-}
 var ZodGUID = /* @__PURE__ */ $constructor("ZodGUID", (inst, def) => {
   $ZodGUID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function guid2(params) {
-  return _guid(ZodGUID, params);
-}
 var ZodUUID = /* @__PURE__ */ $constructor("ZodUUID", (inst, def) => {
   $ZodUUID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function uuid2(params) {
-  return _uuid(ZodUUID, params);
-}
-function uuidv4(params) {
-  return _uuidv4(ZodUUID, params);
-}
-function uuidv6(params) {
-  return _uuidv6(ZodUUID, params);
-}
-function uuidv7(params) {
-  return _uuidv7(ZodUUID, params);
-}
 var ZodURL = /* @__PURE__ */ $constructor("ZodURL", (inst, def) => {
   $ZodURL.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function url(params) {
-  return _url(ZodURL, params);
-}
-function httpUrl(params) {
-  return _url(ZodURL, {
-    protocol: /^https?$/,
-    hostname: exports_regexes.domain,
-    ...exports_util.normalizeParams(params)
-  });
-}
 var ZodEmoji = /* @__PURE__ */ $constructor("ZodEmoji", (inst, def) => {
   $ZodEmoji.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function emoji2(params) {
-  return _emoji2(ZodEmoji, params);
-}
 var ZodNanoID = /* @__PURE__ */ $constructor("ZodNanoID", (inst, def) => {
   $ZodNanoID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function nanoid2(params) {
-  return _nanoid(ZodNanoID, params);
-}
 var ZodCUID = /* @__PURE__ */ $constructor("ZodCUID", (inst, def) => {
   $ZodCUID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function cuid3(params) {
-  return _cuid(ZodCUID, params);
-}
 var ZodCUID2 = /* @__PURE__ */ $constructor("ZodCUID2", (inst, def) => {
   $ZodCUID2.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function cuid22(params) {
-  return _cuid2(ZodCUID2, params);
-}
 var ZodULID = /* @__PURE__ */ $constructor("ZodULID", (inst, def) => {
   $ZodULID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function ulid2(params) {
-  return _ulid(ZodULID, params);
-}
 var ZodXID = /* @__PURE__ */ $constructor("ZodXID", (inst, def) => {
   $ZodXID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function xid2(params) {
-  return _xid(ZodXID, params);
-}
 var ZodKSUID = /* @__PURE__ */ $constructor("ZodKSUID", (inst, def) => {
   $ZodKSUID.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function ksuid2(params) {
-  return _ksuid(ZodKSUID, params);
-}
 var ZodIPv4 = /* @__PURE__ */ $constructor("ZodIPv4", (inst, def) => {
   $ZodIPv4.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function ipv42(params) {
-  return _ipv4(ZodIPv4, params);
-}
 var ZodIPv6 = /* @__PURE__ */ $constructor("ZodIPv6", (inst, def) => {
   $ZodIPv6.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function ipv62(params) {
-  return _ipv6(ZodIPv6, params);
-}
 var ZodCIDRv4 = /* @__PURE__ */ $constructor("ZodCIDRv4", (inst, def) => {
   $ZodCIDRv4.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function cidrv42(params) {
-  return _cidrv4(ZodCIDRv4, params);
-}
 var ZodCIDRv6 = /* @__PURE__ */ $constructor("ZodCIDRv6", (inst, def) => {
   $ZodCIDRv6.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function cidrv62(params) {
-  return _cidrv6(ZodCIDRv6, params);
-}
 var ZodBase64 = /* @__PURE__ */ $constructor("ZodBase64", (inst, def) => {
   $ZodBase64.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function base642(params) {
-  return _base64(ZodBase64, params);
-}
 var ZodBase64URL = /* @__PURE__ */ $constructor("ZodBase64URL", (inst, def) => {
   $ZodBase64URL.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function base64url2(params) {
-  return _base64url(ZodBase64URL, params);
-}
 var ZodE164 = /* @__PURE__ */ $constructor("ZodE164", (inst, def) => {
   $ZodE164.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function e1642(params) {
-  return _e164(ZodE164, params);
-}
 var ZodJWT = /* @__PURE__ */ $constructor("ZodJWT", (inst, def) => {
   $ZodJWT.init(inst, def);
   ZodStringFormat.init(inst, def);
 });
-function jwt(params) {
-  return _jwt(ZodJWT, params);
-}
-var ZodCustomStringFormat = /* @__PURE__ */ $constructor("ZodCustomStringFormat", (inst, def) => {
-  $ZodCustomStringFormat.init(inst, def);
-  ZodStringFormat.init(inst, def);
-});
-function stringFormat(format, fnOrRegex, _params = {}) {
-  return _stringFormat(ZodCustomStringFormat, format, fnOrRegex, _params);
-}
-function hostname2(_params) {
-  return _stringFormat(ZodCustomStringFormat, "hostname", exports_regexes.hostname, _params);
-}
-function hex2(_params) {
-  return _stringFormat(ZodCustomStringFormat, "hex", exports_regexes.hex, _params);
-}
-function hash(alg, params) {
-  const enc = params?.enc ?? "hex";
-  const format = `${alg}_${enc}`;
-  const regex = exports_regexes[format];
-  if (!regex)
-    throw new Error(`Unrecognized hash format: ${format}`);
-  return _stringFormat(ZodCustomStringFormat, format, regex, params);
-}
 var ZodNumber = /* @__PURE__ */ $constructor("ZodNumber", (inst, def) => {
   $ZodNumber.init(inst, def);
   ZodType.init(inst, def);
@@ -12237,7 +13256,7 @@ var ZodNumber = /* @__PURE__ */ $constructor("ZodNumber", (inst, def) => {
   inst.isFinite = true;
   inst.format = bag.format ?? null;
 });
-function number2(params) {
+function number4(params) {
   return _number(ZodNumber, params);
 }
 var ZodNumberFormat = /* @__PURE__ */ $constructor("ZodNumberFormat", (inst, def) => {
@@ -12247,119 +13266,26 @@ var ZodNumberFormat = /* @__PURE__ */ $constructor("ZodNumberFormat", (inst, def
 function int(params) {
   return _int(ZodNumberFormat, params);
 }
-function float32(params) {
-  return _float32(ZodNumberFormat, params);
-}
-function float64(params) {
-  return _float64(ZodNumberFormat, params);
-}
-function int32(params) {
-  return _int32(ZodNumberFormat, params);
-}
-function uint32(params) {
-  return _uint32(ZodNumberFormat, params);
-}
 var ZodBoolean = /* @__PURE__ */ $constructor("ZodBoolean", (inst, def) => {
   $ZodBoolean.init(inst, def);
   ZodType.init(inst, def);
 });
-function boolean2(params) {
+function boolean3(params) {
   return _boolean(ZodBoolean, params);
-}
-var ZodBigInt = /* @__PURE__ */ $constructor("ZodBigInt", (inst, def) => {
-  $ZodBigInt.init(inst, def);
-  ZodType.init(inst, def);
-  inst.gte = (value, params) => inst.check(_gte(value, params));
-  inst.min = (value, params) => inst.check(_gte(value, params));
-  inst.gt = (value, params) => inst.check(_gt(value, params));
-  inst.gte = (value, params) => inst.check(_gte(value, params));
-  inst.min = (value, params) => inst.check(_gte(value, params));
-  inst.lt = (value, params) => inst.check(_lt(value, params));
-  inst.lte = (value, params) => inst.check(_lte(value, params));
-  inst.max = (value, params) => inst.check(_lte(value, params));
-  inst.positive = (params) => inst.check(_gt(BigInt(0), params));
-  inst.negative = (params) => inst.check(_lt(BigInt(0), params));
-  inst.nonpositive = (params) => inst.check(_lte(BigInt(0), params));
-  inst.nonnegative = (params) => inst.check(_gte(BigInt(0), params));
-  inst.multipleOf = (value, params) => inst.check(_multipleOf(value, params));
-  const bag = inst._zod.bag;
-  inst.minValue = bag.minimum ?? null;
-  inst.maxValue = bag.maximum ?? null;
-  inst.format = bag.format ?? null;
-});
-function bigint2(params) {
-  return _bigint(ZodBigInt, params);
-}
-var ZodBigIntFormat = /* @__PURE__ */ $constructor("ZodBigIntFormat", (inst, def) => {
-  $ZodBigIntFormat.init(inst, def);
-  ZodBigInt.init(inst, def);
-});
-function int64(params) {
-  return _int64(ZodBigIntFormat, params);
-}
-function uint64(params) {
-  return _uint64(ZodBigIntFormat, params);
-}
-var ZodSymbol = /* @__PURE__ */ $constructor("ZodSymbol", (inst, def) => {
-  $ZodSymbol.init(inst, def);
-  ZodType.init(inst, def);
-});
-function symbol(params) {
-  return _symbol(ZodSymbol, params);
-}
-var ZodUndefined = /* @__PURE__ */ $constructor("ZodUndefined", (inst, def) => {
-  $ZodUndefined.init(inst, def);
-  ZodType.init(inst, def);
-});
-function _undefined3(params) {
-  return _undefined2(ZodUndefined, params);
-}
-var ZodNull = /* @__PURE__ */ $constructor("ZodNull", (inst, def) => {
-  $ZodNull.init(inst, def);
-  ZodType.init(inst, def);
-});
-function _null3(params) {
-  return _null2(ZodNull, params);
-}
-var ZodAny = /* @__PURE__ */ $constructor("ZodAny", (inst, def) => {
-  $ZodAny.init(inst, def);
-  ZodType.init(inst, def);
-});
-function any() {
-  return _any(ZodAny);
 }
 var ZodUnknown = /* @__PURE__ */ $constructor("ZodUnknown", (inst, def) => {
   $ZodUnknown.init(inst, def);
   ZodType.init(inst, def);
 });
-function unknown() {
+function unknown2() {
   return _unknown(ZodUnknown);
 }
 var ZodNever = /* @__PURE__ */ $constructor("ZodNever", (inst, def) => {
   $ZodNever.init(inst, def);
   ZodType.init(inst, def);
 });
-function never(params) {
+function never3(params) {
   return _never(ZodNever, params);
-}
-var ZodVoid = /* @__PURE__ */ $constructor("ZodVoid", (inst, def) => {
-  $ZodVoid.init(inst, def);
-  ZodType.init(inst, def);
-});
-function _void2(params) {
-  return _void(ZodVoid, params);
-}
-var ZodDate = /* @__PURE__ */ $constructor("ZodDate", (inst, def) => {
-  $ZodDate.init(inst, def);
-  ZodType.init(inst, def);
-  inst.min = (value, params) => inst.check(_gte(value, params));
-  inst.max = (value, params) => inst.check(_lte(value, params));
-  const c = inst._zod.bag;
-  inst.minDate = c.minimum ? new Date(c.minimum) : null;
-  inst.maxDate = c.maximum ? new Date(c.maximum) : null;
-});
-function date3(params) {
-  return _date(ZodDate, params);
 }
 var ZodArray = /* @__PURE__ */ $constructor("ZodArray", (inst, def) => {
   $ZodArray.init(inst, def);
@@ -12371,90 +13297,52 @@ var ZodArray = /* @__PURE__ */ $constructor("ZodArray", (inst, def) => {
   inst.length = (len, params) => inst.check(_length(len, params));
   inst.unwrap = () => inst.element;
 });
-function array(element, params) {
+function array2(element, params) {
   return _array(ZodArray, element, params);
-}
-function keyof(schema) {
-  const shape = schema._zod.def.shape;
-  return _enum2(Object.keys(shape));
 }
 var ZodObject = /* @__PURE__ */ $constructor("ZodObject", (inst, def) => {
   $ZodObjectJIT.init(inst, def);
   ZodType.init(inst, def);
-  exports_util.defineLazy(inst, "shape", () => def.shape);
-  inst.keyof = () => _enum2(Object.keys(inst._zod.def.shape));
+  defineLazy(inst, "shape", () => def.shape);
+  inst.keyof = () => _enum(Object.keys(inst._zod.def.shape));
   inst.catchall = (catchall) => inst.clone({ ...inst._zod.def, catchall });
-  inst.passthrough = () => inst.clone({ ...inst._zod.def, catchall: unknown() });
-  inst.loose = () => inst.clone({ ...inst._zod.def, catchall: unknown() });
-  inst.strict = () => inst.clone({ ...inst._zod.def, catchall: never() });
+  inst.passthrough = () => inst.clone({ ...inst._zod.def, catchall: unknown2() });
+  inst.loose = () => inst.clone({ ...inst._zod.def, catchall: unknown2() });
+  inst.strict = () => inst.clone({ ...inst._zod.def, catchall: never3() });
   inst.strip = () => inst.clone({ ...inst._zod.def, catchall: undefined });
   inst.extend = (incoming) => {
-    return exports_util.extend(inst, incoming);
+    return extend(inst, incoming);
   };
   inst.safeExtend = (incoming) => {
-    return exports_util.safeExtend(inst, incoming);
+    return safeExtend(inst, incoming);
   };
-  inst.merge = (other) => exports_util.merge(inst, other);
-  inst.pick = (mask) => exports_util.pick(inst, mask);
-  inst.omit = (mask) => exports_util.omit(inst, mask);
-  inst.partial = (...args) => exports_util.partial(ZodOptional, inst, args[0]);
-  inst.required = (...args) => exports_util.required(ZodNonOptional, inst, args[0]);
+  inst.merge = (other) => merge2(inst, other);
+  inst.pick = (mask) => pick2(inst, mask);
+  inst.omit = (mask) => omit3(inst, mask);
+  inst.partial = (...args) => partial(ZodOptional, inst, args[0]);
+  inst.required = (...args) => required(ZodNonOptional, inst, args[0]);
 });
 function object(shape, params) {
   const def = {
     type: "object",
     get shape() {
-      exports_util.assignProp(this, "shape", shape ? exports_util.objectClone(shape) : {});
+      assignProp(this, "shape", shape ? objectClone(shape) : {});
       return this.shape;
     },
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   };
   return new ZodObject(def);
-}
-function strictObject(shape, params) {
-  return new ZodObject({
-    type: "object",
-    get shape() {
-      exports_util.assignProp(this, "shape", exports_util.objectClone(shape));
-      return this.shape;
-    },
-    catchall: never(),
-    ...exports_util.normalizeParams(params)
-  });
-}
-function looseObject(shape, params) {
-  return new ZodObject({
-    type: "object",
-    get shape() {
-      exports_util.assignProp(this, "shape", exports_util.objectClone(shape));
-      return this.shape;
-    },
-    catchall: unknown(),
-    ...exports_util.normalizeParams(params)
-  });
 }
 var ZodUnion = /* @__PURE__ */ $constructor("ZodUnion", (inst, def) => {
   $ZodUnion.init(inst, def);
   ZodType.init(inst, def);
   inst.options = def.options;
 });
-function union(options, params) {
+function union2(options, params) {
   return new ZodUnion({
     type: "union",
     options,
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodDiscriminatedUnion = /* @__PURE__ */ $constructor("ZodDiscriminatedUnion", (inst, def) => {
-  ZodUnion.init(inst, def);
-  $ZodDiscriminatedUnion.init(inst, def);
-});
-function discriminatedUnion(discriminator, options, params) {
-  return new ZodDiscriminatedUnion({
-    type: "union",
-    options,
-    discriminator,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodIntersection = /* @__PURE__ */ $constructor("ZodIntersection", (inst, def) => {
@@ -12468,76 +13356,18 @@ function intersection(left, right) {
     right
   });
 }
-var ZodTuple = /* @__PURE__ */ $constructor("ZodTuple", (inst, def) => {
-  $ZodTuple.init(inst, def);
-  ZodType.init(inst, def);
-  inst.rest = (rest) => inst.clone({
-    ...inst._zod.def,
-    rest
-  });
-});
-function tuple(items, _paramsOrRest, _params) {
-  const hasRest = _paramsOrRest instanceof $ZodType;
-  const params = hasRest ? _params : _paramsOrRest;
-  const rest = hasRest ? _paramsOrRest : null;
-  return new ZodTuple({
-    type: "tuple",
-    items,
-    rest,
-    ...exports_util.normalizeParams(params)
-  });
-}
 var ZodRecord = /* @__PURE__ */ $constructor("ZodRecord", (inst, def) => {
   $ZodRecord.init(inst, def);
   ZodType.init(inst, def);
   inst.keyType = def.keyType;
   inst.valueType = def.valueType;
 });
-function record(keyType, valueType, params) {
+function record2(keyType, valueType, params) {
   return new ZodRecord({
     type: "record",
     keyType,
     valueType,
-    ...exports_util.normalizeParams(params)
-  });
-}
-function partialRecord(keyType, valueType, params) {
-  const k = clone(keyType);
-  k._zod.values = undefined;
-  return new ZodRecord({
-    type: "record",
-    keyType: k,
-    valueType,
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodMap = /* @__PURE__ */ $constructor("ZodMap", (inst, def) => {
-  $ZodMap.init(inst, def);
-  ZodType.init(inst, def);
-  inst.keyType = def.keyType;
-  inst.valueType = def.valueType;
-});
-function map(keyType, valueType, params) {
-  return new ZodMap({
-    type: "map",
-    keyType,
-    valueType,
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodSet = /* @__PURE__ */ $constructor("ZodSet", (inst, def) => {
-  $ZodSet.init(inst, def);
-  ZodType.init(inst, def);
-  inst.min = (...args) => inst.check(_minSize(...args));
-  inst.nonempty = (params) => inst.check(_minSize(1, params));
-  inst.max = (...args) => inst.check(_maxSize(...args));
-  inst.size = (...args) => inst.check(_size(...args));
-});
-function set(valueType, params) {
-  return new ZodSet({
-    type: "set",
-    valueType,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
 }
 var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
@@ -12557,7 +13387,7 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
     return new ZodEnum({
       ...def,
       checks: [],
-      ...exports_util.normalizeParams(params),
+      ...normalizeParams(params),
       entries: newEntries
     });
   };
@@ -12572,55 +13402,18 @@ var ZodEnum = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
     return new ZodEnum({
       ...def,
       checks: [],
-      ...exports_util.normalizeParams(params),
+      ...normalizeParams(params),
       entries: newEntries
     });
   };
 });
-function _enum2(values, params) {
+function _enum(values, params) {
   const entries = Array.isArray(values) ? Object.fromEntries(values.map((v) => [v, v])) : values;
   return new ZodEnum({
     type: "enum",
     entries,
-    ...exports_util.normalizeParams(params)
+    ...normalizeParams(params)
   });
-}
-function nativeEnum(entries, params) {
-  return new ZodEnum({
-    type: "enum",
-    entries,
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodLiteral = /* @__PURE__ */ $constructor("ZodLiteral", (inst, def) => {
-  $ZodLiteral.init(inst, def);
-  ZodType.init(inst, def);
-  inst.values = new Set(def.values);
-  Object.defineProperty(inst, "value", {
-    get() {
-      if (def.values.length > 1) {
-        throw new Error("This schema contains multiple valid literal values. Use `.values` instead.");
-      }
-      return def.values[0];
-    }
-  });
-});
-function literal(value, params) {
-  return new ZodLiteral({
-    type: "literal",
-    values: Array.isArray(value) ? value : [value],
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodFile = /* @__PURE__ */ $constructor("ZodFile", (inst, def) => {
-  $ZodFile.init(inst, def);
-  ZodType.init(inst, def);
-  inst.min = (size, params) => inst.check(_minSize(size, params));
-  inst.max = (size, params) => inst.check(_maxSize(size, params));
-  inst.mime = (types, params) => inst.check(_mime(Array.isArray(types) ? types : [types], params));
-});
-function file(params) {
-  return _file(ZodFile, params);
 }
 var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
   $ZodTransform.init(inst, def);
@@ -12631,7 +13424,7 @@ var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
     }
     payload.addIssue = (issue2) => {
       if (typeof issue2 === "string") {
-        payload.issues.push(exports_util.issue(issue2, payload.value, def));
+        payload.issues.push(issue(issue2, payload.value, def));
       } else {
         const _issue = issue2;
         if (_issue.fatal)
@@ -12639,13 +13432,13 @@ var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
         _issue.code ?? (_issue.code = "custom");
         _issue.input ?? (_issue.input = payload.value);
         _issue.inst ?? (_issue.inst = inst);
-        payload.issues.push(exports_util.issue(_issue));
+        payload.issues.push(issue(_issue));
       }
     };
     const output = def.transform(payload.value, payload);
     if (output instanceof Promise) {
-      return output.then((output2) => {
-        payload.value = output2;
+      return output.then((output) => {
+        payload.value = output;
         return payload;
       });
     }
@@ -12653,7 +13446,7 @@ var ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
     return payload;
   };
 });
-function transform(fn) {
+function transform3(fn) {
   return new ZodTransform({
     type: "transform",
     transform: fn
@@ -12664,7 +13457,7 @@ var ZodOptional = /* @__PURE__ */ $constructor("ZodOptional", (inst, def) => {
   ZodType.init(inst, def);
   inst.unwrap = () => inst._zod.def.innerType;
 });
-function optional(innerType) {
+function optional4(innerType) {
   return new ZodOptional({
     type: "optional",
     innerType
@@ -12681,21 +13474,18 @@ function nullable(innerType) {
     innerType
   });
 }
-function nullish2(innerType) {
-  return optional(nullable(innerType));
-}
 var ZodDefault = /* @__PURE__ */ $constructor("ZodDefault", (inst, def) => {
   $ZodDefault.init(inst, def);
   ZodType.init(inst, def);
   inst.unwrap = () => inst._zod.def.innerType;
   inst.removeDefault = inst.unwrap;
 });
-function _default2(innerType, defaultValue) {
+function _default(innerType, defaultValue) {
   return new ZodDefault({
     type: "default",
     innerType,
     get defaultValue() {
-      return typeof defaultValue === "function" ? defaultValue() : exports_util.shallowClone(defaultValue);
+      return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
     }
   });
 }
@@ -12709,7 +13499,7 @@ function prefault(innerType, defaultValue) {
     type: "prefault",
     innerType,
     get defaultValue() {
-      return typeof defaultValue === "function" ? defaultValue() : exports_util.shallowClone(defaultValue);
+      return typeof defaultValue === "function" ? defaultValue() : shallowClone(defaultValue);
     }
   });
 }
@@ -12722,18 +13512,7 @@ function nonoptional(innerType, params) {
   return new ZodNonOptional({
     type: "nonoptional",
     innerType,
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodSuccess = /* @__PURE__ */ $constructor("ZodSuccess", (inst, def) => {
-  $ZodSuccess.init(inst, def);
-  ZodType.init(inst, def);
-  inst.unwrap = () => inst._zod.def.innerType;
-});
-function success(innerType) {
-  return new ZodSuccess({
-    type: "success",
-    innerType
+    ...normalizeParams(params)
   });
 }
 var ZodCatch = /* @__PURE__ */ $constructor("ZodCatch", (inst, def) => {
@@ -12742,19 +13521,12 @@ var ZodCatch = /* @__PURE__ */ $constructor("ZodCatch", (inst, def) => {
   inst.unwrap = () => inst._zod.def.innerType;
   inst.removeCatch = inst.unwrap;
 });
-function _catch2(innerType, catchValue) {
+function _catch(innerType, catchValue) {
   return new ZodCatch({
     type: "catch",
     innerType,
     catchValue: typeof catchValue === "function" ? catchValue : () => catchValue
   });
-}
-var ZodNaN = /* @__PURE__ */ $constructor("ZodNaN", (inst, def) => {
-  $ZodNaN.init(inst, def);
-  ZodType.init(inst, def);
-});
-function nan(params) {
-  return _nan(ZodNaN, params);
 }
 var ZodPipe = /* @__PURE__ */ $constructor("ZodPipe", (inst, def) => {
   $ZodPipe.init(inst, def);
@@ -12769,19 +13541,6 @@ function pipe(in_, out) {
     out
   });
 }
-var ZodCodec = /* @__PURE__ */ $constructor("ZodCodec", (inst, def) => {
-  ZodPipe.init(inst, def);
-  $ZodCodec.init(inst, def);
-});
-function codec(in_, out, params) {
-  return new ZodCodec({
-    type: "pipe",
-    in: in_,
-    out,
-    transform: params.decode,
-    reverseTransform: params.encode
-  });
-}
 var ZodReadonly = /* @__PURE__ */ $constructor("ZodReadonly", (inst, def) => {
   $ZodReadonly.init(inst, def);
   ZodType.init(inst, def);
@@ -12793,153 +13552,16 @@ function readonly(innerType) {
     innerType
   });
 }
-var ZodTemplateLiteral = /* @__PURE__ */ $constructor("ZodTemplateLiteral", (inst, def) => {
-  $ZodTemplateLiteral.init(inst, def);
-  ZodType.init(inst, def);
-});
-function templateLiteral(parts, params) {
-  return new ZodTemplateLiteral({
-    type: "template_literal",
-    parts,
-    ...exports_util.normalizeParams(params)
-  });
-}
-var ZodLazy = /* @__PURE__ */ $constructor("ZodLazy", (inst, def) => {
-  $ZodLazy.init(inst, def);
-  ZodType.init(inst, def);
-  inst.unwrap = () => inst._zod.def.getter();
-});
-function lazy(getter) {
-  return new ZodLazy({
-    type: "lazy",
-    getter
-  });
-}
-var ZodPromise = /* @__PURE__ */ $constructor("ZodPromise", (inst, def) => {
-  $ZodPromise.init(inst, def);
-  ZodType.init(inst, def);
-  inst.unwrap = () => inst._zod.def.innerType;
-});
-function promise(innerType) {
-  return new ZodPromise({
-    type: "promise",
-    innerType
-  });
-}
-var ZodFunction = /* @__PURE__ */ $constructor("ZodFunction", (inst, def) => {
-  $ZodFunction.init(inst, def);
-  ZodType.init(inst, def);
-});
-function _function(params) {
-  return new ZodFunction({
-    type: "function",
-    input: Array.isArray(params?.input) ? tuple(params?.input) : params?.input ?? array(unknown()),
-    output: params?.output ?? unknown()
-  });
-}
 var ZodCustom = /* @__PURE__ */ $constructor("ZodCustom", (inst, def) => {
   $ZodCustom.init(inst, def);
   ZodType.init(inst, def);
 });
-function check(fn) {
-  const ch = new $ZodCheck({
-    check: "custom"
-  });
-  ch._zod.check = fn;
-  return ch;
-}
-function custom(fn, _params) {
-  return _custom(ZodCustom, fn ?? (() => true), _params);
-}
 function refine(fn, _params = {}) {
   return _refine(ZodCustom, fn, _params);
 }
 function superRefine(fn) {
   return _superRefine(fn);
 }
-function _instanceof(cls, params = {
-  error: `Input not instance of ${cls.name}`
-}) {
-  const inst = new ZodCustom({
-    type: "custom",
-    check: "custom",
-    fn: (data) => data instanceof cls,
-    abort: true,
-    ...exports_util.normalizeParams(params)
-  });
-  inst._zod.bag.Class = cls;
-  return inst;
-}
-var stringbool = (...args) => _stringbool({
-  Codec: ZodCodec,
-  Boolean: ZodBoolean,
-  String: ZodString
-}, ...args);
-function json(params) {
-  const jsonSchema = lazy(() => {
-    return union([string2(params), number2(), boolean2(), _null3(), array(jsonSchema), record(string2(), jsonSchema)]);
-  });
-  return jsonSchema;
-}
-function preprocess(fn, schema) {
-  return pipe(transform(fn), schema);
-}
-// node_modules/zod/v4/classic/compat.js
-var ZodIssueCode = {
-  invalid_type: "invalid_type",
-  too_big: "too_big",
-  too_small: "too_small",
-  invalid_format: "invalid_format",
-  not_multiple_of: "not_multiple_of",
-  unrecognized_keys: "unrecognized_keys",
-  invalid_union: "invalid_union",
-  invalid_key: "invalid_key",
-  invalid_element: "invalid_element",
-  invalid_value: "invalid_value",
-  custom: "custom"
-};
-function setErrorMap(map2) {
-  config({
-    customError: map2
-  });
-}
-function getErrorMap() {
-  return config().customError;
-}
-var ZodFirstPartyTypeKind;
-(function(ZodFirstPartyTypeKind2) {})(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
-// node_modules/zod/v4/classic/coerce.js
-var exports_coerce = {};
-__export(exports_coerce, {
-  string: () => string3,
-  number: () => number3,
-  date: () => date4,
-  boolean: () => boolean3,
-  bigint: () => bigint3
-});
-function string3(params) {
-  return _coercedString(ZodString, params);
-}
-function number3(params) {
-  return _coercedNumber(ZodNumber, params);
-}
-function boolean3(params) {
-  return _coercedBoolean(ZodBoolean, params);
-}
-function bigint3(params) {
-  return _coercedBigint(ZodBigInt, params);
-}
-function date4(params) {
-  return _coercedDate(ZodDate, params);
-}
-
-// node_modules/zod/v4/classic/external.js
-config(en_default());
-// node_modules/@opencode-ai/plugin/dist/tool.js
-function tool(input) {
-  return input;
-}
-tool.schema = exports_external;
 // src/capture.ts
 var MAX_ELEMENTS = 100;
 function fmtFrame(el) {
@@ -13016,7 +13638,6 @@ function buildCaptureResult(args) {
 }
 
 // src/tool.ts
-var z = tool.schema;
 var ACTIONS = [
   "capture",
   "zoom",
@@ -13054,19 +13675,20 @@ var TIMEOUTS = {
   launch: 30000,
   verify: 20000
 };
-function timeoutFor(tool3) {
-  if (tool3.startsWith("get_") || tool3 === "zoom")
+function timeoutFor(tool) {
+  if (tool.startsWith("get_") || tool === "zoom")
     return TIMEOUTS.capture;
-  if (tool3.startsWith("list_"))
+  if (tool.startsWith("list_"))
     return TIMEOUTS.list;
-  if (tool3 === "invoke_menu")
+  if (tool === "invoke_menu")
     return TIMEOUTS.menu;
-  if (tool3 === "launch_app")
+  if (tool === "launch_app")
     return TIMEOUTS.launch;
-  if (tool3 === "verify_state")
+  if (tool === "verify_state")
     return TIMEOUTS.verify;
   return TIMEOUTS.input;
 }
+var allowPermission = async () => {};
 function jsonErr(action, err) {
   return JSON.stringify({ ok: false, action, error: err.message ?? String(err) });
 }
@@ -13096,13 +13718,16 @@ async function driverCall(deps, ctx, action, args) {
       return JSON.stringify({ ok: false, action, code: "input_target_mismatch", error: refusal });
   }
   const wantsForeground = args.raise === true || args.delivery_mode === "foreground" || action === "focus_app" && args.raise === true;
+  const ask = deps.assertPermission ?? allowPermission;
   if (wantsForeground && action !== "capture" && action !== "wait") {
     try {
-      await ctx.ask({
-        permission: "computer:foreground",
-        patterns: ["*"],
-        always: [],
-        metadata: { title: `computer (foreground): ${action}${app ? ` on ${app}` : ""}`, tool: "computer", action, foreground: true }
+      await ask({
+        action: "computer:foreground",
+        title: `computer (foreground): ${action}${app ? ` on ${app}` : ""}`,
+        sessionID: ctx.sessionID,
+        agent: ctx.agent,
+        messageID: ctx.messageID,
+        callID: ctx.id
       });
     } catch (err) {
       return JSON.stringify({ ok: false, action, code: "denied", error: `user denied foreground: ${err.message ?? "permission rejected"}` });
@@ -13110,11 +13735,13 @@ async function driverCall(deps, ctx, action, args) {
   }
   if (!FREE_ACTIONS.has(action)) {
     try {
-      await ctx.ask({
-        permission: "computer",
-        patterns: ["*"],
-        always: [],
-        metadata: { title: `computer: ${action}${app ? ` on ${app}` : ""}`, tool: "computer", action }
+      await ask({
+        action: "computer",
+        title: `computer: ${action}${app ? ` on ${app}` : ""}`,
+        sessionID: ctx.sessionID,
+        agent: ctx.agent,
+        messageID: ctx.messageID,
+        callID: ctx.id
       });
     } catch (err) {
       return JSON.stringify({ ok: false, action, code: "denied", error: `user denied: ${err.message ?? "permission rejected"}` });
@@ -13187,11 +13814,11 @@ async function resolveApp(s, name) {
   const exact = rows.find((r) => norm(label(r)) === want);
   if (exact)
     return { pid: exact.pid, app: label(exact) };
-  const partial2 = rows.filter((r) => norm(label(r)).includes(want));
-  if (partial2.length === 1)
-    return { pid: partial2[0].pid, app: label(partial2[0]) };
-  if (partial2.length > 1)
-    return { candidates: partial2.map((r) => `${label(r)} (pid ${r.pid})`) };
+  const partial = rows.filter((r) => norm(label(r)).includes(want));
+  if (partial.length === 1)
+    return { pid: partial[0].pid, app: label(partial[0]) };
+  if (partial.length > 1)
+    return { candidates: partial.map((r) => `${label(r)} (pid ${r.pid})`) };
   const winListed = await s.call("list_windows", {}, timeoutFor("list_windows"));
   const wins = windowsFromList(winListed);
   const byTitle = wins.find((w) => (w.title ?? "").toLowerCase().includes(want) && typeof w.pid === "number");
@@ -13216,8 +13843,8 @@ async function captureFlow(deps, args) {
     }
   }
   if (mode === "vision" && effectivePid === undefined && windowId === undefined && !s.sticky) {
-    const res2 = await s.call("get_desktop_state", {}, timeoutFor("get_desktop_state"));
-    return { output: buildCaptureResult({ mode, call: res2 }).output };
+    const res = await s.call("get_desktop_state", {}, timeoutFor("get_desktop_state"));
+    return { output: buildCaptureResult({ mode, call: res }).output };
   }
   let effectiveWindow = windowId ?? (s.sticky?.pid === effectivePid ? s.sticky?.windowId : undefined);
   if (effectivePid === undefined && effectiveWindow === undefined && s.sticky?.pid !== undefined) {
@@ -13249,6 +13876,7 @@ async function captureFlow(deps, args) {
     callArgs.include_accessibility_tree = false;
   callArgs.max_dimension = 1568;
   callArgs.max_elements = Math.max(50, Math.min(1000, deps.maxElements ?? 200));
+  callArgs.tree_format = "elements";
   const res = await s.call("get_window_state", callArgs, timeoutFor("get_window_state"));
   if (!res.isError) {
     const structured = res.structured ?? {};
@@ -13364,9 +13992,13 @@ async function inputFlow(deps, action, args) {
         error: `element [${elementIndex}] has no snapshot token for window ${windowId} — the reference predates the last capture or the driver restarted. capture again and use a fresh [index].`
       });
     }
-    callArgs.element_index = elementIndex;
-    callArgs.element_token = token.elementToken;
-    callArgs.snapshot_id = token.snapshotId;
+    const accepts = (arg) => s.acceptsArg(action, arg) !== false;
+    if (accepts("element_index"))
+      callArgs.element_index = elementIndex;
+    if (accepts("element_token"))
+      callArgs.element_token = token.elementToken;
+    if (accepts("snapshot_id"))
+      callArgs.snapshot_id = token.snapshotId;
   }
   if (args.from_zoom === true)
     callArgs.from_zoom = true;
@@ -13551,56 +14183,74 @@ screenshot unchanged since the previous capture — image omitted (dedup streak 
   };
 }
 var ACTION_DESC = `Which action to perform. capture (side-effect free) returns screen state: mode=som (screenshot + numbered element list — click by [index]), mode=vision (plain screenshot), mode=ax (element list only, cheapest). zoom returns a native-resolution crop (≤500px) for reading dense UI; coordinates read off it go into the next input with from_zoom=true. verify evaluates deterministic predicates against the current window (three-state: passed/failed/unknown — unknown is never success). Input actions (click/double_click/right_click/drag/scroll/type/key/set_value/invoke_menu/launch_app) act on the sticky target set by the last capture/focus_app and require approval. set_value selects options/sliders directly; invoke_menu drives native menus by path (no pixel fallback); launch_app starts an app (hidden by default, auto-selects its window). wait sleeps locally. list_apps/list_windows are read-only. focus_app SELECTS a target without touching the foreground; raise=true (separate approval domain) brings it to the front.`;
+var ComputerArgs = object({
+  action: _enum(ACTIONS).describe(ACTION_DESC),
+  mode: string4().optional().describe("capture mode: som | vision | ax (default som)"),
+  app: string4().optional().describe("app name or bundle id; limits capture to one app and sets the sticky target (resolution: list_apps exact, substring, then window titles)"),
+  pid: number4().optional().describe("exact process target (from list_apps / capture)"),
+  window_id: number4().optional().describe("exact window target (from list_windows / capture) — window actions require it; capture resolves it via list_windows when only pid is given"),
+  query: string4().optional().describe("capture: case-insensitive substring filter on the element tree"),
+  element_index: number4().optional().describe("element to act on, by [index] from the last capture (must come from the current snapshot — stale references are refused)"),
+  x: number4().optional().describe("x in window-local screenshot pixels (pixel fallback; prefer element_index)"),
+  y: number4().optional().describe("y in window-local screenshot pixels"),
+  w: number4().optional().describe("zoom: crop width (≤500)"),
+  h: number4().optional().describe("zoom: crop height (≤500)"),
+  button: string4().optional().describe("click mouse button: left | right | middle (action=click)"),
+  delivery_mode: string4().optional().describe("background (default, never steals focus) | foreground (escalation ONLY after a background_unavailable error — never preemptively; needs the foreground approval)"),
+  raise: boolean3().optional().describe("foreground intents: focus_app raise=true brings the window to the front; input actions with raise=true foreground them (separate approval domain computer:foreground)"),
+  from_zoom: boolean3().optional().describe("coordinates were read off a zoom crop — remap them to native window coordinates before dispatch"),
+  from_x: number4().optional(),
+  from_y: number4().optional(),
+  to_x: number4().optional(),
+  to_y: number4().optional(),
+  direction: string4().optional().describe("scroll direction: up|down|left|right"),
+  amount: number4().optional().describe("scroll amount"),
+  text: string4().optional().describe("text to type (action=type)"),
+  keys: string4().optional().describe("key or combo, e.g. 'enter' or 'ctrl+s' (action=key)"),
+  value: string4().optional().describe("value to set (action=set_value)"),
+  path: string4().optional().describe(`invoke_menu: menu path, 'File > Open' or ["File","Open"]`),
+  launch_path: string4().optional().describe("launch_app: executable path to start"),
+  start_minimized: boolean3().optional().describe("launch_app: default true (minimized, never steals the foreground — a plain driver launch can activate the window); pass false for a normal start"),
+  predicates: array2(record2(string4(), unknown2())).optional().describe("verify: [{ element_index?, label?, exists?, enabled?, selected?, value? }] — deterministic checks against the current window"),
+  waitMs: number4().optional().describe("wait duration ms, max 10000 (action=wait)"),
+  capture_after: boolean3().optional().describe("attach a fresh som capture after a successful input action")
+});
+function toResult(result) {
+  if (typeof result === "string")
+    return { content: result };
+  const content = [{ type: "text", text: result.output }];
+  for (const attachment of result.attachments ?? []) {
+    content.push({
+      type: "file",
+      uri: attachment.url,
+      mime: attachment.mime,
+      ...attachment.filename ? { name: attachment.filename } : {}
+    });
+  }
+  return { content };
+}
 function makeComputerTool(deps) {
-  return tool({
+  return {
+    name: "computer",
     description: "Desktop computer use via the locally installed cua-driver (user-installed; this plugin never installs or upgrades it). Workflow: capture -> act by element index -> capture/verify to check. Verdicts classify every input (done / verify_fresh_state / escalate); never re-issue input on an escalation recommendation alone — re-capture first. Load the `computer-use` skill for the full operating manual and when-to-use scope.",
-    args: {
-      action: z.enum(ACTIONS).describe(ACTION_DESC),
-      mode: z.string().optional().describe("capture mode: som | vision | ax (default som)"),
-      app: z.string().optional().describe("app name or bundle id; limits capture to one app and sets the sticky target (resolution: list_apps exact, substring, then window titles)"),
-      pid: z.number().optional().describe("exact process target (from list_apps / capture)"),
-      window_id: z.number().optional().describe("exact window target (from list_windows / capture) — window actions require it; capture resolves it via list_windows when only pid is given"),
-      query: z.string().optional().describe("capture: case-insensitive substring filter on the element tree"),
-      element_index: z.number().optional().describe("element to act on, by [index] from the last capture (must come from the current snapshot — stale references are refused)"),
-      x: z.number().optional().describe("x in window-local screenshot pixels (pixel fallback; prefer element_index)"),
-      y: z.number().optional().describe("y in window-local screenshot pixels"),
-      w: z.number().optional().describe("zoom: crop width (≤500)"),
-      h: z.number().optional().describe("zoom: crop height (≤500)"),
-      button: z.string().optional().describe("click mouse button: left | right | middle (action=click)"),
-      delivery_mode: z.string().optional().describe("background (default, never steals focus) | foreground (escalation ONLY after a background_unavailable error — never preemptively; needs the foreground approval)"),
-      raise: z.boolean().optional().describe("foreground intents: focus_app raise=true brings the window to the front; input actions with raise=true foreground them (separate approval domain computer:foreground)"),
-      from_zoom: z.boolean().optional().describe("coordinates were read off a zoom crop — remap them to native window coordinates before dispatch"),
-      from_x: z.number().optional(),
-      from_y: z.number().optional(),
-      to_x: z.number().optional(),
-      to_y: z.number().optional(),
-      direction: z.string().optional().describe("scroll direction: up|down|left|right"),
-      amount: z.number().optional().describe("scroll amount"),
-      text: z.string().optional().describe("text to type (action=type)"),
-      keys: z.string().optional().describe("key or combo, e.g. 'enter' or 'ctrl+s' (action=key)"),
-      value: z.string().optional().describe("value to set (action=set_value)"),
-      path: z.string().optional().describe(`invoke_menu: menu path, 'File > Open' or ["File","Open"]`),
-      launch_path: z.string().optional().describe("launch_app: executable path to start"),
-      start_minimized: z.boolean().optional().describe("launch_app: default true (minimized, never steals the foreground — a plain driver launch can activate the window); pass false for a normal start"),
-      predicates: z.array(z.record(z.string(), z.unknown())).optional().describe("verify: [{ element_index?, label?, exists?, enabled?, selected?, value? }] — deterministic checks against the current window"),
-      waitMs: z.number().optional().describe("wait duration ms, max 10000 (action=wait)"),
-      capture_after: z.boolean().optional().describe("attach a fresh som capture after a successful input action")
-    },
-    async execute(args, ctx) {
+    input: ComputerArgs,
+    async execute(input, ctx) {
+      const args = input;
       const action = args.action;
       if (!ACTIONS.includes(action)) {
         const hint = ACTION_HINTS[String(action)];
-        return JSON.stringify({ ok: false, action, error: `unknown action${hint ? ` — ${hint}` : `; supported: ${ACTIONS.join(", ")}`}` });
+        return toResult(JSON.stringify({ ok: false, action, error: `unknown action${hint ? ` — ${hint}` : `; supported: ${ACTIONS.join(", ")}`}` }));
       }
       deps.probeLine?.(`computer action=${action}`);
-      return await driverCall(deps, ctx, action, args);
+      return toResult(await driverCall(deps, ctx, action, args));
     }
-  });
+  };
 }
 function makeStatusTool(deps) {
-  return tool({
+  return {
+    name: "computer_status",
     description: "cua-driver readiness, version, health, and remediation. When the driver is missing or below the contract floor this is the ONLY computer-use tool: it prints the exact command the USER must run in their own terminal (the plugin never installs or upgrades the driver, and never executes installers on the user's behalf).",
-    args: {},
+    input: object({}),
     async execute() {
       let health;
       if (deps.ready && deps.healthFetch) {
@@ -13614,7 +14264,7 @@ function makeStatusTool(deps) {
         ready: deps.ready,
         driver: deps.resolved,
         version: deps.version,
-        contract: { min: "0.28.0", testedAgainst: "0.28.2" },
+        contract: { min: "0.28.0", testedAgainst: "0.44.0" },
         session: deps.sessionId,
         ...health ? { health } : {},
         ...deps.ready ? {} : { problem: deps.reason, remediation: deps.installHint },
@@ -13623,15 +14273,15 @@ function makeStatusTool(deps) {
         } : {},
         update_check: "to check for a newer driver, run `cua-driver check-update` yourself in a terminal; this plugin never polls or refreshes"
       };
-      return JSON.stringify(payload, null, 2);
+      return toResult(JSON.stringify(payload, null, 2));
     }
-  });
+  };
 }
 
 // plugin.ts
-var probing = () => process.env.OPENCODE_CU_PROBE === "1";
+var probeEnabled = () => process.env.OPENCODE_CU_PROBE === "1";
 var probeLine = (text) => {
-  if (!probing())
+  if (!probeEnabled())
     return;
   try {
     appendFileSync(join2(tmpdir2(), "opencode-cu-probe.log"), `${new Date().toISOString()} ${text}
@@ -13644,19 +14294,20 @@ function _testInjectProbe(r) {
   probeOverride = r;
   probeCache = null;
 }
-function probeOnce() {
+function probeOnce(driverPath) {
   if (probeOverride)
     return probeOverride;
   if (probeCache)
     return probeCache;
-  const resolved = resolveDriverCmd();
+  const env = driverPath ? { ...process.env, [DRIVER_CMD_ENV]: driverPath } : undefined;
+  const resolved = resolveDriverCmd(env ? { env } : {});
   const contract = checkContract(resolved);
   probeLine(`probe resolved=${resolved.cmd ?? "null"} ready=${contract.ready} reason=${contract.reason}`);
   probeCache = contract;
   return contract;
 }
 var sessionId = `opencode-computer-use-${randomUUID().slice(0, 12)}`;
-function bundledSkillsDir() {
+function bundledSkillFile() {
   let here;
   try {
     here = dirname(fileURLToPath(import.meta.url));
@@ -13664,95 +14315,141 @@ function bundledSkillsDir() {
     return null;
   }
   for (const root of [here, dirname(here)]) {
-    const candidate = join2(root, "skills");
-    if (existsSync2(join2(candidate, "computer-use", "SKILL.md")))
+    const candidate = join2(root, "skills", "computer-use", "SKILL.md");
+    if (existsSync2(candidate))
       return candidate;
   }
   return null;
 }
-var server = async (_input, options) => {
-  const contract = probeOnce();
-  const installHint = userInstallHint();
-  const opts = options?.computerUse ?? {};
-  const captureAfter = opts.captureAfter === "som" || opts.captureAfter === "ax" ? opts.captureAfter : "off";
-  const agentCursor = opts.agentCursor === true;
-  const maxElements = typeof opts.maxElements === "number" ? Math.max(50, Math.min(1000, Math.floor(opts.maxElements))) : 200;
-  let session = null;
-  const ensureSession = () => {
-    if (!session && contract.ready && contract.mcpInvocation) {
-      session = new ComputerSession(contract.mcpInvocation, sessionId, { log: probeLine }, { agentCursor });
-    }
-    return session;
-  };
-  return {
-    get tool() {
-      const status = makeStatusTool({
-        ready: contract.ready,
-        reason: contract.reason,
-        resolved: contract.resolved,
-        version: contract.version,
-        installHint,
-        sessionId,
-        ...contract.ready ? {
-          healthFetch: async () => {
-            const s2 = ensureSession();
-            if (!s2)
-              throw new Error("no session");
-            const res = await s2.call("health_report", {}, 1e4);
-            return { ...res.structured ?? {}, ...res.isError ? { degraded: extractTextSafe(res) } : {} };
-          }
-        } : {}
-      });
-      if (!contract.ready) {
-        return { computer_status: status };
+var plugin_default = define({
+  id: "computer-use",
+  async setup(ctx) {
+    const pluginOptions = ctx.options?.computerUse ?? {};
+    const contract = probeOnce(typeof pluginOptions.driverPath === "string" ? pluginOptions.driverPath : undefined);
+    const installHint = userInstallHint();
+    const captureAfter = pluginOptions.captureAfter === "som" || pluginOptions.captureAfter === "ax" ? pluginOptions.captureAfter : "off";
+    const agentCursor = pluginOptions.agentCursor === true;
+    const maxElements = typeof pluginOptions.maxElements === "number" ? Math.max(50, Math.min(1000, Math.floor(pluginOptions.maxElements))) : 200;
+    const permissionMode = pluginOptions.permissionMode === "config" ? "config" : "ask";
+    const approvalMode = pluginOptions.approval === "each" ? "each" : "session";
+    let session = null;
+    const ensureSession = () => {
+      if (!session && contract.ready && contract.mcpInvocation) {
+        session = new ComputerSession(contract.mcpInvocation, sessionId, { log: probeLine }, { agentCursor });
       }
-      const s = ensureSession();
-      return {
-        computer: makeComputerTool({ session: s, driverVersion: () => contract.version, probeLine, captureAfter, maxElements }),
-        computer_status: status
-      };
-    },
-    config: async (cfg) => {
-      const c = cfg;
-      const section = c.permission ?? (c.permission = {});
-      if (section.computer == null)
-        section.computer = "ask";
-      if (section["computer:foreground"] == null)
-        section["computer:foreground"] = "ask";
-      const skillsDir = bundledSkillsDir();
-      if (skillsDir) {
-        const norm = (v) => typeof v === "string" ? v.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase() : null;
-        const want = norm(skillsDir);
-        const rawPaths = c.skills?.paths;
-        const paths = Array.isArray(rawPaths) ? rawPaths : rawPaths == null ? [] : null;
-        if (paths && !paths.some((p) => norm(p) === want)) {
-          const sk = c.skills ?? (c.skills = {});
-          if (sk.paths == null)
-            sk.paths = [];
-          if (Array.isArray(sk.paths))
-            sk.paths.push(skillsDir);
+      return session;
+    };
+    const ruled = new Set;
+    const ensureRules = async (targetSession) => {
+      if (permissionMode === "config" || ruled.has(targetSession))
+        return;
+      ruled.add(targetSession);
+      try {
+        const info = await ctx.session.get({ sessionID: targetSession });
+        const existing = info.permissions ?? [];
+        const additions = [
+          ...existing.some((rule) => rule.action === "computer") ? [] : [{ action: "computer", resource: "*", effect: "ask" }],
+          ...existing.some((rule) => rule.action === "computer:foreground") ? [] : [{ action: "computer:foreground", resource: "*", effect: "ask" }]
+        ];
+        if (additions.length) {
+          await ctx.session.update({ sessionID: targetSession, permissions: [...existing, ...additions] });
         }
+      } catch (error) {
+        probeLine(`permission rules unavailable: ${error.message}`);
       }
-    },
-    dispose: async () => {
+    };
+    const granted = new Set;
+    const grantSession = async (targetSession) => {
+      if (permissionMode === "config" || approvalMode === "each" || granted.has(targetSession))
+        return;
+      granted.add(targetSession);
+      try {
+        await grantSessionApproval(ctx.session, targetSession);
+      } catch (error) {
+        probeLine(`session approval could not be stored: ${error.message}`);
+      }
+    };
+    const assertPermission = async (input) => {
+      await ensureRules(input.sessionID);
+      await ctx.permission.assert({
+        sessionID: input.sessionID,
+        agent: input.agent,
+        action: input.action,
+        resources: ["*"],
+        save: ["*"],
+        metadata: { title: `Allow computer use for this session: ${input.title}`, tool: "computer", scope: "session" },
+        source: { type: "tool", messageID: input.messageID, id: input.callID }
+      });
+      await grantSession(input.sessionID);
+    };
+    const status = makeStatusTool({
+      ready: contract.ready,
+      reason: contract.reason,
+      resolved: contract.resolved,
+      version: contract.version,
+      installHint,
+      sessionId,
+      ...contract.ready ? {
+        healthFetch: async () => {
+          const s = ensureSession();
+          if (!s)
+            throw new Error("no session");
+          const res = await s.call("health_report", {}, 1e4);
+          return { ...res.structured ?? {}, ...res.isError ? { degraded: extractTextSafe(res) } : {} };
+        }
+      } : {}
+    });
+    const tools = contract.ready ? [
+      makeComputerTool({
+        session: ensureSession(),
+        driverVersion: () => contract.version,
+        probeLine,
+        captureAfter,
+        maxElements,
+        assertPermission
+      }),
+      status
+    ] : [status];
+    await ctx.tool.transform((editor) => {
+      for (const definition of tools)
+        editor.add(definition);
+    });
+    const skillFile = bundledSkillFile();
+    if (skillFile) {
+      try {
+        const content = readFileSync(skillFile, "utf8");
+        await ctx.skill.transform((editor) => editor.add({
+          id: ID12.make("computer-use"),
+          name: Name2.make("Computer Use"),
+          description: "Desktop GUI automation with the `computer` tool (cua-driver). Load before the first computer call; use only for real native-app GUI work, never for files, shell, or web pages.",
+          autoinvoke: true,
+          path: Info12.fields.path.make(skillFile),
+          content
+        }));
+      } catch (error) {
+        probeLine(`skill registration unavailable: ${error.message}`);
+      }
+    }
+    return async () => {
       session?.dispose();
       session = null;
-    }
-  };
-};
+    };
+  }
+});
+async function grantSessionApproval(api, targetSession) {
+  const info = await api.get({ sessionID: targetSession });
+  const existing = info.permissions ?? [];
+  const additions = ["computer", "computer:foreground"].filter((action) => !existing.some((rule) => rule.action === action && rule.resource === "*" && rule.effect === "allow")).map((action) => ({ action, resource: "*", effect: "allow" }));
+  if (additions.length) {
+    await api.update({ sessionID: targetSession, permissions: [...existing, ...additions] });
+  }
+}
 function extractTextSafe(res) {
   return res.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join(`
 `).slice(0, 300);
 }
-async function setup(ctx) {
-  if (typeof ctx.agent?.transform === "function") {
-    await ctx.agent.transform(async () => {});
-  }
-}
-var plugin_default = { id: "opencode-computer-use", server, setup };
 export {
-  setup,
-  server,
+  _testInjectProbe,
   plugin_default as default,
-  _testInjectProbe
+  grantSessionApproval
 };

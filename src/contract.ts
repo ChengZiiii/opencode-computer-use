@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process"
 import type { ResolveResult } from "./driver-resolve.ts"
 
 export const CONTRACT_MIN_VERSION = "0.28.0"
-export const TESTED_AGAINST = "0.28.2"
+export const TESTED_AGAINST = "0.44.0"
 
 // Subcommand flags our integration requires the driver to advertise.
 const REQUIRED_SUBCOMMAND_FLAGS: Record<string, string[]> = {

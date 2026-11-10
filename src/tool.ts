@@ -3,14 +3,29 @@
 // only tool registered when the driver is not ready). Install/upgrade
 // commands are for the USER to run; the tool descriptions say so.
 
-import { tool } from "@opencode-ai/plugin"
-import type { ToolContext } from "@opencode-ai/plugin"
+import { z } from "zod"
 import { buildCaptureResult, extractText, type Attachment, type CaptureMode } from "./capture.ts"
 import type { CallResult } from "./mcp-client.ts"
 import { blockedKeyReason, blockedTypeReason, mapVerdict, type DriverVerdictFields } from "./safety.ts"
 import { targetRefusal, type ComputerSession } from "./session.ts"
 
-const z = tool.schema
+/** The part of an OpenCode V2 tool call context this plugin needs. */
+export type ToolCallContext = {
+  sessionID: string
+  agent?: string
+  messageID: string
+  id: string
+}
+
+/** Ask OpenCode's permission system for one computer-use action. */
+export type PermissionAsk = (input: {
+  action: "computer" | "computer:foreground"
+  title: string
+  sessionID: string
+  agent?: string
+  messageID: string
+  callID: string
+}) => Promise<void>
 
 export const ACTIONS = [
   "capture",
@@ -72,7 +87,11 @@ export type ToolDeps = {
   captureAfter?: "off" | "som" | "ax"
   /** Driver-side element walk bound (default 200). */
   maxElements?: number
+  /** OpenCode V2 permission gate; defaults to allow for direct tool tests. */
+  assertPermission?: PermissionAsk
 }
+
+const allowPermission: PermissionAsk = async () => {}
 
 function jsonErr(action: string, err: unknown): string {
   return JSON.stringify({ ok: false, action, error: (err as Error).message ?? String(err) })
@@ -81,7 +100,7 @@ function jsonErr(action: string, err: unknown): string {
 // Side-effect-free actions: no approval, no sticky target needed.
 const FREE_ACTIONS = new Set(["capture", "zoom", "verify", "wait", "list_apps", "list_windows"])
 
-async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args: Record<string, unknown>): Promise<string | { output: string; attachments?: Attachment[] }> {
+async function driverCall(deps: ToolDeps, ctx: ToolCallContext, action: Action, args: Record<string, unknown>): Promise<string | { output: string; attachments?: Attachment[] }> {
   const s = deps.session
   const app = typeof args.app === "string" ? args.app : undefined
 
@@ -117,13 +136,16 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
   // action; both default to ask; an explicit deny always wins.
   const wantsForeground =
     args.raise === true || args.delivery_mode === "foreground" || (action === "focus_app" && args.raise === true)
+  const ask = deps.assertPermission ?? allowPermission
   if (wantsForeground && action !== "capture" && action !== "wait") {
     try {
-      await ctx.ask({
-        permission: "computer:foreground",
-        patterns: ["*"],
-        always: [],
-        metadata: { title: `computer (foreground): ${action}${app ? ` on ${app}` : ""}`, tool: "computer", action, foreground: true },
+      await ask({
+        action: "computer:foreground",
+        title: `computer (foreground): ${action}${app ? ` on ${app}` : ""}`,
+        sessionID: ctx.sessionID,
+        agent: ctx.agent,
+        messageID: ctx.messageID,
+        callID: ctx.id,
       })
     } catch (err) {
       return JSON.stringify({ ok: false, action, code: "denied", error: `user denied foreground: ${(err as Error).message ?? "permission rejected"}` })
@@ -131,11 +153,13 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
   }
   if (!FREE_ACTIONS.has(action)) {
     try {
-      await ctx.ask({
-        permission: "computer",
-        patterns: ["*"],
-        always: [],
-        metadata: { title: `computer: ${action}${app ? ` on ${app}` : ""}`, tool: "computer", action },
+      await ask({
+        action: "computer",
+        title: `computer: ${action}${app ? ` on ${app}` : ""}`,
+        sessionID: ctx.sessionID,
+        agent: ctx.agent,
+        messageID: ctx.messageID,
+        callID: ctx.id,
       })
     } catch (err) {
       return JSON.stringify({ ok: false, action, code: "denied", error: `user denied: ${(err as Error).message ?? "permission rejected"}` })
@@ -286,6 +310,9 @@ async function captureFlow(deps: ToolDeps, args: Record<string, unknown>): Promi
   // the element walk bound keeps dense trees bounded in TIME (spec).
   callArgs.max_dimension = 1568
   callArgs.max_elements = Math.max(50, Math.min(1000, deps.maxElements ?? 200))
+  // The driver defaults to a Markdown-only tree; the plugin needs the
+  // structured elements (and their element_tokens) to address later actions.
+  callArgs.tree_format = "elements"
   const res = await s.call("get_window_state", callArgs, timeoutFor("get_window_state"))
   if (!res.isError) {
     const structured = (res.structured ?? {}) as { snapshot_id?: unknown; elements?: Array<{ element_index?: number; element_token?: string }> }
@@ -409,9 +436,10 @@ async function inputFlow(deps: ToolDeps, action: Action, args: Record<string, un
         error: `element [${elementIndex}] has no snapshot token for window ${windowId} — the reference predates the last capture or the driver restarted. capture again and use a fresh [index].`,
       })
     }
-    callArgs.element_index = elementIndex
-    callArgs.element_token = token.elementToken
-    callArgs.snapshot_id = token.snapshotId
+    const accepts = (arg: string) => s.acceptsArg(action, arg) !== false
+    if (accepts("element_index")) callArgs.element_index = elementIndex
+    if (accepts("element_token")) callArgs.element_token = token.elementToken
+    if (accepts("snapshot_id")) callArgs.snapshot_id = token.snapshotId
   }
   if (args.from_zoom === true) callArgs.from_zoom = true
   switch (action) {
@@ -610,52 +638,71 @@ function attachWithDedup(s: ComputerSession, windowId: number | undefined, built
 
 const ACTION_DESC = `Which action to perform. capture (side-effect free) returns screen state: mode=som (screenshot + numbered element list — click by [index]), mode=vision (plain screenshot), mode=ax (element list only, cheapest). zoom returns a native-resolution crop (≤500px) for reading dense UI; coordinates read off it go into the next input with from_zoom=true. verify evaluates deterministic predicates against the current window (three-state: passed/failed/unknown — unknown is never success). Input actions (click/double_click/right_click/drag/scroll/type/key/set_value/invoke_menu/launch_app) act on the sticky target set by the last capture/focus_app and require approval. set_value selects options/sliders directly; invoke_menu drives native menus by path (no pixel fallback); launch_app starts an app (hidden by default, auto-selects its window). wait sleeps locally. list_apps/list_windows are read-only. focus_app SELECTS a target without touching the foreground; raise=true (separate approval domain) brings it to the front.`
 
+const ComputerArgs = z.object({
+  action: z.enum(ACTIONS).describe(ACTION_DESC),
+  mode: z.string().optional().describe("capture mode: som | vision | ax (default som)"),
+  app: z.string().optional().describe("app name or bundle id; limits capture to one app and sets the sticky target (resolution: list_apps exact, substring, then window titles)"),
+  pid: z.number().optional().describe("exact process target (from list_apps / capture)"),
+  window_id: z.number().optional().describe("exact window target (from list_windows / capture) — window actions require it; capture resolves it via list_windows when only pid is given"),
+  query: z.string().optional().describe("capture: case-insensitive substring filter on the element tree"),
+  element_index: z.number().optional().describe("element to act on, by [index] from the last capture (must come from the current snapshot — stale references are refused)"),
+  x: z.number().optional().describe("x in window-local screenshot pixels (pixel fallback; prefer element_index)"),
+  y: z.number().optional().describe("y in window-local screenshot pixels"),
+  w: z.number().optional().describe("zoom: crop width (≤500)"),
+  h: z.number().optional().describe("zoom: crop height (≤500)"),
+  button: z.string().optional().describe("click mouse button: left | right | middle (action=click)"),
+  delivery_mode: z.string().optional().describe("background (default, never steals focus) | foreground (escalation ONLY after a background_unavailable error — never preemptively; needs the foreground approval)"),
+  raise: z.boolean().optional().describe("foreground intents: focus_app raise=true brings the window to the front; input actions with raise=true foreground them (separate approval domain computer:foreground)"),
+  from_zoom: z.boolean().optional().describe("coordinates were read off a zoom crop — remap them to native window coordinates before dispatch"),
+  from_x: z.number().optional(),
+  from_y: z.number().optional(),
+  to_x: z.number().optional(),
+  to_y: z.number().optional(),
+  direction: z.string().optional().describe("scroll direction: up|down|left|right"),
+  amount: z.number().optional().describe("scroll amount"),
+  text: z.string().optional().describe("text to type (action=type)"),
+  keys: z.string().optional().describe("key or combo, e.g. 'enter' or 'ctrl+s' (action=key)"),
+  value: z.string().optional().describe("value to set (action=set_value)"),
+  path: z.string().optional().describe("invoke_menu: menu path, 'File > Open' or [\"File\",\"Open\"]"),
+  launch_path: z.string().optional().describe("launch_app: executable path to start"),
+  start_minimized: z.boolean().optional().describe("launch_app: default true (minimized, never steals the foreground — a plain driver launch can activate the window); pass false for a normal start"),
+  predicates: z.array(z.record(z.string(), z.unknown())).optional().describe("verify: [{ element_index?, label?, exists?, enabled?, selected?, value? }] — deterministic checks against the current window"),
+  waitMs: z.number().optional().describe("wait duration ms, max 10000 (action=wait)"),
+  capture_after: z.boolean().optional().describe("attach a fresh som capture after a successful input action"),
+})
+
+/** Convert this plugin's internal result shape into an OpenCode V2 tool result. */
+function toResult(result: string | { output: string; attachments?: Attachment[] }): { content: string | Array<Record<string, unknown>> } {
+  if (typeof result === "string") return { content: result }
+  const content: Array<Record<string, unknown>> = [{ type: "text", text: result.output }]
+  for (const attachment of result.attachments ?? []) {
+    content.push({
+      type: "file",
+      uri: attachment.url,
+      mime: attachment.mime,
+      ...(attachment.filename ? { name: attachment.filename } : {}),
+    })
+  }
+  return { content }
+}
+
 export function makeComputerTool(deps: ToolDeps) {
-  return tool({
+  return {
+    name: "computer",
     description:
       "Desktop computer use via the locally installed cua-driver (user-installed; this plugin never installs or upgrades it). Workflow: capture -> act by element index -> capture/verify to check. Verdicts classify every input (done / verify_fresh_state / escalate); never re-issue input on an escalation recommendation alone — re-capture first. Load the `computer-use` skill for the full operating manual and when-to-use scope.",
-    args: {
-      action: z.enum(ACTIONS).describe(ACTION_DESC),
-      mode: z.string().optional().describe("capture mode: som | vision | ax (default som)"),
-      app: z.string().optional().describe("app name or bundle id; limits capture to one app and sets the sticky target (resolution: list_apps exact, substring, then window titles)"),
-      pid: z.number().optional().describe("exact process target (from list_apps / capture)"),
-      window_id: z.number().optional().describe("exact window target (from list_windows / capture) — window actions require it; capture resolves it via list_windows when only pid is given"),
-      query: z.string().optional().describe("capture: case-insensitive substring filter on the element tree"),
-      element_index: z.number().optional().describe("element to act on, by [index] from the last capture (must come from the current snapshot — stale references are refused)"),
-      x: z.number().optional().describe("x in window-local screenshot pixels (pixel fallback; prefer element_index)"),
-      y: z.number().optional().describe("y in window-local screenshot pixels"),
-      w: z.number().optional().describe("zoom: crop width (≤500)"),
-      h: z.number().optional().describe("zoom: crop height (≤500)"),
-      button: z.string().optional().describe("click mouse button: left | right | middle (action=click)"),
-      delivery_mode: z.string().optional().describe("background (default, never steals focus) | foreground (escalation ONLY after a background_unavailable error — never preemptively; needs the foreground approval)"),
-      raise: z.boolean().optional().describe("foreground intents: focus_app raise=true brings the window to the front; input actions with raise=true foreground them (separate approval domain computer:foreground)"),
-      from_zoom: z.boolean().optional().describe("coordinates were read off a zoom crop — remap them to native window coordinates before dispatch"),
-      from_x: z.number().optional(),
-      from_y: z.number().optional(),
-      to_x: z.number().optional(),
-      to_y: z.number().optional(),
-      direction: z.string().optional().describe("scroll direction: up|down|left|right"),
-      amount: z.number().optional().describe("scroll amount"),
-      text: z.string().optional().describe("text to type (action=type)"),
-      keys: z.string().optional().describe("key or combo, e.g. 'enter' or 'ctrl+s' (action=key)"),
-      value: z.string().optional().describe("value to set (action=set_value)"),
-      path: z.string().optional().describe("invoke_menu: menu path, 'File > Open' or [\"File\",\"Open\"]"),
-      launch_path: z.string().optional().describe("launch_app: executable path to start"),
-      start_minimized: z.boolean().optional().describe("launch_app: default true (minimized, never steals the foreground — a plain driver launch can activate the window); pass false for a normal start"),
-      predicates: z.array(z.record(z.string(), z.unknown())).optional().describe("verify: [{ element_index?, label?, exists?, enabled?, selected?, value? }] — deterministic checks against the current window"),
-      waitMs: z.number().optional().describe("wait duration ms, max 10000 (action=wait)"),
-      capture_after: z.boolean().optional().describe("attach a fresh som capture after a successful input action"),
-    },
-    async execute(args, ctx) {
+    input: ComputerArgs,
+    async execute(input: unknown, ctx: ToolCallContext) {
+      const args = input as Record<string, unknown>
       const action = args.action as Action
       if (!ACTIONS.includes(action)) {
         const hint = ACTION_HINTS[String(action)]
-        return JSON.stringify({ ok: false, action, error: `unknown action${hint ? ` — ${hint}` : `; supported: ${ACTIONS.join(", ")}`}` })
+        return toResult(JSON.stringify({ ok: false, action, error: `unknown action${hint ? ` — ${hint}` : `; supported: ${ACTIONS.join(", ")}`}` }))
       }
       deps.probeLine?.(`computer action=${action}`)
-      return await driverCall(deps, ctx, action, args as Record<string, unknown>)
+      return toResult(await driverCall(deps, ctx, action, args))
     },
-  })
+  }
 }
 
 export function makeStatusTool(deps: {
@@ -668,10 +715,11 @@ export function makeStatusTool(deps: {
   /** Live health probe: returns the driver's health_report (or throws). */
   healthFetch?: () => Promise<Record<string, unknown>>
 }) {
-  return tool({
+  return {
+    name: "computer_status",
     description:
       "cua-driver readiness, version, health, and remediation. When the driver is missing or below the contract floor this is the ONLY computer-use tool: it prints the exact command the USER must run in their own terminal (the plugin never installs or upgrades the driver, and never executes installers on the user's behalf).",
-    args: {},
+    input: z.object({}),
     async execute() {
       let health: Record<string, unknown> | undefined
       if (deps.ready && deps.healthFetch) {
@@ -685,7 +733,7 @@ export function makeStatusTool(deps: {
         ready: deps.ready,
         driver: deps.resolved,
         version: deps.version,
-        contract: { min: "0.28.0", testedAgainst: "0.28.2" },
+        contract: { min: "0.28.0", testedAgainst: "0.44.0" },
         session: deps.sessionId,
         ...(health ? { health } : {}),
         ...(deps.ready ? {} : { problem: deps.reason, remediation: deps.installHint }),
@@ -697,7 +745,7 @@ export function makeStatusTool(deps: {
           : {}),
         update_check: "to check for a newer driver, run `cua-driver check-update` yourself in a terminal; this plugin never polls or refreshes",
       }
-      return JSON.stringify(payload, null, 2)
+      return toResult(JSON.stringify(payload, null, 2))
     },
-  })
+  }
 }
