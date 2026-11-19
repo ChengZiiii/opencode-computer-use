@@ -1,7 +1,7 @@
 # driver-lifecycle Specification
 
 ## Purpose
-TBD - created by archiving change add-computer-use. Update Purpose after archive.
+Define how the plugin discovers, health-checks, and remediates the cua-driver backend at startup and on demand: local-only readiness probing under a hard timeout with an authoritative environment-variable override, version-floor enforcement against the driver manifest, and honest guide-mode degradation when the driver is missing or below contract.
 
 ## Requirements
 

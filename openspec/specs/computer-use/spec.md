@@ -1,7 +1,7 @@
 # computer-use Specification
 
 ## Purpose
-TBD - created by archiving change add-computer-use. Update Purpose after archive.
+Expose the desktop as a single consolidated `computer` tool driven by the locally installed cua-driver: capture and inspect real application windows, act on them through element-indexed input (click, drag, type, keys, set_value), and verify outcomes with deterministic predicates — capture-first workflow, background input delivery, and hard blocks on destructive key combos.
 
 ## Requirements
 

@@ -1,7 +1,7 @@
 # skill-activation-layer Specification
 
 ## Purpose
-TBD - created by archiving change add-skill-activation-layer. Update Purpose after archive.
+Ship the computer-use operating manual as a bundled skill inside the published npm artifact so the agent loads the full capture/act/verify workflow discipline before its first `computer` call — behavioral guidance lives in a load-on-demand document, not in the system prompt.
 
 ## Requirements
 
