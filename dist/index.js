@@ -16,7 +16,7 @@ var __export = (target, all) => {
 // plugin.ts
 import { randomUUID } from "node:crypto";
 import { appendFileSync } from "node:fs";
-import { existsSync as existsSync2 } from "node:fs";
+import { existsSync as existsSync2, readFileSync } from "node:fs";
 import { dirname, join as join2 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir as tmpdir2 } from "node:os";
@@ -13551,9 +13551,11 @@ screenshot unchanged since the previous capture — image omitted (dedup streak 
   };
 }
 var ACTION_DESC = `Which action to perform. capture (side-effect free) returns screen state: mode=som (screenshot + numbered element list — click by [index]), mode=vision (plain screenshot), mode=ax (element list only, cheapest). zoom returns a native-resolution crop (≤500px) for reading dense UI; coordinates read off it go into the next input with from_zoom=true. verify evaluates deterministic predicates against the current window (three-state: passed/failed/unknown — unknown is never success). Input actions (click/double_click/right_click/drag/scroll/type/key/set_value/invoke_menu/launch_app) act on the sticky target set by the last capture/focus_app and require approval. set_value selects options/sliders directly; invoke_menu drives native menus by path (no pixel fallback); launch_app starts an app (hidden by default, auto-selects its window). wait sleeps locally. list_apps/list_windows are read-only. focus_app SELECTS a target without touching the foreground; raise=true (separate approval domain) brings it to the front.`;
+var COMPUTER_TOOL_DESCRIPTION = "Desktop computer use via the locally installed cua-driver (user-installed; this plugin never installs or upgrades it). Workflow: capture -> act by element index -> capture/verify to check. Verdicts classify every input (done / verify_fresh_state / escalate); never re-issue input on an escalation recommendation alone — re-capture first. Load the `computer-use` skill for the full operating manual and when-to-use scope.";
+var STATUS_TOOL_DESCRIPTION = "cua-driver readiness, version, health, and remediation. When the driver is missing or below the contract floor this is the ONLY computer-use tool: it prints the exact command the USER must run in their own terminal (the plugin never installs or upgrades the driver, and never executes installers on the user's behalf).";
 function makeComputerTool(deps) {
   return tool({
-    description: "Desktop computer use via the locally installed cua-driver (user-installed; this plugin never installs or upgrades it). Workflow: capture -> act by element index -> capture/verify to check. Verdicts classify every input (done / verify_fresh_state / escalate); never re-issue input on an escalation recommendation alone — re-capture first. Load the `computer-use` skill for the full operating manual and when-to-use scope.",
+    description: COMPUTER_TOOL_DESCRIPTION,
     args: {
       action: z.enum(ACTIONS).describe(ACTION_DESC),
       mode: z.string().optional().describe("capture mode: som | vision | ax (default som)"),
@@ -13599,7 +13601,7 @@ function makeComputerTool(deps) {
 }
 function makeStatusTool(deps) {
   return tool({
-    description: "cua-driver readiness, version, health, and remediation. When the driver is missing or below the contract floor this is the ONLY computer-use tool: it prints the exact command the USER must run in their own terminal (the plugin never installs or upgrades the driver, and never executes installers on the user's behalf).",
+    description: STATUS_TOOL_DESCRIPTION,
     args: {},
     async execute() {
       let health;
@@ -13669,6 +13671,14 @@ function bundledSkillsDir() {
       return candidate;
   }
   return null;
+}
+function parseSkillFrontmatter(text) {
+  const fm = text.startsWith("---") ? text.slice(3, text.indexOf(`
+---`, 3)) : "";
+  const name = /^name:\s*(.+)$/m.exec(fm)?.[1]?.trim() ?? "computer-use";
+  const descMatch = /description:\s*>-\n((?:\s+.+\n)+)/.exec(fm);
+  const description = descMatch ? descMatch[1].replace(/\s+/g, " ").trim() : "";
+  return { name, description };
 }
 var server = async (_input, options) => {
   const contract = probeOnce();
@@ -13744,10 +13754,155 @@ function extractTextSafe(res) {
   return res.content.filter((c) => c.type === "text").map((c) => c.text ?? "").join(`
 `).slice(0, 300);
 }
-async function setup(ctx) {
-  if (typeof ctx.agent?.transform === "function") {
-    await ctx.agent.transform(async () => {});
+var COMPUTER_INPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    action: { type: "string", enum: [...ACTIONS], description: ACTION_DESC },
+    mode: { type: "string", description: "capture mode: som | vision | ax (default som)" },
+    app: { type: "string", description: "app name or bundle id; limits capture to one app and sets the sticky target (resolution: list_apps exact, substring, then window titles)" },
+    pid: { type: "number", description: "exact process target (from list_apps / capture)" },
+    window_id: { type: "number", description: "exact window target (from list_windows / capture) — window actions require it; capture resolves it via list_windows when only pid is given" },
+    query: { type: "string", description: "capture: case-insensitive substring filter on the element tree" },
+    element_index: { type: "number", description: "element to act on, by [index] from the last capture (must come from the current snapshot — stale references are refused)" },
+    x: { type: "number", description: "x in window-local screenshot pixels (pixel fallback; prefer element_index)" },
+    y: { type: "number", description: "y in window-local screenshot pixels" },
+    w: { type: "number", description: "zoom: crop width (≤500)" },
+    h: { type: "number", description: "zoom: crop height (≤500)" },
+    button: { type: "string", description: "click mouse button: left | right | middle (action=click)" },
+    delivery_mode: { type: "string", description: "background (default, never steals focus) | foreground (escalation ONLY after a background_unavailable error — never preemptively; needs the foreground approval)" },
+    raise: { type: "boolean", description: "foreground intents: focus_app raise=true brings the window to the front; input actions with raise=true foreground them (separate approval domain computer:foreground)" },
+    from_zoom: { type: "boolean", description: "coordinates were read off a zoom crop — remap them to native window coordinates before dispatch" },
+    from_x: { type: "number" },
+    from_y: { type: "number" },
+    to_x: { type: "number" },
+    to_y: { type: "number" },
+    direction: { type: "string", description: "scroll direction: up|down|left|right" },
+    amount: { type: "number", description: "scroll amount" },
+    text: { type: "string", description: "text to type (action=type)" },
+    keys: { type: "string", description: "key or combo, e.g. 'enter' or 'ctrl+s' (action=key)" },
+    value: { description: "value to set (action=set_value)" },
+    path: { type: "string", description: `invoke_menu: menu path, 'File > Open' or ["File","Open"]` },
+    launch_path: { type: "string", description: "launch_app: executable path to start" },
+    start_minimized: { type: "boolean", description: "launch_app: default true (minimized, never steals the foreground — a plain driver launch can activate the window); pass false for a normal start" },
+    predicates: {
+      type: "array",
+      items: { type: "object", additionalProperties: true },
+      description: "verify: [{ element_index?, label?, exists?, enabled?, selected?, value? }] — deterministic checks against the current window"
+    },
+    waitMs: { type: "number", description: "wait duration ms, max 10000 (action=wait)" },
+    capture_after: { type: "boolean", description: "attach a fresh som capture after a successful input action" }
+  },
+  required: ["action"]
+};
+var STATUS_INPUT_SCHEMA = { type: "object", properties: {} };
+function wrapV2ToolResult(result) {
+  if (typeof result === "string")
+    return { content: result };
+  const content = [{ type: "text", text: result.output }];
+  for (const a of result.attachments ?? []) {
+    content.push({ type: "file", uri: a.url, mime: a.mime, ...a.filename ? { name: a.filename } : {} });
   }
+  return { content };
+}
+function v2ExecuteAdapter(def, toolName, v2ctx) {
+  return async (args, toolCtx) => {
+    const hostCtx = toolCtx ?? {};
+    const assertFn = v2ctx?.permission?.assert;
+    if (toolName === "computer" && typeof assertFn === "function" && typeof hostCtx.sessionID === "string") {
+      await assertFn({
+        sessionID: hostCtx.sessionID,
+        ...typeof hostCtx.agent === "string" ? { agent: hostCtx.agent } : {},
+        ...typeof hostCtx.messageID === "string" && typeof hostCtx.id === "string" ? { source: { type: "tool", messageID: hostCtx.messageID, id: hostCtx.id } } : {},
+        action: "computer",
+        resources: ["computer"]
+      });
+    }
+    const ctx = { ...hostCtx, ask: async () => {} };
+    const result = await def.execute(args, ctx);
+    return wrapV2ToolResult(result);
+  };
+}
+function v2PermissionEvaluate(event) {
+  try {
+    const e = event ?? {};
+    const name = (typeof e.action === "string" ? e.action : undefined) ?? (typeof e.source?.id === "string" ? e.source.id : undefined);
+    if (name !== "computer" && name !== "computer:foreground")
+      return;
+    if (e.effect === "allow" || e.effect === "deny")
+      return;
+    e.effect = "ask";
+  } catch {}
+}
+async function setup(ctx, deps) {
+  const contract = probeOnce();
+  const installHint = userInstallHint();
+  let session = null;
+  const ensureSession = () => {
+    if (!session && contract.ready && contract.mcpInvocation) {
+      session = deps?.makeSession ? deps.makeSession(contract.mcpInvocation, sessionId, probeLine) : new ComputerSession(contract.mcpInvocation, sessionId, { log: probeLine });
+    }
+    return session;
+  };
+  if (typeof ctx.tool?.transform === "function") {
+    await ctx.tool.transform(async (editor) => {
+      if (typeof editor?.add !== "function")
+        return;
+      const status = makeStatusTool({
+        ready: contract.ready,
+        reason: contract.reason,
+        resolved: contract.resolved,
+        version: contract.version,
+        installHint,
+        sessionId,
+        ...contract.ready ? {
+          healthFetch: async () => {
+            const s2 = ensureSession();
+            if (!s2)
+              throw new Error("no session");
+            const res = await s2.call("health_report", {}, 1e4);
+            return { ...res.structured ?? {}, ...res.isError ? { degraded: extractTextSafe(res) } : {} };
+          }
+        } : {}
+      });
+      editor.add({ name: "computer_status", description: STATUS_TOOL_DESCRIPTION, input: STATUS_INPUT_SCHEMA, execute: v2ExecuteAdapter(status, "computer_status", ctx) });
+      if (!contract.ready)
+        return;
+      const s = ensureSession();
+      if (!s)
+        return;
+      const computer = makeComputerTool({ session: s, driverVersion: () => contract.version, probeLine });
+      editor.add({ name: "computer", description: COMPUTER_TOOL_DESCRIPTION, input: COMPUTER_INPUT_SCHEMA, execute: v2ExecuteAdapter(computer, "computer", ctx) });
+    });
+  }
+  if (typeof ctx.permission?.hook === "function") {
+    ctx.permission.hook("evaluate", (event) => v2PermissionEvaluate(event));
+  }
+  if (typeof ctx.skill?.transform === "function") {
+    const skillMdPath = (() => {
+      const dir = bundledSkillsDir();
+      return dir ? join2(dir, "computer-use", "SKILL.md") : null;
+    })();
+    let skillDoc = null;
+    if (skillMdPath) {
+      try {
+        const raw = readFileSync(skillMdPath, "utf8");
+        const { name, description } = parseSkillFrontmatter(raw);
+        const body = raw.replace(/^---\n.*?\n---\n?/s, "");
+        skillDoc = { name, description, content: body };
+      } catch {
+        skillDoc = null;
+      }
+    }
+    await ctx.skill.transform(async (editor) => {
+      if (!skillDoc || typeof editor?.add !== "function")
+        return;
+      editor.add({ id: "computer-use", name: skillDoc.name, description: skillDoc.description, path: skillMdPath, content: skillDoc.content });
+    });
+  }
+  return () => {
+    session?.dispose();
+    session = null;
+  };
 }
 var plugin_default = { id: "opencode-computer-use", server, setup };
 export {

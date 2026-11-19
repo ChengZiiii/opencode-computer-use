@@ -6,9 +6,15 @@ self-contained and committed.
 
 ## Architecture
 
+Dual-host since 0.5.0: v1 hosts call `server` (unchanged path), v2 hosts
+(verified against 2.3.2) call `setup` — the setup entry is now full parity
+with the v1 surface (same probe, same tool cores, same safety layer, same
+session lifecycle; only the registration/gate wiring differs per host).
+V2 field shapes are structurally typed with `?.` guards; drift no-ops.
+
 | Module | Role |
 |---|---|
-| `plugin.ts` | v1/v2 entries (`{ id, server, setup }`); startup probe (process-cached), two-state registration (ready → `computer` + `computer_status`; not ready → `computer_status` only), `permission.computer = "ask"` default injection, dispose |
+| `plugin.ts` | v1/v2 entries (`{ id, server, setup }` — full parity on both hosts); startup probe (process-cached), two-state registration (ready → `computer` + `computer_status`; not ready → `computer_status` only), v1: `permission.computer = "ask"` default injection, v2: functional gate (`ctx.permission.assert` in the execute adapter + `ctx.permission.hook("evaluate")` top-level `effect`), skills (v1: `skills.paths` append; v2: `ctx.skill.transform` full Skill.Info), dispose (v1 hook / v2 setup-returned cleanup) |
 | `src/driver-resolve.ts` | binary resolution: `OPENCODE_CUA_DRIVER_CMD` override (authoritative) → PATH → per-platform canonical installer locations; user-run install/upgrade hint text |
 | `src/contract.ts` | runtime contract gate: `cua-driver manifest` self-description — version floor 0.28.0, `mcp_invocation`, required subcommand flags; `TESTED_AGAINST = 0.28.2`; one-way version policy |
 | `src/mcp-client.ts` | minimal JSON-RPC 2.0 over stdio (initialize → tools/list → tools/call); per-call hard timeouts; exit → reject in-flight + `crashed`; transport injectable |
