@@ -451,6 +451,33 @@ function mapVerdict(f) {
 
 // src/session.ts
 var TELEMETRY_ENV = { CUA_DRIVER_RS_TELEMETRY_ENABLED: "0" };
+var SESSION_ENDED = "session_ended";
+function sessionEndedRefusal(res) {
+  if (!res)
+    return null;
+  const structured = res.structured ?? {};
+  if (structured.refusal?.code === SESSION_ENDED) {
+    return typeof structured.refusal.message === "string" && structured.refusal.message ? structured.refusal.message : "this session has ended";
+  }
+  const text = (Array.isArray(res.content) ? res.content : []).filter((c) => c && c.type === "text").map((c) => String(c.text ?? "")).join(`
+`);
+  for (const candidate of [text, ...text.split(`
+`)]) {
+    const start = candidate.indexOf("{");
+    if (start < 0)
+      continue;
+    try {
+      const parsed = JSON.parse(candidate.slice(start));
+      if (parsed && typeof parsed === "object" && parsed.refusal?.code === SESSION_ENDED) {
+        return typeof parsed.refusal.message === "string" && parsed.refusal.message ? parsed.refusal.message : "this session has ended";
+      }
+    } catch {}
+  }
+  if (/"code"\s*:\s*"session_ended"/.test(text))
+    return "this session has ended";
+  const line = text.match(/\bsession_ended\b[\s"':]*this session has ended([^\n]*)/i);
+  return line ? `this session has ended${line[1] ?? ""}`.trim() : null;
+}
 var REQUIRED_TOOLS = [
   "start_session",
   "end_session",
@@ -483,6 +510,7 @@ class ComputerSession {
   opts;
   sticky = null;
   restarted = false;
+  restartReason = "crash";
   snapshots = new Map;
   dedup = new Map;
   lastZoom = null;
@@ -518,6 +546,7 @@ class ComputerSession {
         }
         this.client = client;
         this.restarted = true;
+        this.restartReason = "crash";
         try {
           await client.call("start_session", { session: this.sessionId }, 1e4);
         } catch {}
@@ -539,7 +568,20 @@ class ComputerSession {
   async doCall(tool, args, timeoutMs) {
     await this.ensureStarted();
     try {
-      return await this.client.call(tool, args, timeoutMs);
+      const res = await this.client.call(tool, args, timeoutMs);
+      const ended = sessionEndedRefusal(res);
+      if (ended === null)
+        return res;
+      this.deps.log?.(`driver session ended mid-call (${tool}): re-attaching and retrying once — ${ended}`);
+      this.invalidateTarget();
+      await this.client.call("start_session", { session: this.sessionId }, 1e4);
+      this.restarted = true;
+      this.restartReason = "session-ended";
+      const again = await this.client.call(tool, args, timeoutMs);
+      const second = sessionEndedRefusal(again);
+      if (second !== null)
+        throw new Error(`cua-driver refused again with session_ended after a re-attach (one retry per call — the driver keeps ending the session): ${second}`);
+      return again;
     } catch (err) {
       if (this.client?.crashed) {
         this.invalidateTarget();
@@ -13127,7 +13169,7 @@ async function driverCall(deps, ctx, action, args) {
       const waitRestarted = s.restarted;
       if (waitRestarted)
         s.restarted = false;
-      return JSON.stringify({ ok: true, action, waitedMs: ms, ...waitRestarted ? restartedFields() : {}, verdict: { decision: "done", hint: "no side effects" } });
+      return JSON.stringify({ ok: true, action, waitedMs: ms, ...waitRestarted ? restartedFields(s) : {}, verdict: { decision: "done", hint: "no side effects" } });
     }
     let result;
     if (action === "capture")
@@ -13147,13 +13189,14 @@ async function driverCall(deps, ctx, action, args) {
     if (restartedNote && typeof result === "string") {
       try {
         const parsed = JSON.parse(result);
-        return JSON.stringify({ ...restartedFields(), ...parsed });
+        return JSON.stringify({ ...restartedFields(s), ...parsed });
       } catch {
         return result;
       }
     }
     if (restartedNote && typeof result === "object") {
-      return { ...result, output: `driver restarted since your last call — re-capture required (element references and target were invalidated)
+      const head = s.restartReason === "session-ended" ? "driver session re-attached since your last call" : "driver restarted since your last call";
+      return { ...result, output: `${head} — re-capture required (element references and target were invalidated)
 ${result.output}` };
     }
     return result;
@@ -13161,8 +13204,9 @@ ${result.output}` };
     return jsonErr(action, err);
   }
 }
-function restartedFields() {
-  return { restarted: true, restart_note: "the cua-driver restarted; prior element references and the sticky target are invalid — capture again before any input" };
+function restartedFields(s) {
+  const note = s.restartReason === "session-ended" ? "the driver-side session had ended and was re-attached; prior element references and the sticky target are invalid — capture again before any input" : "the cua-driver restarted; prior element references and the sticky target are invalid — capture again before any input";
+  return { restarted: true, restart_note: note };
 }
 function windowsFromList(listed) {
   const arr = listed.structured?.windows;

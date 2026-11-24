@@ -2,7 +2,7 @@ import { test } from "node:test"
 import assert from "node:assert/strict"
 import { EventEmitter } from "node:events"
 import { McpClient } from "../src/mcp-client.ts"
-import { ComputerSession, REQUIRED_TOOLS, TELEMETRY_ENV, targetRefusal } from "../src/session.ts"
+import { ComputerSession, REQUIRED_TOOLS, TELEMETRY_ENV, targetRefusal, sessionEndedRefusal } from "../src/session.ts"
 import { makeComputerTool, makeStatusTool } from "../src/tool.ts"
 import { server, _testInjectProbe } from "../plugin.ts"
 
@@ -203,6 +203,145 @@ test("target refusal text points at capture/focus first", () => {
   assert.equal(targetRefusal({ app: "Code" }, "code"), null)
 })
 
+// ── driver-side session ended (fix-session-ended-self-heal) ────────────────
+
+const ENDED_MSG = "this session has ended; call start_session explicitly to reuse its label"
+/** The driver's refusal as the fake transport returns it, in each placement it may use. */
+const endedResult = (how = "structured") =>
+  how === "structured"
+    ? { content: [{ type: "text", text: "refused" }], isError: true, structuredContent: { refusal: { code: "session_ended", message: ENDED_MSG } } }
+    : how === "text-json"
+      ? { content: [{ type: "text", text: JSON.stringify({ refusal: { code: "session_ended", message: ENDED_MSG } }) }], isError: true }
+      : { content: [{ type: "text", text: `session_ended: ${ENDED_MSG}` }], isError: true }
+
+/** Wire shape → the CallResult the session layer sees (McpClient.call's mapping). */
+const asCallResult = (raw) => ({ content: raw.content, isError: raw.isError, structured: raw.structuredContent })
+
+test("session_ended is detected by its code in every placement; a prose mention or another code is not a match", () => {
+  assert.equal(sessionEndedRefusal(asCallResult(endedResult("structured"))), ENDED_MSG)
+  assert.equal(sessionEndedRefusal(asCallResult(endedResult("text-json"))), ENDED_MSG)
+  assert.match(sessionEndedRefusal(asCallResult(endedResult("line"))), /this session has ended; call start_session explicitly/)
+  assert.equal(
+    sessionEndedRefusal(
+      asCallResult({ content: [{ type: "text", text: '{"refusal":{"code":"authorization_revoked","message":"this session authorization context has been revoked"}}' }], isError: true }),
+    ),
+    null,
+  )
+  // On-screen text that comes back inside a capture must never trigger a re-attach.
+  assert.equal(sessionEndedRefusal({ content: [{ type: "text", text: "the transcript showed session_ended and the crew moved on" }] }), null)
+  // The plain token alone (a JSON fragment the parser rejects) is the third placement.
+  assert.equal(
+    sessionEndedRefusal({ content: [{ type: "text", text: 'driver said: {"refusal":{"code":"session_ended"}} - retry' }] }),
+    "this session has ended",
+  )
+  // The remedy's wording without the code is not the driver's refusal.
+  assert.equal(sessionEndedRefusal({ content: [{ type: "text", text: "the page said: this session has ended; sign in again" }] }), null)
+  assert.equal(sessionEndedRefusal({ content: [{ type: "text", text: "session_ended: not the driver's own message" }] }), null)
+  assert.equal(sessionEndedRefusal(null), null)
+})
+
+test("session_ended: re-attach and retry the SAME call once; target + tokens invalidated; disclosed", async () => {
+  const wire = []
+  const logs = []
+  const { session } = fakeSession({
+    log: (l) => logs.push(l),
+    makeTransport: () => {
+      const t = scriptedTransport()
+      t.script["tools/call"] = (p) => {
+        wire.push([p.name, p.arguments])
+        if (p.name === "start_session") return { content: [] }
+        return wire.filter(([n]) => n === "click").length === 1 ? endedResult() : { content: [{ type: "text", text: "clicked" }] }
+      }
+      return t
+    },
+  })
+  session.sticky = { app: "Code", pid: 5, windowId: 9 }
+  session.recordSnapshot(9, "snap-1", [{ element_index: 1, element_token: "tok-1" }])
+  assert.ok(session.tokenFor(9, 1))
+  const args = { pid: 5, window_id: 9, x: 10, y: 20 }
+  const res = await session.call("click", args)
+  assert.equal(res.content[0].text, "clicked")
+  // first connect (start_session + cursor policy), the refused call, ONE
+  // re-attach, ONE retry — nothing else
+  assert.deepEqual(
+    wire.map(([n]) => n),
+    ["start_session", "set_agent_cursor_enabled", "click", "start_session", "click"],
+  )
+  assert.deepEqual(wire[4][1], args) // the retry is the same call with the same arguments
+  assert.deepEqual(wire[3][1], { session: "test-session" }) // re-attached under this run's own label
+  assert.equal(session.sticky, null)
+  assert.equal(session.tokenFor(9, 1), null)
+  assert.equal(session.restarted, true)
+  assert.equal(session.restartReason, "session-ended")
+  assert.ok(logs.some((l) => /driver session ended mid-call \(click\): re-attaching and retrying once/.test(l)))
+  session.dispose()
+})
+
+test("session_ended on a read-only call heals too, whichever placement the driver used", async () => {
+  for (const how of ["text-json", "line"]) {
+    const wire = []
+    const { session } = fakeSession({
+      makeTransport: () => {
+        const t = scriptedTransport()
+        t.script["tools/call"] = (p) => {
+          wire.push(p.name)
+          if (p.name === "start_session") return { content: [] }
+          return wire.filter((n) => n === "list_apps").length === 1 ? endedResult(how) : { content: [{ type: "text", text: "apps" }] }
+        }
+        return t
+      },
+    })
+    const res = await session.call("list_apps", {})
+    assert.equal(res.content[0].text, "apps", how)
+    assert.deepEqual(wire, ["start_session", "set_agent_cursor_enabled", "list_apps", "start_session", "list_apps"], how)
+    session.dispose()
+  }
+})
+
+test("session_ended twice: the call fails naming the code — no third attempt, no second re-attach", async () => {
+  const wire = []
+  const { session } = fakeSession({
+    makeTransport: () => {
+      const t = scriptedTransport()
+      t.script["tools/call"] = (p) => {
+        wire.push(p.name)
+        return p.name === "start_session" ? { content: [] } : endedResult("text-json")
+      }
+      return t
+    },
+  })
+  await assert.rejects(() => session.call("click", { pid: 5 }), /refused again with session_ended after a re-attach.*this session has ended/)
+  assert.deepEqual(
+    wire,
+    ["start_session", "set_agent_cursor_enabled", "click", "start_session", "click"],
+  )
+  session.dispose()
+})
+
+test("another refusal code (authorization_revoked) passes through: no re-attach, no retry, target kept", async () => {
+  const wire = []
+  const { session } = fakeSession({
+    makeTransport: () => {
+      const t = scriptedTransport()
+      t.script["tools/call"] = (p) => {
+        wire.push(p.name)
+        return p.name === "start_session"
+          ? { content: [] }
+          : { content: [{ type: "text", text: "this session authorization context has been revoked" }], isError: true, structuredContent: { refusal: { code: "authorization_revoked", message: "this session authorization context has been revoked" } } }
+      }
+      return t
+    },
+  })
+  session.sticky = { app: "Code", pid: 5, windowId: 9 }
+  const res = await session.call("click", { pid: 5 })
+  assert.equal(res.isError, true)
+  assert.equal(res.structured.refusal.code, "authorization_revoked")
+  assert.deepEqual(wire, ["start_session", "set_agent_cursor_enabled", "click"])
+  assert.deepEqual(session.sticky, { app: "Code", pid: 5, windowId: 9 })
+  assert.equal(session.restartReason, "crash") // untouched since the first connect — no re-attach happened
+  session.dispose()
+})
+
 // ── 4.1 / 5.3 tool wiring ──────────────────────────────────────────────────
 
 function toolRig(overrides = {}) {
@@ -260,6 +399,55 @@ test("input without a sticky target refuses with no_target", async () => {
   const { t, ctx } = toolRig()
   const r = JSON.parse(await t.execute({ action: "type", text: "hi" }, ctx))
   assert.equal(r.code, "no_target")
+})
+
+test("a healed call states the re-attach on its result (once); the crash wording is unchanged", async () => {
+  let presses = 0
+  const { t, ctx, session, asks } = toolRig({
+    calls: {
+      press_key: () => (++presses === 1 ? endedResult() : { content: [{ type: "text", text: "ok" }] }),
+    },
+  })
+  session.sticky = { app: "Code", pid: 5, windowId: 9 }
+  const r = JSON.parse(await t.execute({ action: "key", keys: "a" }, ctx))
+  assert.equal(r.restarted, true)
+  assert.match(r.restart_note, /driver-side session had ended and was re-attached.*capture again before any input/)
+  assert.equal(presses, 2)
+  assert.equal(asks.length, 1) // ONE approval for the whole call — the retry is not a new ask
+  assert.equal(session.restarted, false) // disclosure consumed by the healed result
+  // The crash path keeps its own wording.
+  const crashRig = toolRig()
+  crashRig.session.sticky = { app: "Code", pid: 5, windowId: 9 }
+  crashRig.session.restarted = true
+  crashRig.session.restartReason = "crash"
+  const r2 = JSON.parse(await crashRig.t.execute({ action: "key", keys: "a" }, crashRig.ctx))
+  assert.equal(r2.restarted, true)
+  assert.match(r2.restart_note, /^the cua-driver restarted; prior element references and the sticky target are invalid — capture again before any input$/)
+})
+
+test("a healed capture (object result) names the cause at the head of its output", async () => {
+  let states = 0
+  const { t, ctx } = toolRig({
+    calls: {
+      get_window_state: () =>
+        ++states === 1 ? endedResult() : { content: [{ type: "text", text: "state" }], structuredContent: {} },
+    },
+  })
+  const r = await t.execute({ action: "capture", mode: "ax", pid: 5, window_id: 9 }, ctx)
+  assert.equal(typeof r, "object")
+  assert.match(
+    r.output,
+    /^driver session re-attached since your last call . re-capture required \(element references and target were invalidated\)\n/,
+  )
+  assert.equal(states, 2)
+  // The crash cause keeps its own head on the same path.
+  const crash = toolRig()
+  crash.session.sticky = { app: "Code", pid: 5, windowId: 9 }
+  crash.session.restarted = true
+  crash.session.restartReason = "crash"
+  const r2 = await crash.t.execute({ action: "capture", mode: "ax", pid: 5, window_id: 9 }, crash.ctx)
+  assert.equal(typeof r2, "object")
+  assert.match(r2.output, /^driver restarted since your last call . re-capture required/)
 })
 
 test("capture som returns attachment + element list and sets sticky target", async () => {

@@ -148,7 +148,7 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
       await new Promise((r) => setTimeout(r, ms))
       const waitRestarted = s.restarted
       if (waitRestarted) s.restarted = false
-      return JSON.stringify({ ok: true, action, waitedMs: ms, ...(waitRestarted ? restartedFields() : {}), verdict: { decision: "done", hint: "no side effects" } })
+      return JSON.stringify({ ok: true, action, waitedMs: ms, ...(waitRestarted ? restartedFields(s) : {}), verdict: { decision: "done", hint: "no side effects" } })
     }
     let result: string | { output: string; attachments?: Attachment[] }
     if (action === "capture") result = await captureFlow(deps, args)
@@ -166,13 +166,14 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
     if (restartedNote && typeof result === "string") {
       try {
         const parsed = JSON.parse(result) as Record<string, unknown>
-        return JSON.stringify({ ...restartedFields(), ...parsed })
+        return JSON.stringify({ ...restartedFields(s), ...parsed })
       } catch {
         return result
       }
     }
     if (restartedNote && typeof result === "object") {
-      return { ...result, output: `driver restarted since your last call — re-capture required (element references and target were invalidated)\n${result.output}` }
+      const head = s.restartReason === "session-ended" ? "driver session re-attached since your last call" : "driver restarted since your last call"
+      return { ...result, output: `${head} — re-capture required (element references and target were invalidated)\n${result.output}` }
     }
     return result
   } catch (err) {
@@ -180,8 +181,15 @@ async function driverCall(deps: ToolDeps, ctx: ToolContext, action: Action, args
   }
 }
 
-function restartedFields(): Record<string, unknown> {
-  return { restarted: true, restart_note: "the cua-driver restarted; prior element references and the sticky target are invalid — capture again before any input" }
+function restartedFields(s: ComputerSession): Record<string, unknown> {
+  // Two causes share one disclosure channel: the driver PROCESS restarted
+  // (crash → respawn) or the driver-side SESSION ended and was re-attached
+  // (child alive). The caller must know which, and re-capture either way.
+  const note =
+    s.restartReason === "session-ended"
+      ? "the driver-side session had ended and was re-attached; prior element references and the sticky target are invalid — capture again before any input"
+      : "the cua-driver restarted; prior element references and the sticky target are invalid — capture again before any input"
+  return { restarted: true, restart_note: note }
 }
 
 type WindowRow = { pid?: number; window_id?: number; title?: string; z_index?: number | null; is_on_screen?: boolean; minimized?: boolean }

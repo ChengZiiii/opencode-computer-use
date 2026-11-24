@@ -11,6 +11,50 @@ import { inputTargetMismatch, type StickyTarget } from "./safety.ts"
 
 export const TELEMETRY_ENV = { CUA_DRIVER_RS_TELEMETRY_ENABLED: "0" }
 
+// Driver refusal code for "the driver-side lifecycle session ended while the
+// subprocess lives" (cua-driver 0.28.2, crates/cua-driver-core/src/tool.rs).
+// The refusal names its own remedy: "this session has ended; call
+// start_session explicitly to reuse its label".
+export const SESSION_ENDED = "session_ended"
+
+type RefusalShape = { refusal?: { code?: unknown; message?: unknown } }
+
+/**
+ * The driver's message of a `session_ended` refusal, or null. The code is
+ * read wherever the driver may put it: the structured `refusal.code`, a
+ * JSON document in the text content, or the driver's own "session_ended:
+ * this session has ended …" line. ONLY that code qualifies — a revocation
+ * (`authorization_revoked`, `authorization_suspended`) is the user's
+ * decision and never heals. A prose mention of the code (e.g. on-screen
+ * text that comes back inside a capture) is deliberately not a match.
+ */
+export function sessionEndedRefusal(res: CallResult | null | undefined): string | null {
+  if (!res) return null
+  const structured = (res.structured ?? {}) as RefusalShape
+  if (structured.refusal?.code === SESSION_ENDED) {
+    return typeof structured.refusal.message === "string" && structured.refusal.message ? structured.refusal.message : "this session has ended"
+  }
+  const text = (Array.isArray(res.content) ? res.content : [])
+    .filter((c) => c && c.type === "text")
+    .map((c) => String(c.text ?? ""))
+    .join("\n")
+  for (const candidate of [text, ...text.split("\n")]) {
+    const start = candidate.indexOf("{")
+    if (start < 0) continue
+    try {
+      const parsed = JSON.parse(candidate.slice(start)) as RefusalShape
+      if (parsed && typeof parsed === "object" && parsed.refusal?.code === SESSION_ENDED) {
+        return typeof parsed.refusal.message === "string" && parsed.refusal.message ? parsed.refusal.message : "this session has ended"
+      }
+    } catch {
+      // not a JSON document — try the next candidate
+    }
+  }
+  if (/"code"\s*:\s*"session_ended"/.test(text)) return "this session has ended"
+  const line = text.match(/\bsession_ended\b[\s"':]*this session has ended([^\n]*)/i)
+  return line ? `this session has ended${line[1] ?? ""}`.trim() : null
+}
+
 // The MCP tool names this integration consumes (checked at first connect).
 export const REQUIRED_TOOLS = [
   "start_session",
@@ -65,6 +109,8 @@ export class ComputerSession {
   private opts: SessionOptions
   sticky: StickyTarget = null
   restarted = false
+  /** Why the next result carries the restart disclosure. */
+  restartReason: "crash" | "session-ended" = "crash"
   private snapshots = new Map<number, WindowSnapshot>()
   private dedup = new Map<number, ScreenshotDedup>()
   private lastZoom: { windowId: number; region: { x: number; y: number; w: number; h: number }; nativeW?: number; nativeH?: number } | null = null
@@ -107,6 +153,7 @@ export class ComputerSession {
         }
         this.client = client
         this.restarted = true
+        this.restartReason = "crash"
         // Declare this run's identity; non-fatal when declined.
         try {
           await client.call("start_session", { session: this.sessionId }, 10000)
@@ -144,7 +191,23 @@ export class ComputerSession {
   private async doCall(tool: string, args: Record<string, unknown>, timeoutMs?: number): Promise<CallResult> {
     await this.ensureStarted()
     try {
-      return await this.client!.call(tool, args, timeoutMs)
+      const res = await this.client!.call(tool, args, timeoutMs)
+      const ended = sessionEndedRefusal(res)
+      if (ended === null) return res
+      // The driver ended the lifecycle session while this child lives — no
+      // crash, so nothing respawned and (before this path) every later call
+      // was refused until the host restarted. Take the remedy the refusal
+      // names: declare the session again, retry the SAME call once.
+      // Everything the ended session minted is untrusted — clear it first.
+      this.deps.log?.(`driver session ended mid-call (${tool}): re-attaching and retrying once — ${ended}`)
+      this.invalidateTarget()
+      await this.client!.call("start_session", { session: this.sessionId }, 10_000)
+      this.restarted = true
+      this.restartReason = "session-ended"
+      const again = await this.client!.call(tool, args, timeoutMs)
+      const second = sessionEndedRefusal(again)
+      if (second !== null) throw new Error(`cua-driver refused again with session_ended after a re-attach (one retry per call — the driver keeps ending the session): ${second}`)
+      return again
     } catch (err) {
       if (this.client?.crashed) {
         this.invalidateTarget()
